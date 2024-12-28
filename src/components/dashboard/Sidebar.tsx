@@ -58,8 +58,8 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "flex flex-col h-full w-[280px] bg-background border-r p-6",
-        className,
+        "flex flex-col  max-w-[280px] bg-background border-r p-6",
+        className
       )}
     >
       {/* Logo Area */}
@@ -86,7 +86,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="mt-auto space-y-2">
+      <div className="space-y-2 -translate-x-3">
         <Separator />
         <Button variant="ghost" className="w-full justify-start">
           <Settings className="mr-2 h-5 w-5" />
