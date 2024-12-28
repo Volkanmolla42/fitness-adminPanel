@@ -1,9 +1,10 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface Appointment {
   id: string;
@@ -19,6 +20,7 @@ interface Appointment {
 interface AppointmentsWidgetProps {
   appointments?: Appointment[];
   title?: string;
+  showAll?: boolean;
 }
 
 const defaultAppointments: Appointment[] = [
@@ -60,7 +62,7 @@ const defaultAppointments: Appointment[] = [
     memberName: "Mehmet Demir",
     trainerName: "PT Mehmet Öztürk",
     service: "Kişisel Antrenman",
-    status: "in-progress",
+    status: "scheduled",
   },
   {
     id: "6",
@@ -68,86 +70,6 @@ const defaultAppointments: Appointment[] = [
     memberName: "Fatma Şahin",
     trainerName: "PT Ali Can",
     service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-  {
-    id: "7",
-    time: "13:00",
-    memberName: "Can Yılmaz",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "8",
-    time: "13:30",
-    memberName: "Elif Öztürk",
-    trainerName: "PT Ayşe Demir",
-    service: "Yoga Dersi",
-    status: "scheduled",
-  },
-  {
-    id: "9",
-    time: "14:00",
-    memberName: "Burak Aydın",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "10",
-    time: "14:30",
-    memberName: "Selin Kara",
-    trainerName: "PT Ali Can",
-    service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-  {
-    id: "11",
-    time: "15:00",
-    memberName: "Emre Çetin",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "12",
-    time: "15:30",
-    memberName: "Deniz Yıldırım",
-    trainerName: "PT Ayşe Demir",
-    service: "Yoga Dersi",
-    status: "scheduled",
-  },
-  {
-    id: "13",
-    time: "16:00",
-    memberName: "Mert Aksoy",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "14",
-    time: "16:30",
-    memberName: "Gizem Arslan",
-    trainerName: "PT Ali Can",
-    service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-  {
-    id: "15",
-    time: "17:00",
-    memberName: "Onur Yılmaz",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "16",
-    time: "17:30",
-    memberName: "Ceren Demir",
-    trainerName: "PT Ayşe Demir",
-    service: "Yoga Dersi",
     status: "scheduled",
   },
 ];
@@ -172,58 +94,94 @@ const getStatusText = (status: Appointment["status"]) => {
   return texts[status];
 };
 
+const getRelevantAppointments = (appointments: Appointment[]) => {
+  const inProgressIndex = appointments.findIndex(
+    (apt) => apt.status === "in-progress",
+  );
+
+  if (inProgressIndex === -1) return appointments.slice(0, 3);
+
+  const start = Math.max(0, inProgressIndex - 1);
+  const end = Math.min(appointments.length, inProgressIndex + 2);
+
+  return appointments.slice(start, end);
+};
+
 const AppointmentsWidget = ({
   appointments = defaultAppointments,
-  title = "Günün Randevuları",
+  title = "Aktif Randevular",
+  showAll = false,
 }: AppointmentsWidgetProps) => {
+  const navigate = useNavigate();
+  const displayAppointments = showAll
+    ? appointments
+    : getRelevantAppointments(appointments);
+
   return (
-    <Card className="w-full h-[800px] bg-white p-6">
+    <Card className="w-full bg-white p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
-        <Badge variant="secondary" className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
-          <span>Canlı</span>
-        </Badge>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+            {title}
+          </h2>
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Clock className="w-4 h-4" />
+            <span>Canlı</span>
+          </Badge>
+        </div>
+        {!showAll && (
+          <Button
+            variant="ghost"
+            className="text-primary flex items-center gap-2"
+            onClick={() => navigate("/appointments")}
+          >
+            Tümünü Göster
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
-      <ScrollArea className="h-[700px] w-full pr-4">
-        <div className="space-y-3">
-          {appointments.map((appointment) => (
-            <div
-              key={appointment.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-16 text-sm font-medium text-gray-600">
-                  {appointment.time}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-gray-900">
-                      {appointment.memberName}
-                    </p>
-                    <span className="text-gray-400 text-sm">•</span>
-                    <p className="text-sm text-gray-600">
-                      {appointment.trainerName}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {appointment.service}
-                  </p>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {displayAppointments.map((appointment) => (
+          <div
+            key={appointment.id}
+            className={cn(
+              "flex flex-col p-4 rounded-lg border transition-all",
+              appointment.status === "in-progress"
+                ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
+                : "border-gray-100 hover:bg-gray-50",
+            )}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div className="text-lg font-semibold text-gray-900">
+                {appointment.time}
               </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="secondary"
-                  className={`text-xs ${getStatusColor(appointment.status)} bg-opacity-10 text-gray-600`}
-                >
-                  {getStatusText(appointment.status)}
-                </Badge>
-              </div>
+              <Badge
+                variant="secondary"
+                className={`text-xs ${getStatusColor(
+                  appointment.status,
+                )} bg-opacity-10 text-gray-600`}
+              >
+                {getStatusText(appointment.status)}
+              </Badge>
             </div>
-          ))}
-        </div>
-      </ScrollArea>
+
+            <div className="space-y-2">
+              <div>
+                <p className="font-medium text-gray-900 truncate">
+                  {appointment.memberName}
+                </p>
+                <p className="text-sm text-gray-600 truncate">
+                  {appointment.trainerName}
+                </p>
+              </div>
+              <p className="text-sm text-gray-500 truncate">
+                {appointment.service}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 };

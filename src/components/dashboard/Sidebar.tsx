@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
   LayoutDashboard,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,11 @@ const navigationItems = [
     path: "/services",
   },
   {
+    title: "Eğitmenler",
+    icon: UserCog,
+    path: "/trainers",
+  },
+  {
     title: "Randevular",
     icon: Calendar,
     path: "/appointments",
@@ -57,7 +63,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       )}
     >
       {/* Logo Area */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-2 mb-8 ">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
           <Dumbbell className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -65,7 +71,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       </div>
 
       {/* Navigation Links */}
-      <nav className="space-y-2 flex-1">
+      <nav className="space-y-2">
         {navigationItems.map((item) => (
           <Link key={item.path} to={item.path}>
             <Button

@@ -71,7 +71,7 @@ const StatsGrid = ({ stats }: StatsGridProps) => {
   const displayStats = stats || defaultStats;
 
   return (
-    <div className="w-full bg-background p-4">
+    <div className="w-full bg-background px-2">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {displayStats.map((stat, index) => (
           <StatsCard
