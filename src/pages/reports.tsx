@@ -1,5 +1,4 @@
-import React from "react";
-import { Card } from "@/components/ui/card";
+
 import RevenueChart from "@/components/dashboard/RevenueChart";
 
 const ReportsPage = () => {

@@ -1,8 +1,10 @@
+import { Trainer } from "@/types/trainer";
+import { defaultTrainers } from "@/data/trainers";
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -24,166 +26,174 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Search, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
 
-export interface Trainer {
-  id: string;
-  name: string;
-  specialization: string;
-  email: string;
-  phone: string;
-  avatarUrl?: string;
-  experience: number; // years
-}
-
-export const defaultTrainers: Trainer[] = [
-  {
-    id: "1",
-    name: "Mehmet Öztürk",
-    specialization: "Kişisel Antrenman, Fitness",
-    email: "mehmet@fitadmin.com",
-    phone: "(555) 123-4567",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=mehmet",
-    experience: 5,
-  },
-  {
-    id: "2",
-    name: "Zeynep Yıldız",
-    specialization: "Yoga, Pilates",
-    email: "zeynep@fitadmin.com",
-    phone: "(555) 234-5678",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=zeynep",
-    experience: 3,
-  },
-  {
-    id: "3",
-    name: "Ali Can",
-    specialization: "Fitness, Beslenme",
-    email: "ali@fitadmin.com",
-    phone: "(555) 345-6789",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=ali",
-    experience: 4,
-  },
-];
-
 const TrainerForm = ({
   trainer,
   onSubmit,
   onCancel,
 }: {
   trainer?: Trainer;
-  onSubmit: (trainer: Omit<Trainer, "id">) => void;
+  onSubmit: (trainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState<Omit<Trainer, "id">>(
+  const [formData, setFormData] = useState<Omit<Trainer, "id" | "createdAt" | "updatedAt">>(
     trainer
-      ? { ...trainer }
+      ? {
+          firstName: trainer.firstName,
+          lastName: trainer.lastName,
+          email: trainer.email,
+          phone: trainer.phone || "",
+          specialization: trainer.specialization || "",
+          bio: trainer.bio || "",
+          availability: trainer.availability || [],
+        }
       : {
-          name: "",
-          specialization: "",
+          firstName: "",
+          lastName: "",
           email: "",
           phone: "",
-          experience: 0,
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
-        },
+          specialization: "",
+          bio: "",
+          availability: [],
+        }
   );
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      alert("Lütfen zorunlu alanları doldurun (Ad, Soyad, E-posta)");
+      return;
+    }
+    onSubmit(formData);
+  };
+
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Ad<span className="text-red-500">*</span>
+          </label>
+          <Input
+            required
+            value={formData.firstName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+            }
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Soyad<span className="text-red-500">*</span>
+          </label>
+          <Input
+            required
+            value={formData.lastName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+            }
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
-        <label className="text-sm font-medium">Ad Soyad</label>
+        <label className="text-sm font-medium">
+          E-posta<span className="text-red-500">*</span>
+        </label>
         <Input
-          value={formData.name}
+          type="email"
+          required
+          value={formData.email}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, name: e.target.value }))
+            setFormData((prev) => ({ ...prev, email: e.target.value }))
           }
         />
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Uzmanlık Alanları</label>
+        <label className="text-sm font-medium">Telefon</label>
+        <Input
+          type="tel"
+          value={formData.phone}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, phone: e.target.value }))
+          }
+          placeholder="555-0000"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Uzmanlık Alanı</label>
         <Input
           value={formData.specialization}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, specialization: e.target.value }))
           }
+          placeholder="Örn: Fitness, Pilates, Yoga"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">E-posta</label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, email: e.target.value }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Telefon</label>
-          <Input
-            value={formData.phone}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, phone: e.target.value }))
-            }
-          />
-        </div>
-      </div>
-
       <div className="space-y-2">
-        <label className="text-sm font-medium">Deneyim (Yıl)</label>
+        <label className="text-sm font-medium">Hakkında</label>
         <Input
-          type="number"
-          value={formData.experience}
+          value={formData.bio}
           onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              experience: Number(e.target.value),
-            }))
+            setFormData((prev) => ({ ...prev, bio: e.target.value }))
           }
+          placeholder="Eğitmen hakkında kısa bilgi"
         />
       </div>
 
       <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel}>
           İptal
         </Button>
-        <Button onClick={() => onSubmit(formData)}>
+        <Button type="submit">
           {trainer ? "Güncelle" : "Ekle"}
         </Button>
       </DialogFooter>
-    </div>
+    </form>
   );
 };
 
 const TrainersPage = () => {
   const [trainers, setTrainers] = useState<Trainer[]>(defaultTrainers);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTrainers = trainers.filter(
     (trainer) =>
-      trainer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trainer.specialization.toLowerCase().includes(searchTerm.toLowerCase()),
+      `${trainer.firstName} ${trainer.lastName} ${trainer.specialization || ""}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
   );
 
-  const handleAdd = (newTrainer: Omit<Trainer, "id">) => {
-    setTrainers((prev) => [
-      ...prev,
-      { ...newTrainer, id: Math.random().toString() },
-    ]);
+  const handleAdd = (newTrainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => {
+    const currentDate = new Date().toISOString();
+    const trainerWithId = {
+      ...newTrainer,
+      id: Math.random().toString(),
+      createdAt: currentDate,
+      updatedAt: currentDate,
+    };
+    setTrainers((prev) => [...prev, trainerWithId]);
+    setIsDialogOpen(false);
   };
 
-  const handleEdit = (updatedTrainer: Omit<Trainer, "id">) => {
+  const handleEdit = (id: string, updatedTrainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => {
     setTrainers((prev) =>
       prev.map((trainer) =>
-        trainer.id === editingTrainer?.id
-          ? { ...updatedTrainer, id: trainer.id }
-          : trainer,
-      ),
+        trainer.id === id
+          ? {
+              ...updatedTrainer,
+              id: trainer.id,
+              createdAt: trainer.createdAt,
+              updatedAt: new Date().toISOString(),
+            }
+          : trainer
+      )
     );
-    setEditingTrainer(null);
+    setIsDialogOpen(false);
   };
 
   const handleDelete = (id: string) => {
@@ -204,115 +214,114 @@ const TrainersPage = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="İsim veya uzmanlık alanı ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Eğitmen ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
             />
           </div>
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Yeni Eğitmen
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Eğitmen Ekle
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Yeni Eğitmen Ekle</DialogTitle>
+                <DialogTitle>Yeni Eğitmen</DialogTitle>
               </DialogHeader>
               <TrainerForm
                 onSubmit={handleAdd}
-                onCancel={() => setEditingTrainer(null)}
+                onCancel={() => setIsDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTrainers.map((trainer) => (
-            <div
-              key={trainer.id}
-              className="flex flex-col p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-all"
-            >
-              <div className="flex items-start gap-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={trainer.avatarUrl} />
-                  <AvatarFallback>{trainer.name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <div>
-                      <h3 className="font-semibold text-lg">{trainer.name}</h3>
+            <Card key={trainer.id} className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarFallback>
+                      {trainer.firstName[0]}
+                      {trainer.lastName[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium">
+                      {trainer.firstName} {trainer.lastName}
+                    </h3>
+                    {trainer.specialization && (
                       <p className="text-sm text-muted-foreground">
                         {trainer.specialization}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingTrainer(trainer)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Eğitmen Düzenle</DialogTitle>
-                          </DialogHeader>
-                          <TrainerForm
-                            trainer={trainer}
-                            onSubmit={handleEdit}
-                            onCancel={() => setEditingTrainer(null)}
-                          />
-                        </DialogContent>
-                      </Dialog>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Eğitmeni silmek istediğinize emin misiniz?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Bu işlem geri alınamaz. Eğitmen kalıcı olarak
-                              silinecektir.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>İptal</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(trainer.id)}
-                            >
-                              Sil
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-4 space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span>{trainer.email}</span>
+                <div className="flex space-x-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Eğitmen Düzenle</DialogTitle>
+                      </DialogHeader>
+                      <TrainerForm
+                        trainer={trainer}
+                        onSubmit={(updatedTrainer) =>
+                          handleEdit(trainer.id, updatedTrainer)
+                        }
+                        onCancel={() => setIsDialogOpen(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Eğitmeni Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bu eğitmeni silmek istediğinize emin misiniz? Bu işlem
+                          geri alınamaz.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(trainer.id)}>
+                          Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{trainer.phone}</span>
-                </div>
-                <p className="font-medium">{trainer.experience} yıl deneyim</p>
               </div>
-            </div>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center text-sm">
+                  <Mail className="mr-2 h-4 w-4" />
+                  {trainer.email}
+                </div>
+                {trainer.phone && (
+                  <div className="flex items-center text-sm">
+                    <Phone className="mr-2 h-4 w-4" />
+                    {trainer.phone}
+                  </div>
+                )}
+                {trainer.bio && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {trainer.bio}
+                  </p>
+                )}
+              </div>
+            </Card>
           ))}
         </div>
       </Card>

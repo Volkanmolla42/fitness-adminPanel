@@ -1,24 +1,26 @@
 import { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import DashboardLayout from "@/layouts/DashboardLayout";
-import DashboardPage from "@/pages/dashboard";
-import MembersPage from "@/pages/members";
-import ServicesPage from "@/pages/services";
-import TrainersPage from "@/pages/trainers";
-import AppointmentsPage from "@/pages/appointments";
-import ReportsPage from "@/pages/reports";
+import { DashboardLayout } from "@/layouts/DashboardLayout";
+import  Dashboard  from "@/pages/dashboard";
+import  Members  from "@/pages/members";
+import  Trainers  from "@/pages/trainers";
+import  Appointments  from "@/pages/appointments";
+import Services from "@/pages/services";
+import Reports from "@/pages/reports";
+import SettingsPage from "@/pages/settings";
 
 function App() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Yükleniyor...</div>}>
       <Routes>
-        <Route path="/" element={<DashboardLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="members" element={<MembersPage />} />
-          <Route path="services" element={<ServicesPage />} />
-          <Route path="trainers" element={<TrainersPage />} />
-          <Route path="appointments" element={<AppointmentsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/trainers" element={<Trainers />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </Suspense>

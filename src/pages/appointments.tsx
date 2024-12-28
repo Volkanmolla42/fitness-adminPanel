@@ -1,293 +1,299 @@
-import React, { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import React, { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Clock, Search, Filter, CheckCircle2, Calendar } from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AppointmentForm } from "@/components/forms/AppointmentForm";
+import  defaultMembers  from "@/data/members";
+import { defaultTrainers } from "@/data/trainers";
+import { defaultServices } from "@/data/services";
+import { defaultAppointments } from "@/data/appointments";
+import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
+import  AppointmentCard  from "@/components/appointments/AppointmentCard";
+import type { Appointment } from "@/types";
 
-interface Appointment {
-  id: string;
-  time: string;
-  memberName: string;
-  trainerName: string;
-  service: string;
-  status: "scheduled" | "in-progress" | "completed" | "cancelled";
-}
+function AppointmentsPage() {
+  const [appointments, setAppointments] = useState(defaultAppointments);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
-const defaultAppointments: Appointment[] = [
-  {
-    id: "1",
-    time: "09:00",
-    memberName: "Ahmet Yılmaz",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "completed",
-  },
-  {
-    id: "2",
-    time: "09:30",
-    memberName: "Zeynep Kaya",
-    trainerName: "PT Ayşe Demir",
-    service: "Fitness Değerlendirmesi",
-    status: "completed",
-  },
-  {
-    id: "3",
-    time: "10:00",
-    memberName: "Mustafa Çelik",
-    trainerName: "PT Ali Can",
-    service: "Kişisel Antrenman",
-    status: "completed",
-  },
-  {
-    id: "4",
-    time: "10:30",
-    memberName: "Ayşe Yıldız",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Yoga Dersi",
-    status: "in-progress",
-  },
-  {
-    id: "5",
-    time: "11:00",
-    memberName: "Mehmet Demir",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "6",
-    time: "11:30",
-    memberName: "Fatma Şahin",
-    trainerName: "PT Ali Can",
-    service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-  {
-    id: "7",
-    time: "13:00",
-    memberName: "Can Yılmaz",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "8",
-    time: "13:30",
-    memberName: "Elif Öztürk",
-    trainerName: "PT Ayşe Demir",
-    service: "Yoga Dersi",
-    status: "scheduled",
-  },
-  {
-    id: "9",
-    time: "14:00",
-    memberName: "Burak Aydın",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "10",
-    time: "14:30",
-    memberName: "Selin Kara",
-    trainerName: "PT Ali Can",
-    service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-];
+  // Convert arrays to record objects for easier lookup
+  const membersRecord = defaultMembers.reduce(
+    (acc, member) => ({ ...acc, [member.id]: member }),
+    {} as Record<string, typeof defaultMembers[0]>
+  );
 
-const getStatusColor = (status: Appointment["status"]) => {
-  const colors = {
-    scheduled: "bg-blue-500",
-    "in-progress": "bg-yellow-500",
-    completed: "bg-green-500",
-    cancelled: "bg-red-500",
+  const trainersRecord = defaultTrainers.reduce(
+    (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
+    {} as Record<string, typeof defaultTrainers[0]>
+  );
+
+  const servicesRecord = defaultServices.reduce(
+    (acc, service) => ({ ...acc, [service.id]: service }),
+    {} as Record<string, typeof defaultServices[0]>
+  );
+
+  // Filter appointments based on search query
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((appointment) => {
+      if (!searchQuery.trim()) return true;
+
+      const member = membersRecord[appointment.memberId];
+      const trainer = trainersRecord[appointment.trainerId];
+      const service = servicesRecord[appointment.serviceId];
+
+      if (!member || !trainer || !service) return false;
+
+      const searchTerms = searchQuery.toLowerCase().split(" ");
+      const searchString = `
+        ${member.name}
+        ${trainer.name}
+        ${service.name}
+        ${appointment.date}
+        ${appointment.time}
+        ${appointment.notes || ""}
+      `.toLowerCase();
+
+      return searchTerms.every(term => searchString.includes(term));
+    });
+  }, [appointments, searchQuery, membersRecord, trainersRecord, servicesRecord]);
+
+  // Group appointments by status
+  const groupedAppointments = useMemo(() => {
+    const groups = filteredAppointments.reduce((groups, appointment) => {
+      const status = appointment.status;
+      if (!groups[status]) {
+        groups[status] = [];
+      }
+      groups[status].push(appointment);
+      return groups;
+    }, {} as Record<Appointment["status"], Appointment[]>);
+
+    Object.values(groups).forEach(group => {
+      group.sort((a, b) => a.time.localeCompare(b.time));
+    });
+
+    return groups;
+  }, [filteredAppointments]);
+
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
   };
-  return colors[status];
-};
 
-const getStatusText = (status: Appointment["status"]) => {
-  const texts = {
-    scheduled: "Planlandı",
-    "in-progress": "Devam Ediyor",
-    completed: "Tamamlandı",
-    cancelled: "İptal Edildi",
+  const handleAddAppointment = (data: Omit<Appointment, "id" | "status">) => {
+    const newAppointment: Appointment = {
+      ...data,
+      id: Math.random().toString(),
+      status: "scheduled",
+    };
+    setAppointments((prev) => [...prev, newAppointment]);
+    setIsDialogOpen(false);
   };
-  return texts[status];
-};
 
-const AppointmentsPage = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const handleEditAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDialogOpen(true);
+  };
 
-  const filteredAppointments = defaultAppointments.filter((appointment) => {
-    const matchesSearch =
-      appointment.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.trainerName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      appointment.service.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleFormSubmit = (data: Omit<Appointment, "id" | "status">) => {
+    if (!data.date || !data.time || !data.memberId || !data.trainerId || !data.serviceId) {
+      alert("Please fill in all required fields.");
+      return;
+    }
 
-    const matchesStatus =
-      statusFilter === "all" || appointment.status === statusFilter;
+    if (selectedAppointment) {
+      // Editing existing appointment
+      setAppointments((prev) =>
+        prev.map((app) =>
+          app.id === selectedAppointment.id
+            ? { ...selectedAppointment, ...data }
+            : app
+        )
+      );
+    } else {
+      // Adding new appointment
+      const newAppointment: Appointment = {
+        ...data,
+        id: Math.random().toString(36).substring(2, 11),
+        status: "scheduled",
+      };
+      setAppointments((prev) => [...prev, newAppointment]);
+    }
+    setSelectedAppointment(null);
+    setIsDialogOpen(false);
+  };
 
-    return matchesSearch && matchesStatus;
-  });
-
-  // Separate appointments by status
-  const inProgressAppointments = filteredAppointments.filter(
-    (apt) => apt.status === "in-progress",
-  );
-  const scheduledAppointments = filteredAppointments.filter(
-    (apt) => apt.status === "scheduled",
-  );
-  const completedAppointments = filteredAppointments.filter(
-    (apt) => apt.status === "completed",
-  );
-
-  const AppointmentCard = ({ appointment }: { appointment: Appointment }) => (
-    <div
-      className={cn(
-        "flex flex-col p-4 rounded-lg border transition-all",
-        appointment.status === "in-progress"
-          ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
-          : "border-gray-100 hover:bg-gray-50",
-      )}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div className="text-lg font-semibold text-gray-900">
-          {appointment.time}
-        </div>
-        <Badge
-          variant="secondary"
-          className={`text-xs ${getStatusColor(
-            appointment.status,
-          )} bg-opacity-10 text-gray-600`}
-        >
-          {getStatusText(appointment.status)}
-        </Badge>
-      </div>
-
-      <div className="space-y-2">
-        <div>
-          <p className="font-medium text-gray-900 truncate">
-            {appointment.memberName}
-          </p>
-          <p className="text-sm text-gray-600 truncate">
-            {appointment.trainerName}
-          </p>
-        </div>
-        <p className="text-sm text-gray-500 truncate">{appointment.service}</p>
-      </div>
-    </div>
-  );
+  const handleStatusChange = (id: string, status: Appointment["status"]) => {
+    setAppointments((prev) =>
+      prev.map((appointment) =>
+        appointment.id === id ? { ...appointment, status } : appointment
+      )
+    );
+  };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Randevular</h1>
-        <p className="text-muted-foreground mt-2">
-          Tüm randevuları görüntüle ve yönet
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Günlük Randevular</h1>
+          <p className="text-gray-500 text-sm sm:text-base">
+            {new Date().toLocaleDateString('tr-TR', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setSelectedAppointment(null);
+        }}>
+          <DialogTrigger asChild>
+            <Button className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
+              </DialogTitle>
+            </DialogHeader>
+            <AppointmentForm
+              members={defaultMembers}
+              trainers={defaultTrainers}
+              services={defaultServices}
+              appointment={selectedAppointment}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setIsDialogOpen(false);
+                setSelectedAppointment(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card className="p-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="İsim, eğitmen veya hizmet ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Durum Filtrele" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tümü</SelectItem>
-                <SelectItem value="scheduled">Planlandı</SelectItem>
-                <SelectItem value="in-progress">Devam Ediyor</SelectItem>
-                <SelectItem value="completed">Tamamlandı</SelectItem>
-                <SelectItem value="cancelled">İptal Edildi</SelectItem>
-              </SelectContent>
-            </Select>
+      <div className="w-full">
+        <AppointmentFilters
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onFilterClick={() => {}}
+        />
+      </div>
+
+      {/* Ongoing Appointments */}
+      {groupedAppointments["in-progress"] && groupedAppointments["in-progress"].length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-blue-800">Devam Eden Randevular</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupedAppointments["in-progress"].map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                member={{ 
+                  name: `${membersRecord[appointment.memberId].name}` 
+                }}
+                trainer={{ 
+                  name: `${trainersRecord[appointment.trainerId].name}` 
+                }}
+                service={servicesRecord[appointment.serviceId]}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditAppointment}
+              />
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="space-y-8">
-          {/* Active Appointments Section */}
-          {inProgressAppointments.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-500" />
-                Aktif Randevular
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {inProgressAppointments.map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Scheduled Appointments Section */}
-          {scheduledAppointments.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
-                Planlanan Randevular
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {scheduledAppointments.map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Completed Appointments Section */}
-          {completedAppointments.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                Tamamlanan Randevular
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedAppointments.map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Upcoming Appointments */}
+      {groupedAppointments["scheduled"] && groupedAppointments["scheduled"].length > 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4">Yaklaşan Randevular</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupedAppointments["scheduled"].map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                member={{ 
+                  name: `${membersRecord[appointment.memberId].name}` 
+                }}
+                trainer={{ 
+                  name: `${trainersRecord[appointment.trainerId].name}` 
+                }}
+                service={servicesRecord[appointment.serviceId]}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditAppointment}
+              />
+            ))}
+          </div>
         </div>
-      </Card>
+      )}
+
+      {/* Completed Appointments */}
+      {groupedAppointments["completed"] && groupedAppointments["completed"].length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-green-800">Tamamlanan Randevular</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupedAppointments["completed"].map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                member={{ 
+                  name: `${membersRecord[appointment.memberId].name}` 
+                }}
+                trainer={{ 
+                  name: `${trainersRecord[appointment.trainerId].name}` 
+                }}
+                service={servicesRecord[appointment.serviceId]}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditAppointment}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled Appointments */}
+      {groupedAppointments["cancelled"] && groupedAppointments["cancelled"].length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-800">İptal Edilen Randevular</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupedAppointments["cancelled"].map((appointment) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                member={{ 
+                  name: `${membersRecord[appointment.memberId].name}` 
+                }}
+                trainer={{ 
+                  name: `${trainersRecord[appointment.trainerId].name}` 
+                }}
+                service={servicesRecord[appointment.serviceId]}
+                onStatusChange={handleStatusChange}
+                onEdit={handleEditAppointment}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* No Appointments Message */}
+      {Object.keys(groupedAppointments).length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <p>Bugün için randevu bulunmamaktadır.</p>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default AppointmentsPage;

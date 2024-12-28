@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -21,23 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { defaultTrainers } from "./trainers";
-import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { ServiceForm } from "@/components/forms/ServiceForm";
+import { Search, Plus, Pencil, Trash2, Timer, User2 } from "lucide-react";
 
 export interface Service {
   id: string;
   name: string;
   description: string;
   price: number;
-  trainer: string;
-  duration: number; // minutes
+  duration: number;
+  maxParticipants: number;
+  category: string;
 }
 
 export const defaultServices: Service[] = [
@@ -46,138 +40,40 @@ export const defaultServices: Service[] = [
     name: "Kişisel Antrenman",
     description: "Birebir özel antrenman seansı",
     price: 400,
-    trainer: "Mehmet Öztürk",
     duration: 60,
+    maxParticipants: 1,
+    category: "Fitness",
   },
   {
     id: "2",
     name: "Yoga Dersi",
     description: "Grup yoga dersi",
     price: 200,
-    trainer: "Zeynep Yıldız",
     duration: 45,
+    maxParticipants: 10,
+    category: "Yoga",
   },
   {
     id: "3",
     name: "Fitness Değerlendirmesi",
     description: "Detaylı fitness ve sağlık değerlendirmesi",
     price: 300,
-    trainer: "Ali Can",
     duration: 90,
+    maxParticipants: 1,
+    category: "Fitness",
   },
 ];
-
-const ServiceForm = ({
-  service,
-  onSubmit,
-  onCancel,
-}: {
-  service?: Service;
-  onSubmit: (service: Omit<Service, "id">) => void;
-  onCancel: () => void;
-}) => {
-  const [formData, setFormData] = useState<Omit<Service, "id">>({
-    name: service?.name || "",
-    description: service?.description || "",
-    price: service?.price || 0,
-    trainer: service?.trainer || "",
-    duration: service?.duration || 30,
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Hizmet Adı</label>
-        <Input
-          value={formData.name}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, name: e.target.value }))
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Açıklama</label>
-        <Input
-          value={formData.description}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, description: e.target.value }))
-          }
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Fiyat (₺)</label>
-          <Input
-            type="number"
-            value={formData.price}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                price: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Süre (Dakika)</label>
-          <Input
-            type="number"
-            value={formData.duration}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                duration: Number(e.target.value),
-              }))
-            }
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Eğitmen</label>
-        <Select
-          value={formData.trainer}
-          onValueChange={(value) =>
-            setFormData((prev) => ({ ...prev, trainer: value }))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Eğitmen seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            {defaultTrainers.map((trainer) => (
-              <SelectItem key={trainer.id} value={trainer.name}>
-                {trainer.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>
-          İptal
-        </Button>
-        <Button onClick={() => onSubmit(formData)}>
-          {service ? "Güncelle" : "Ekle"}
-        </Button>
-      </DialogFooter>
-    </div>
-  );
-};
 
 const ServicesPage = () => {
   const [services, setServices] = useState<Service[]>(defaultServices);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   const filteredServices = services.filter(
     (service) =>
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.trainer.toLowerCase().includes(searchTerm.toLowerCase()),
+      service.category.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleAdd = (newService: Omit<Service, "id">) => {
@@ -185,6 +81,7 @@ const ServicesPage = () => {
       ...prev,
       { ...newService, id: Math.random().toString() },
     ]);
+    setShowAddDialog(false);
   };
 
   const handleEdit = (updatedService: Omit<Service, "id">) => {
@@ -203,119 +100,112 @@ const ServicesPage = () => {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Hizmetler</h1>
-        <p className="text-muted-foreground mt-2">
-          Spor salonu hizmetlerini yönet
-        </p>
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Hizmet adı veya kategori ile ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Yeni Hizmet
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Yeni Hizmet Ekle</DialogTitle>
+            </DialogHeader>
+            <ServiceForm onSubmit={handleAdd} onCancel={() => setShowAddDialog(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card className="p-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Hizmet adı veya eğitmen ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Yeni Hizmet
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Yeni Hizmet Ekle</DialogTitle>
-              </DialogHeader>
-              <ServiceForm
-                onSubmit={handleAdd}
-                onCancel={() => setEditingService(null)}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredServices.map((service) => (
-            <div
-              key={service.id}
-              className="flex flex-col p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-all"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-lg">{service.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {service.description}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingService(service)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Hizmet Düzenle</DialogTitle>
-                      </DialogHeader>
-                      <ServiceForm
-                        service={service}
-                        onSubmit={handleEdit}
-                        onCancel={() => setEditingService(null)}
-                      />
-                    </DialogContent>
-                  </Dialog>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Hizmeti silmek istediğinize emin misiniz?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Bu işlem geri alınamaz. Hizmet kalıcı olarak
-                          silinecektir.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(service.id)}
-                        >
-                          Sil
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredServices.map((service) => (
+          <Card key={service.id} className="p-6 space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold">{service.name}</h3>
+                <Badge variant="secondary" className="mt-1">
+                  {service.category}
+                </Badge>
               </div>
-
-              <div className="mt-auto flex items-center justify-between text-sm">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">{service.trainer}</p>
-                  <p className="font-medium">{service.duration} dakika</p>
-                </div>
-                <p className="text-lg font-semibold">₺{service.price}</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setEditingService(service)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>İptal</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(service.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Sil
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
-          ))}
-        </div>
-      </Card>
+
+            <p className="text-sm text-muted-foreground">{service.description}</p>
+
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center text-muted-foreground">
+                  <Timer className="mr-2 h-4 w-4" />
+                  {service.duration} dk
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                  <User2 className="mr-2 h-4 w-4" />
+                  {service.maxParticipants} kişi
+                </div>
+              </div>
+              <div className="text-lg font-semibold">₺{service.price}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Edit Service Dialog */}
+      <Dialog open={!!editingService} onOpenChange={() => setEditingService(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Hizmet Düzenle</DialogTitle>
+          </DialogHeader>
+          {editingService && (
+            <ServiceForm
+              service={editingService}
+              onSubmit={handleEdit}
+              onCancel={() => setEditingService(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
