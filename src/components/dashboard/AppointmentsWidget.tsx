@@ -5,74 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Clock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
-interface Appointment {
-  id: string;
-  time: string;
-  memberName: string;
-  trainerName: string;
-  service: string;
-  status: "scheduled" | "in-progress" | "completed" | "cancelled";
-  memberAvatarUrl?: string;
-  trainerAvatarUrl?: string;
-}
+import { defaultAppointments } from "@/data/appointments";
+import { defaultMembers } from "@/data/members";
+import { defaultTrainers } from "@/data/trainers";
+import { defaultServices } from "@/data/services";
+import type { Appointment } from "@/types";
 
 interface AppointmentsWidgetProps {
   appointments?: Appointment[];
   title?: string;
   showAll?: boolean;
 }
-
-const defaultAppointments: Appointment[] = [
-  {
-    id: "1",
-    time: "09:00",
-    memberName: "Ahmet Yılmaz",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "completed",
-  },
-  {
-    id: "2",
-    time: "09:30",
-    memberName: "Zeynep Kaya",
-    trainerName: "PT Ayşe Demir",
-    service: "Fitness Değerlendirmesi",
-    status: "completed",
-  },
-  {
-    id: "3",
-    time: "10:00",
-    memberName: "Mustafa Çelik",
-    trainerName: "PT Ali Can",
-    service: "Kişisel Antrenman",
-    status: "completed",
-  },
-  {
-    id: "4",
-    time: "10:30",
-    memberName: "Ayşe Yıldız",
-    trainerName: "PT Zeynep Yıldız",
-    service: "Yoga Dersi",
-    status: "in-progress",
-  },
-  {
-    id: "5",
-    time: "11:00",
-    memberName: "Mehmet Demir",
-    trainerName: "PT Mehmet Öztürk",
-    service: "Kişisel Antrenman",
-    status: "scheduled",
-  },
-  {
-    id: "6",
-    time: "11:30",
-    memberName: "Fatma Şahin",
-    trainerName: "PT Ali Can",
-    service: "Fitness Değerlendirmesi",
-    status: "scheduled",
-  },
-];
 
 const getStatusColor = (status: Appointment["status"]) => {
   const colors = {
@@ -113,6 +56,23 @@ const AppointmentsWidget = ({
   showAll = false,
 }: AppointmentsWidgetProps) => {
   const navigate = useNavigate();
+
+  // Create lookup objects for members, trainers, and services
+  const membersMap = defaultMembers.reduce(
+    (acc, member) => ({ ...acc, [member.id]: member }),
+    {} as Record<string, (typeof defaultMembers)[0]>,
+  );
+
+  const trainersMap = defaultTrainers.reduce(
+    (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
+    {} as Record<string, (typeof defaultTrainers)[0]>,
+  );
+
+  const servicesMap = defaultServices.reduce(
+    (acc, service) => ({ ...acc, [service.id]: service }),
+    {} as Record<string, (typeof defaultServices)[0]>,
+  );
+
   const displayAppointments = showAll
     ? appointments
     : getRelevantAppointments(appointments);
@@ -142,45 +102,51 @@ const AppointmentsWidget = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {displayAppointments.map((appointment) => (
-          <div
-            key={appointment.id}
-            className={cn(
-              "flex flex-col p-4 rounded-lg border transition-all",
-              appointment.status === "in-progress"
-                ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
-                : "border-gray-100 hover:bg-gray-50",
-            )}
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div className="text-lg font-semibold text-gray-900">
-                {appointment.time}
-              </div>
-              <Badge
-                variant="secondary"
-                className={`text-xs ${getStatusColor(
-                  appointment.status,
-                )} bg-opacity-10 text-gray-600`}
-              >
-                {getStatusText(appointment.status)}
-              </Badge>
-            </div>
+        {displayAppointments.map((appointment) => {
+          const member = membersMap[appointment.memberId];
+          const trainer = trainersMap[appointment.trainerId];
+          const service = servicesMap[appointment.serviceId];
 
-            <div className="space-y-2">
-              <div>
-                <p className="font-medium text-gray-900 truncate">
-                  {appointment.memberName}
-                </p>
-                <p className="text-sm text-gray-600 truncate">
-                  {appointment.trainerName}
-                </p>
+          if (!member || !trainer || !service) return null;
+
+          return (
+            <div
+              key={appointment.id}
+              className={cn(
+                "flex flex-col p-4 rounded-lg border transition-all",
+                appointment.status === "in-progress"
+                  ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
+                  : "border-gray-100 hover:bg-gray-50",
+              )}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-lg font-semibold text-gray-900">
+                  {appointment.time}
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`text-xs ${getStatusColor(
+                    appointment.status,
+                  )} bg-opacity-10 text-gray-600`}
+                >
+                  {getStatusText(appointment.status)}
+                </Badge>
               </div>
-              <p className="text-sm text-gray-500 truncate">
-                {appointment.service}
-              </p>
+
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium text-gray-900 truncate">
+                    {member.name}
+                  </p>
+                  <p className="text-sm text-gray-600 truncate">
+                    {`${trainer.firstName} ${trainer.lastName}`}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-500 truncate">{service.name}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

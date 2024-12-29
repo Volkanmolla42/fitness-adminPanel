@@ -9,34 +9,35 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
-import  defaultMembers  from "@/data/members";
+import { defaultMembers } from "@/data/members";
 import { defaultTrainers } from "@/data/trainers";
 import { defaultServices } from "@/data/services";
 import { defaultAppointments } from "@/data/appointments";
 import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
-import  AppointmentCard  from "@/components/appointments/AppointmentCard";
+import AppointmentCard from "@/components/appointments/AppointmentCard";
 import type { Appointment } from "@/types";
 
 function AppointmentsPage() {
   const [appointments, setAppointments] = useState(defaultAppointments);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
 
   // Convert arrays to record objects for easier lookup
   const membersRecord = defaultMembers.reduce(
     (acc, member) => ({ ...acc, [member.id]: member }),
-    {} as Record<string, typeof defaultMembers[0]>
+    {} as Record<string, (typeof defaultMembers)[0]>,
   );
 
   const trainersRecord = defaultTrainers.reduce(
     (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
-    {} as Record<string, typeof defaultTrainers[0]>
+    {} as Record<string, (typeof defaultTrainers)[0]>,
   );
 
   const servicesRecord = defaultServices.reduce(
     (acc, service) => ({ ...acc, [service.id]: service }),
-    {} as Record<string, typeof defaultServices[0]>
+    {} as Record<string, (typeof defaultServices)[0]>,
   );
 
   // Filter appointments based on search query
@@ -53,29 +54,39 @@ function AppointmentsPage() {
       const searchTerms = searchQuery.toLowerCase().split(" ");
       const searchString = `
         ${member.name}
-        ${trainer.name}
+        ${trainer.firstName} ${trainer.lastName}
         ${service.name}
         ${appointment.date}
         ${appointment.time}
         ${appointment.notes || ""}
       `.toLowerCase();
 
-      return searchTerms.every(term => searchString.includes(term));
+      return searchTerms.every((term) => searchString.includes(term));
     });
-  }, [appointments, searchQuery, membersRecord, trainersRecord, servicesRecord]);
+  }, [
+    appointments,
+    searchQuery,
+    membersRecord,
+    trainersRecord,
+    servicesRecord,
+  ]);
 
   // Group appointments by status
   const groupedAppointments = useMemo(() => {
-    const groups = filteredAppointments.reduce((groups, appointment) => {
-      const status = appointment.status;
-      if (!groups[status]) {
-        groups[status] = [];
-      }
-      groups[status].push(appointment);
-      return groups;
-    }, {} as Record<Appointment["status"], Appointment[]>);
+    const groups = filteredAppointments.reduce(
+      (groups, appointment) => {
+        const status = appointment.status;
+        if (!groups[status]) {
+          groups[status] = [];
+        }
+        groups[status].push(appointment);
+        return groups;
+      },
+      {} as Record<Appointment["status"], Appointment[]>,
+    );
 
-    Object.values(groups).forEach(group => {
+    // Sort appointments by time within each group
+    Object.values(groups).forEach((group) => {
       group.sort((a, b) => a.time.localeCompare(b.time));
     });
 
@@ -103,7 +114,13 @@ function AppointmentsPage() {
   };
 
   const handleFormSubmit = (data: Omit<Appointment, "id" | "status">) => {
-    if (!data.date || !data.time || !data.memberId || !data.trainerId || !data.serviceId) {
+    if (
+      !data.date ||
+      !data.time ||
+      !data.memberId ||
+      !data.trainerId ||
+      !data.serviceId
+    ) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -114,8 +131,8 @@ function AppointmentsPage() {
         prev.map((app) =>
           app.id === selectedAppointment.id
             ? { ...selectedAppointment, ...data }
-            : app
-        )
+            : app,
+        ),
       );
     } else {
       // Adding new appointment
@@ -133,8 +150,8 @@ function AppointmentsPage() {
   const handleStatusChange = (id: string, status: Appointment["status"]) => {
     setAppointments((prev) =>
       prev.map((appointment) =>
-        appointment.id === id ? { ...appointment, status } : appointment
-      )
+        appointment.id === id ? { ...appointment, status } : appointment,
+      ),
     );
   };
 
@@ -144,18 +161,21 @@ function AppointmentsPage() {
         <div>
           <h1 className="text-2xl font-bold">Günlük Randevular</h1>
           <p className="text-gray-500 text-sm sm:text-base">
-            {new Date().toLocaleDateString('tr-TR', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            {new Date().toLocaleDateString("tr-TR", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
             })}
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) setSelectedAppointment(null);
-        }}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setSelectedAppointment(null);
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
@@ -191,100 +211,112 @@ function AppointmentsPage() {
       </div>
 
       {/* Ongoing Appointments */}
-      {groupedAppointments["in-progress"] && groupedAppointments["in-progress"].length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-blue-800">Devam Eden Randevular</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["in-progress"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{ 
-                  name: `${membersRecord[appointment.memberId].name}` 
-                }}
-                trainer={{ 
-                  name: `${trainersRecord[appointment.trainerId].name}` 
-                }}
-                service={servicesRecord[appointment.serviceId]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
+      {groupedAppointments["in-progress"] &&
+        groupedAppointments["in-progress"].length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-blue-800">
+              Devam Eden Randevular
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {groupedAppointments["in-progress"].map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  member={{
+                    name: membersRecord[appointment.memberId].name,
+                  }}
+                  trainer={{
+                    name: `${trainersRecord[appointment.trainerId].firstName} ${trainersRecord[appointment.trainerId].lastName}`,
+                  }}
+                  service={servicesRecord[appointment.serviceId]}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEditAppointment}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Upcoming Appointments */}
-      {groupedAppointments["scheduled"] && groupedAppointments["scheduled"].length > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4">Yaklaşan Randevular</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["scheduled"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{ 
-                  name: `${membersRecord[appointment.memberId].name}` 
-                }}
-                trainer={{ 
-                  name: `${trainersRecord[appointment.trainerId].name}` 
-                }}
-                service={servicesRecord[appointment.serviceId]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
+      {groupedAppointments["scheduled"] &&
+        groupedAppointments["scheduled"].length > 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4">
+              Yaklaşan Randevular
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {groupedAppointments["scheduled"].map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  member={{
+                    name: membersRecord[appointment.memberId].name,
+                  }}
+                  trainer={{
+                    name: `${trainersRecord[appointment.trainerId].firstName} ${trainersRecord[appointment.trainerId].lastName}`,
+                  }}
+                  service={servicesRecord[appointment.serviceId]}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEditAppointment}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Completed Appointments */}
-      {groupedAppointments["completed"] && groupedAppointments["completed"].length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-green-800">Tamamlanan Randevular</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["completed"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{ 
-                  name: `${membersRecord[appointment.memberId].name}` 
-                }}
-                trainer={{ 
-                  name: `${trainersRecord[appointment.trainerId].name}` 
-                }}
-                service={servicesRecord[appointment.serviceId]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
+      {groupedAppointments["completed"] &&
+        groupedAppointments["completed"].length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-green-800">
+              Tamamlanan Randevular
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {groupedAppointments["completed"].map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  member={{
+                    name: membersRecord[appointment.memberId].name,
+                  }}
+                  trainer={{
+                    name: `${trainersRecord[appointment.trainerId].firstName} ${trainersRecord[appointment.trainerId].lastName}`,
+                  }}
+                  service={servicesRecord[appointment.serviceId]}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEditAppointment}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Cancelled Appointments */}
-      {groupedAppointments["cancelled"] && groupedAppointments["cancelled"].length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-800">İptal Edilen Randevular</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["cancelled"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{ 
-                  name: `${membersRecord[appointment.memberId].name}` 
-                }}
-                trainer={{ 
-                  name: `${trainersRecord[appointment.trainerId].name}` 
-                }}
-                service={servicesRecord[appointment.serviceId]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
+      {groupedAppointments["cancelled"] &&
+        groupedAppointments["cancelled"].length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-800">
+              İptal Edilen Randevular
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {groupedAppointments["cancelled"].map((appointment) => (
+                <AppointmentCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  member={{
+                    name: membersRecord[appointment.memberId].name,
+                  }}
+                  trainer={{
+                    name: `${trainersRecord[appointment.trainerId].firstName} ${trainersRecord[appointment.trainerId].lastName}`,
+                  }}
+                  service={servicesRecord[appointment.serviceId]}
+                  onStatusChange={handleStatusChange}
+                  onEdit={handleEditAppointment}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* No Appointments Message */}
       {Object.keys(groupedAppointments).length === 0 && (

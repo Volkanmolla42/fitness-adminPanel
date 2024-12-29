@@ -1,6 +1,6 @@
-import { Member } from '@/types/member';
+import { Member } from "@/types/member";
 
-const defaultMembers: Member[] = [
+export const defaultMembers: Member[] = [
   {
     id: "1",
     name: "Ahmet Yılmaz",
@@ -32,5 +32,3 @@ const defaultMembers: Member[] = [
     startDate: "2024-02-01",
   },
 ];
-
-export default defaultMembers;
