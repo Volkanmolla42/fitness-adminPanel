@@ -10,6 +10,7 @@ export const defaultMembers: Member[] = [
     membershipType: "premium",
     subscribedServices: ["Kişisel Antrenman", "Fitness Değerlendirmesi"],
     startDate: "2024-01-15",
+    endDate: "2025-01-15",
   },
   {
     id: "2",
@@ -20,6 +21,7 @@ export const defaultMembers: Member[] = [
     membershipType: "basic",
     subscribedServices: ["Yoga Dersi"],
     startDate: "2024-02-01",
+    endDate: "2025-04-22",
   },
   {
     id: "3",
@@ -30,5 +32,6 @@ export const defaultMembers: Member[] = [
     membershipType: "basic",
     subscribedServices: ["fitness"],
     startDate: "2024-01-01",
+    endDate: "2025-05-2",
   },
 ];

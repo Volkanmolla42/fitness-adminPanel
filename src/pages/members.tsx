@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { defaultServices } from "./services";
+import { defaultServices } from "@/data/services";
 import { Search, Plus, Pencil, Phone, Mail, Crown, Users } from "lucide-react";
 import { memberSchema } from "@/lib/validations";
 import * as z from "zod";
@@ -84,6 +84,7 @@ const MemberForm = ({
       membershipType: member?.membershipType || "basic",
       subscribedServices: member?.subscribedServices || [],
       startDate: member?.startDate || new Date().toISOString().split("T")[0],
+      endDate: member?.endDate || new Date().toISOString().split("T")[0],
     },
   });
 
@@ -226,6 +227,19 @@ const MemberForm = ({
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="endDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bitiş Tarihi</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
@@ -272,6 +286,7 @@ const MembersPage = () => {
       id: Math.random().toString(),
     };
     setMembers((prev) => [...prev, newMember]);
+    setEditingMember(null);
   };
 
   const handleEdit = (data: FormData) => {
@@ -298,22 +313,24 @@ const MembersPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatsCard title="Toplam Üye" value={stats.total} icon={Users} />
         <StatsCard
+          title="Temel Üyeler"
+          value={stats.basic}
+          icon={Users}
+          iconColor="text-blue-500"
+        />
+
+        <StatsCard
           title="Premium Üyeler"
           value={stats.premium}
           icon={Crown}
           iconColor="text-purple-500"
         />
+
         <StatsCard
           title="VIP Üyeler"
           value={stats.vip}
           icon={Crown}
           iconColor="text-yellow-500"
-        />
-        <StatsCard
-          title="Temel Üyeler"
-          value={stats.basic}
-          icon={Users}
-          iconColor="text-blue-500"
         />
       </div>
 

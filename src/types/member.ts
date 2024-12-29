@@ -8,5 +8,6 @@ export interface Member {
   membershipType: MembershipType;
   subscribedServices: string[];
   startDate: string;
+  endDate: string;
   avatarUrl: string;
 }

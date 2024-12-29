@@ -41,7 +41,7 @@ const TrainerForm = ({
           name: trainer.name,
           email: trainer.email,
           phone: trainer.phone || "",
-          specialization: trainer.specialization || "",
+          categories: trainer.categories || "",
           bio: trainer.bio || "",
           availability: trainer.availability || [],
         }
@@ -49,7 +49,7 @@ const TrainerForm = ({
           name: "",
           email: "",
           phone: "",
-          specialization: "",
+          categories: "",
           bio: "",
           availability: [],
         }
@@ -110,9 +110,9 @@ const TrainerForm = ({
       <div className="space-y-2">
         <label className="text-sm font-medium">Uzmanlık Alanı</label>
         <Input
-          value={formData.specialization}
+          value={formData.categories}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, specialization: e.target.value }))
+            setFormData((prev) => ({ ...prev, categories: e.target.value }))
           }
           placeholder="Örn: Fitness, Pilates, Yoga"
         />
@@ -145,7 +145,7 @@ const TrainersPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const filteredTrainers = trainers.filter((trainer) =>
-    `${trainer.name} ${trainer.specialization || ""}`
+    `${trainer.name} ${trainer.categories || ""}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
@@ -226,9 +226,9 @@ const TrainersPage = () => {
                   </Avatar>
                   <div>
                     <h3 className="font-medium">{trainer.name}</h3>
-                    {trainer.specialization && (
+                    {trainer.categories && (
                       <p className="text-sm text-muted-foreground">
-                        {trainer.specialization}
+                        {trainer.categories}
                       </p>
                     )}
                   </div>

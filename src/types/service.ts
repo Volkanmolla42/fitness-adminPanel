@@ -1,8 +1,9 @@
 export interface Service {
   id: string;
   name: string;
-  description?: string;
-  duration?: number; // in minutes
-  price?: number;
-  isActive?: boolean;
+  description: string;
+  price: number;
+  duration: number;
+  maxParticipants: number;
+  category: string;
 }

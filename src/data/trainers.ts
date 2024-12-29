@@ -6,13 +6,13 @@ export const defaultTrainers: Trainer[] = [
     name: "Can Yılmaz",
     email: "can@example.com",
     phone: "555-0201",
-    specialization: "Fitness",
+    categories: "Fitness",
   },
   {
     id: "2",
     name: "Zeynep Yılmaz",
     email: "zeynep@example.com",
     phone: "555-0202",
-    specialization: "Pilates",
+    categories: "Pilates",
   },
 ];

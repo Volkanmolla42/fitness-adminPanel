@@ -23,46 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ServiceForm } from "@/components/forms/ServiceForm";
 import { Search, Plus, Pencil, Trash2, Timer, User2 } from "lucide-react";
-
-export interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration: number;
-  maxParticipants: number;
-  category: string;
-}
-
-export const defaultServices: Service[] = [
-  {
-    id: "1",
-    name: "Kişisel Antrenman",
-    description: "Birebir özel antrenman seansı",
-    price: 400,
-    duration: 60,
-    maxParticipants: 1,
-    category: "Fitness",
-  },
-  {
-    id: "2",
-    name: "Yoga Dersi",
-    description: "Grup yoga dersi",
-    price: 200,
-    duration: 45,
-    maxParticipants: 10,
-    category: "Yoga",
-  },
-  {
-    id: "3",
-    name: "Fitness Değerlendirmesi",
-    description: "Detaylı fitness ve sağlık değerlendirmesi",
-    price: 300,
-    duration: 90,
-    maxParticipants: 1,
-    category: "Fitness",
-  },
-];
+import { Service } from "@/types/service";
+import { defaultServices } from "@/data/services";
 
 const ServicesPage = () => {
   const [services, setServices] = useState<Service[]>(defaultServices);
@@ -73,7 +35,7 @@ const ServicesPage = () => {
   const filteredServices = services.filter(
     (service) =>
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchTerm.toLowerCase()),
+      service.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAdd = (newService: Omit<Service, "id">) => {
@@ -89,8 +51,8 @@ const ServicesPage = () => {
       prev.map((service) =>
         service.id === editingService?.id
           ? { ...updatedService, id: service.id }
-          : service,
-      ),
+          : service
+      )
     );
     setEditingService(null);
   };
@@ -122,7 +84,10 @@ const ServicesPage = () => {
             <DialogHeader>
               <DialogTitle>Yeni Hizmet Ekle</DialogTitle>
             </DialogHeader>
-            <ServiceForm onSubmit={handleAdd} onCancel={() => setShowAddDialog(false)} />
+            <ServiceForm
+              onSubmit={handleAdd}
+              onCancel={() => setShowAddDialog(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -155,7 +120,8 @@ const ServicesPage = () => {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                        Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem
+                        geri alınamaz.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -172,7 +138,9 @@ const ServicesPage = () => {
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground">{service.description}</p>
+            <p className="text-sm text-muted-foreground">
+              {service.description}
+            </p>
 
             <div className="flex items-center justify-between pt-4 border-t">
               <div className="flex items-center gap-4">
@@ -192,7 +160,10 @@ const ServicesPage = () => {
       </div>
 
       {/* Edit Service Dialog */}
-      <Dialog open={!!editingService} onOpenChange={() => setEditingService(null)}>
+      <Dialog
+        open={!!editingService}
+        onOpenChange={() => setEditingService(null)}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Hizmet Düzenle</DialogTitle>

@@ -3,7 +3,7 @@ export interface Trainer {
   name: string;
   email: string;
   phone?: string;
-  specialization?: string;
+  categories?: string;
   bio?: string;
   availability?: string[];
 }

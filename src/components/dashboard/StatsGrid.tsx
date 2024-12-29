@@ -44,13 +44,13 @@ const StatsGrid = ({ stats }: StatsGridProps) => {
   const defaultStats = [
     {
       title: "Aktif Üyeler",
-      value: "2.345",
+      value: "89",
       icon: <Users className="h-6 w-6 text-primary" />,
       description: "Toplam aktif spor salonu üyeleri",
     },
     {
       title: "Günün Randevuları",
-      value: "48",
+      value: "26",
       icon: <Calendar className="h-6 w-6 text-primary" />,
       description: "Bugün için planlanan",
     },
@@ -71,7 +71,7 @@ const StatsGrid = ({ stats }: StatsGridProps) => {
   const displayStats = stats || defaultStats;
 
   return (
-    <div className="w-full bg-background px-2">
+    <div className="w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {displayStats.map((stat, index) => (
           <StatsCard

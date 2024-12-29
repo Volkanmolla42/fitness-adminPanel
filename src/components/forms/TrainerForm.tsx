@@ -14,17 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
-
-const specializations = [
-  "Fitness",
-  "Yoga",
-  "Pilates",
-  "Cardio",
-  "Crossfit",
-  "Kickbox",
-  "Yüzme",
-  "Beslenme",
-];
+import { categories } from "@/components/forms/ServiceForm";
 
 interface TrainerFormProps {
   trainer?: {
@@ -32,7 +22,7 @@ interface TrainerFormProps {
     name: string;
     email: string;
     phone: string;
-    specialization: string[];
+    categories: string[];
     bio: string;
     startDate: string;
     workingHours: {
@@ -57,7 +47,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
       name: trainer?.name || "",
       email: trainer?.email || "",
       phone: trainer?.phone || "",
-      specialization: trainer?.specialization || [],
+      categories: trainer?.categories || [],
       bio: trainer?.bio || "",
       startDate: trainer?.startDate || new Date().toISOString().split("T")[0],
       workingHours: {
@@ -67,7 +57,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
     },
   });
 
-  const selectedSpecializations = watch("specialization");
+  const selectedCategories = watch("categories");
 
   const handleFormSubmit = handleSubmit((data) => {
     onSubmit(data);
@@ -106,8 +96,8 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
         <Select
           value=""
           onValueChange={(value) => {
-            if (!selectedSpecializations.includes(value)) {
-              setValue("specialization", [...selectedSpecializations, value], {
+            if (!selectedCategories.includes(value)) {
+              setValue("categories", [...selectedCategories, value], {
                 shouldValidate: true,
               });
             }
@@ -117,7 +107,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
             <SelectValue placeholder="Uzmanlık alanı seçin" />
           </SelectTrigger>
           <SelectContent>
-            {specializations.map((spec) => (
+            {categories.map((spec) => (
               <SelectItem key={spec} value={spec}>
                 {spec}
               </SelectItem>
@@ -126,15 +116,15 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
         </Select>
 
         <div className="flex flex-wrap gap-2 mt-2">
-          {selectedSpecializations.map((spec) => (
+          {selectedCategories.map((spec) => (
             <Badge
               key={spec}
               variant="secondary"
               className="cursor-pointer"
               onClick={() => {
                 setValue(
-                  "specialization",
-                  selectedSpecializations.filter((s) => s !== spec),
+                  "categories",
+                  selectedCategories.filter((s) => s !== spec),
                   { shouldValidate: true }
                 );
               }}
@@ -143,9 +133,9 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
             </Badge>
           ))}
         </div>
-        {errors.specialization && (
+        {errors.categories && (
           <p className="text-sm text-destructive">
-            {errors.specialization.message}
+            {errors.categories.message}
           </p>
         )}
       </div>

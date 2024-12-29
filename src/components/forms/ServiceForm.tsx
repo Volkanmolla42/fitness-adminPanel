@@ -14,7 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
 
-const categories = [
+export const categories = [
   "Fitness",
   "Yoga",
   "Pilates",
@@ -74,7 +74,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         <label className="text-sm font-medium">Açıklama</label>
         <Textarea {...register("description")} />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
@@ -97,7 +99,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
             {...register("duration", { valueAsNumber: true })}
           />
           {errors.duration && (
-            <p className="text-sm text-destructive">{errors.duration.message}</p>
+            <p className="text-sm text-destructive">
+              {errors.duration.message}
+            </p>
           )}
         </div>
       </div>
@@ -120,7 +124,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           <label className="text-sm font-medium">Kategori</label>
           <Select
             value={selectedCategory}
-            onValueChange={(value) => setValue("category", value, { shouldValidate: true })}
+            onValueChange={(value) =>
+              setValue("category", value, { shouldValidate: true })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Kategori seçin" />
@@ -134,7 +140,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
             </SelectContent>
           </Select>
           {errors.category && (
-            <p className="text-sm text-destructive">{errors.category.message}</p>
+            <p className="text-sm text-destructive">
+              {errors.category.message}
+            </p>
           )}
         </div>
       </div>

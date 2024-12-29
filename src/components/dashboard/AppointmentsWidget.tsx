@@ -139,7 +139,7 @@ const AppointmentsWidget = ({
                     {member.name}
                   </p>
                   <p className="text-sm text-gray-600 truncate">
-                    ${trainer.name}
+                    {trainer.name}
                   </p>
                 </div>
                 <p className="text-sm text-gray-500 truncate">{service.name}</p>

@@ -34,6 +34,7 @@ export const memberSchema = z.object({
     .min(1, "En az bir hizmet seçilmelidir"),
   avatarUrl: z.string().optional(),
   startDate: z.string().min(1, validationMessages.required),
+  endDate: z.string().min(1, validationMessages.required),
 });
 
 // Trainer validation schema
@@ -44,7 +45,7 @@ export const trainerSchema = z.object({
     .regex(nameRegex, validationMessages.name),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
-  specialization: z
+  categories: z
     .array(z.string())
     .min(1, "En az bir uzmanlık alanı seçilmelidir"),
   bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),

@@ -24,7 +24,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import type { Member } from "@/types/member";
 import type { Trainer } from "@/types/trainer";
 import type { Service } from "@/types/service";
-import type { Appointment } from "@/types";
+import type { Appointment } from "@/types/appointment";
 import * as z from "zod";
 
 type FormData = z.infer<typeof appointmentFormSchema>;
