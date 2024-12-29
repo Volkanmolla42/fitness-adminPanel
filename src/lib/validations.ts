@@ -32,6 +32,7 @@ export const memberSchema = z.object({
   subscribedServices: z
     .array(z.string())
     .min(1, "En az bir hizmet seçilmelidir"),
+  avatarUrl: z.string().optional(),
   startDate: z.string().min(1, validationMessages.required),
 });
 

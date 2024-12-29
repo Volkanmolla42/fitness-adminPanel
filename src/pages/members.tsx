@@ -33,35 +33,13 @@ import { defaultServices } from "./services";
 import { Search, Plus, Pencil, Phone, Mail, Crown, Users } from "lucide-react";
 import { memberSchema } from "@/lib/validations";
 import * as z from "zod";
+import { defaultMembers } from "@/data/members";
 
 type FormData = z.infer<typeof memberSchema>;
 
 interface Member extends FormData {
   id: string;
 }
-
-const defaultMembers: Member[] = [
-  {
-    id: "1",
-    name: "Ahmet Yılmaz",
-    email: "ahmet@example.com",
-    phone: "(555) 123-4567",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=ahmet",
-    membershipType: "premium",
-    subscribedServices: ["Kişisel Antrenman", "Fitness Değerlendirmesi"],
-    startDate: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Zeynep Kaya",
-    email: "zeynep@example.com",
-    phone: "(555) 234-5678",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=zeynep",
-    membershipType: "basic",
-    subscribedServices: ["Yoga Dersi"],
-    startDate: "2024-02-01",
-  },
-];
 
 const StatsCard = ({
   title,
@@ -109,13 +87,12 @@ const MemberForm = ({
     },
   });
 
-  // Sort services by popularity (number of subscribed members)
   const sortedServices = [...defaultServices].sort((a, b) => {
     const aCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(a.name),
+      m.subscribedServices.includes(a.name)
     ).length;
     const bCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(b.name),
+      m.subscribedServices.includes(b.name)
     ).length;
     return bCount - aCount;
   });
@@ -302,8 +279,8 @@ const MembersPage = () => {
 
     setMembers((prev) =>
       prev.map((member) =>
-        member.id === editingMember.id ? { ...data, id: member.id } : member,
-      ),
+        member.id === editingMember.id ? { ...data, id: member.id } : member
+      )
     );
     setEditingMember(null);
   };
@@ -403,13 +380,19 @@ const MembersPage = () => {
                     <div>
                       <h3 className="font-semibold text-lg">{member.name}</h3>
                       <Badge
-                        className={`mt-1 ${member.membershipType === "premium" ? "bg-purple-500" : member.membershipType === "vip" ? "bg-yellow-500" : "bg-blue-500"}`}
+                        className={`mt-1 ${
+                          member.membershipType === "premium"
+                            ? "bg-purple-500"
+                            : member.membershipType === "vip"
+                            ? "bg-yellow-500"
+                            : "bg-blue-500"
+                        }`}
                       >
                         {member.membershipType === "premium"
                           ? "Premium Üyelik"
                           : member.membershipType === "vip"
-                            ? "VIP Üyelik"
-                            : "Temel Üyelik"}
+                          ? "VIP Üyelik"
+                          : "Temel Üyelik"}
                       </Badge>
                     </div>
                     <Button
