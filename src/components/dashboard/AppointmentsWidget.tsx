@@ -39,7 +39,7 @@ const getStatusText = (status: Appointment["status"]) => {
 
 const getRelevantAppointments = (appointments: Appointment[]) => {
   const inProgressIndex = appointments.findIndex(
-    (apt) => apt.status === "in-progress",
+    (apt) => apt.status === "in-progress"
   );
 
   if (inProgressIndex === -1) return appointments.slice(0, 3);
@@ -60,17 +60,17 @@ const AppointmentsWidget = ({
   // Create lookup objects for members, trainers, and services
   const membersMap = defaultMembers.reduce(
     (acc, member) => ({ ...acc, [member.id]: member }),
-    {} as Record<string, (typeof defaultMembers)[0]>,
+    {} as Record<string, (typeof defaultMembers)[0]>
   );
 
   const trainersMap = defaultTrainers.reduce(
     (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
-    {} as Record<string, (typeof defaultTrainers)[0]>,
+    {} as Record<string, (typeof defaultTrainers)[0]>
   );
 
   const servicesMap = defaultServices.reduce(
     (acc, service) => ({ ...acc, [service.id]: service }),
-    {} as Record<string, (typeof defaultServices)[0]>,
+    {} as Record<string, (typeof defaultServices)[0]>
   );
 
   const displayAppointments = showAll
@@ -116,7 +116,7 @@ const AppointmentsWidget = ({
                 "flex flex-col p-4 rounded-lg border transition-all",
                 appointment.status === "in-progress"
                   ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
-                  : "border-gray-100 hover:bg-gray-50",
+                  : "border-gray-100 hover:bg-gray-50"
               )}
             >
               <div className="flex justify-between items-start mb-3">
@@ -126,7 +126,7 @@ const AppointmentsWidget = ({
                 <Badge
                   variant="secondary"
                   className={`text-xs ${getStatusColor(
-                    appointment.status,
+                    appointment.status
                   )} bg-opacity-10 text-gray-600`}
                 >
                   {getStatusText(appointment.status)}
@@ -139,7 +139,7 @@ const AppointmentsWidget = ({
                     {member.name}
                   </p>
                   <p className="text-sm text-gray-600 truncate">
-                    {`${trainer.firstName} ${trainer.lastName}`}
+                    ${trainer.name}
                   </p>
                 </div>
                 <p className="text-sm text-gray-500 truncate">{service.name}</p>

@@ -1,15 +1,16 @@
 import * as z from "zod";
 
 // Common validation patterns
-const phoneRegex = /^\(([0-9]{3})\)\s*([0-9]{3})-([0-9]{4})$/;
+const phoneRegex =
+  /^(\+90|0)?\s*([0-9]{3})\s*([0-9]{3})\s*([0-9]{2})\s*([0-9]{2})$/;
 const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]{2,}$/;
 
 // Common validation messages
 export const validationMessages = {
   required: "Bu alan zorunludur",
   email: "Geçerli bir e-posta adresi giriniz",
-  phone: "Geçerli bir telefon numarası giriniz (örn: (555) 123-4567)",
-  name: "Geçerli bir isim giriniz (sadece harf ve boşluk)",
+  phone: "Geçerli bir telefon numarası giriniz (örn: 555 123 45 67)",
+  name: "Geçerli bir isim giriniz (en az 2 karakter)",
   minLength: (field: string, length: number) =>
     `${field} en az ${length} karakter olmalıdır`,
   maxLength: (field: string, length: number) =>
@@ -17,36 +18,40 @@ export const validationMessages = {
   date: "Geçerli bir tarih giriniz",
   price: "Geçerli bir fiyat giriniz",
   duration: "Geçerli bir süre giriniz",
-  services: "En az bir hizmet seçmelisiniz",
 };
 
 // Member validation schema
 export const memberSchema = z.object({
   name: z
-    .string({ required_error: validationMessages.required })
-    .min(3, validationMessages.minLength("İsim", 3))
+    .string()
+    .min(2, validationMessages.minLength("İsim", 2))
     .regex(nameRegex, validationMessages.name),
+  email: z.string().email(validationMessages.email),
+  phone: z.string().regex(phoneRegex, validationMessages.phone),
+  membershipType: z.enum(["basic", "premium", "vip"]),
+  subscribedServices: z
+    .array(z.string())
+    .min(1, "En az bir hizmet seçilmelidir"),
+  startDate: z.string().min(1, validationMessages.required),
+});
 
-  email: z
-    .string({ required_error: validationMessages.required })
-    .email(validationMessages.email),
-
-  phone: z
-    .string({ required_error: validationMessages.required })
-    .regex(phoneRegex, validationMessages.phone),
-
-  membershipType: z.enum(["basic", "premium", "vip"], {
-    required_error: "Üyelik tipi seçmelisiniz",
-    invalid_type_error: "Geçersiz üyelik tipi",
+// Trainer validation schema
+export const trainerSchema = z.object({
+  name: z
+    .string()
+    .min(2, validationMessages.minLength("İsim", 2))
+    .regex(nameRegex, validationMessages.name),
+  email: z.string().email(validationMessages.email),
+  phone: z.string().regex(phoneRegex, validationMessages.phone),
+  specialization: z
+    .array(z.string())
+    .min(1, "En az bir uzmanlık alanı seçilmelidir"),
+  bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
+  startDate: z.string().min(1, validationMessages.required),
+  workingHours: z.object({
+    start: z.string().min(1, "Başlangıç saati zorunludur"),
+    end: z.string().min(1, "Bitiş saati zorunludur"),
   }),
-
-  subscribedServices: z.array(z.string()).min(1, validationMessages.services),
-
-  startDate: z
-    .string({ required_error: validationMessages.required })
-    .min(1, validationMessages.required),
-
-  avatarUrl: z.string().optional(),
 });
 
 // Service validation schema
@@ -97,5 +102,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    },
+    }
   );
