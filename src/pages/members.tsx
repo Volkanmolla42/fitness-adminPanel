@@ -1,4 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,43 +15,63 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { defaultServices } from "./services";
+import { Search, Plus, Pencil, Phone, Mail, Crown, Users } from "lucide-react";
+import { memberSchema } from "@/lib/validations";
+import * as z from "zod";
 
-import { Search, Plus, Pencil, Phone, Mail, Users, Crown, Calendar } from "lucide-react";
-import { defaultServices } from "@/pages/services";
-import memberData from "@/data/members";
-import { MembershipType, Member } from "@/types/member";
+type FormData = z.infer<typeof memberSchema>;
 
+interface Member extends FormData {
+  id: string;
+}
 
-// Constants
-const MEMBERSHIP_CONFIG = {
-  basic: {
-    color: "bg-blue-500",
-    label: "Temel Üyelik",
-    icon: Users,
+const defaultMembers: Member[] = [
+  {
+    id: "1",
+    name: "Ahmet Yılmaz",
+    email: "ahmet@example.com",
+    phone: "(555) 123-4567",
+    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=ahmet",
+    membershipType: "premium",
+    subscribedServices: ["Kişisel Antrenman", "Fitness Değerlendirmesi"],
+    startDate: "2024-01-15",
   },
-  premium: {
-    color: "bg-purple-500",
-    label: "Premium Üyelik",
-    icon: Crown,
+  {
+    id: "2",
+    name: "Zeynep Kaya",
+    email: "zeynep@example.com",
+    phone: "(555) 234-5678",
+    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=zeynep",
+    membershipType: "basic",
+    subscribedServices: ["Yoga Dersi"],
+    startDate: "2024-02-01",
   },
-  vip: {
-    color: "bg-yellow-500",
-    label: "VIP Üyelik",
-    icon: Crown,
-  },
-} as const;
+];
 
-// Components
-const StatsCard = ({ title, value, Icon, iconColor }: {
+const StatsCard = ({
+  title,
+  value,
+  icon: Icon,
+  iconColor,
+}: {
   title: string;
   value: number;
-  Icon: typeof Users | typeof Crown;
+  icon: React.ElementType;
   iconColor?: string;
 }) => (
   <Card className="p-4">
@@ -63,312 +85,383 @@ const StatsCard = ({ title, value, Icon, iconColor }: {
   </Card>
 );
 
-const MemberCard = ({ 
-  member, 
-  onEdit 
-}: { 
-  member: Member; 
-  onEdit: (member: Member) => void;
-}) => (
-  <Card className="p-4 space-y-4">
-    <div className="flex items-center space-x-3">
-      <Avatar>
-        <AvatarImage src={member.avatarUrl} />
-        <AvatarFallback>{member.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
-      </Avatar>
-      <div className="font-medium">{member.name}</div>
-    </div>
-
-    <Badge className={MEMBERSHIP_CONFIG[member.membershipType].color}>
-      {MEMBERSHIP_CONFIG[member.membershipType].label}
-    </Badge>
-
-    <div className="space-y-2 text-sm">
-      <div className="flex items-center">
-        <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-        {member.email}
-      </div>
-      <div className="flex items-center">
-        <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-        {member.phone}
-      </div>
-      <div className="flex items-center">
-        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-        {new Date(member.startDate).toLocaleDateString('tr-TR')}
-      </div>
-    </div>
-
-    <div className="flex flex-wrap gap-1">
-      {member.subscribedServices.map((service) => (
-        <Badge key={service} variant="outline" className="text-xs">
-          {service}
-        </Badge>
-      ))}
-    </div>
-
-    <div className="text-right">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onEdit(member)}
-      >
-        <Pencil className="h-4 w-4" />
-      </Button>
-    </div>
-  </Card>
-);
-
 const MemberForm = ({
   member,
   onSubmit,
   onCancel,
 }: {
   member?: Member;
-  onSubmit: (member: Omit<Member, "id">) => void;
+  onSubmit: (member: FormData) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState({
-    name: member?.name || "",
-    email: member?.email || "",
-    phone: member?.phone || "",
-    membershipType: member?.membershipType || "basic" as MembershipType,
-    subscribedServices: member?.subscribedServices || [],
-    startDate: member?.startDate || new Date().toISOString().split("T")[0],
+  const form = useForm<FormData>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: {
+      name: member?.name || "",
+      email: member?.email || "",
+      phone: member?.phone || "",
+      avatarUrl:
+        member?.avatarUrl ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
+      membershipType: member?.membershipType || "basic",
+      subscribedServices: member?.subscribedServices || [],
+      startDate: member?.startDate || new Date().toISOString().split("T")[0],
+    },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      avatarUrl: member?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
-    });
-  };
+  // Sort services by popularity (number of subscribed members)
+  const sortedServices = [...defaultServices].sort((a, b) => {
+    const aCount = defaultMembers.filter((m) =>
+      m.subscribedServices.includes(a.name),
+    ).length;
+    const bCount = defaultMembers.filter((m) =>
+      m.subscribedServices.includes(b.name),
+    ).length;
+    return bCount - aCount;
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Ad Soyad</label>
-        <Input
-          value={formData.name}
-          onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Ad Soyad</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">E-posta</label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            required
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>E-posta</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefon</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="(555) 123-4567" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Telefon</label>
-          <Input
-            value={formData.phone}
-            onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            placeholder="555 123 45 67"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Üyelik Tipi</label>
-        <Select
-          value={formData.membershipType}
-          onValueChange={(value: MembershipType) =>
-            setFormData(prev => ({ ...prev, membershipType: value }))
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Üyelik tipi seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(MEMBERSHIP_CONFIG).map(([value, { label }]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Aldığı Hizmetler</label>
-        <Select
-          value=""
-          onValueChange={(value) => {
-            if (!formData.subscribedServices.includes(value)) {
-              setFormData(prev => ({
-                ...prev,
-                subscribedServices: [...prev.subscribedServices, value]
-              }));
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Hizmet seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            {defaultServices.map((service) => (
-              <SelectItem key={service.id} value={service.name}>
-                {service.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex flex-wrap gap-2 mt-2">
-          {formData.subscribedServices.map((service) => (
-            <Badge
-              key={service}
-              variant="secondary"
-              className="cursor-pointer"
-              onClick={() => {
-                setFormData(prev => ({
-                  ...prev,
-                  subscribedServices: prev.subscribedServices.filter(s => s !== service)
-                }));
-              }}
-            >
-              {service} ×
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Başlangıç Tarihi</label>
-        <Input
-          type="date"
-          value={formData.startDate}
-          onChange={e => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-          required
+        <FormField
+          control={form.control}
+          name="membershipType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Üyelik Tipi</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Üyelik tipi seçin" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="basic">Temel Üyelik</SelectItem>
+                  <SelectItem value="premium">Premium Üyelik</SelectItem>
+                  <SelectItem value="vip">VIP Üyelik</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          İptal
-        </Button>
-        <Button type="submit">Kaydet</Button>
-      </DialogFooter>
-    </form>
+        <FormField
+          control={form.control}
+          name="subscribedServices"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Aldığı Hizmetler</FormLabel>
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  if (!field.value.includes(value)) {
+                    field.onChange([...field.value, value]);
+                  }
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Hizmet seçin" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {sortedServices.map((service) => (
+                    <SelectItem key={service.id} value={service.name}>
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {field.value.map((service) => (
+                  <Badge
+                    key={service}
+                    variant="secondary"
+                    className="cursor-pointer"
+                    onClick={() =>
+                      field.onChange(field.value.filter((s) => s !== service))
+                    }
+                  >
+                    {service} ×
+                  </Badge>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="startDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Başlangıç Tarihi</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            İptal
+          </Button>
+          <Button type="submit">{member ? "Güncelle" : "Ekle"}</Button>
+        </DialogFooter>
+      </form>
+    </Form>
   );
 };
 
 const MembersPage = () => {
-  const [members, setMembers] = useState<Member[]>(memberData);
+  const [members, setMembers] = useState<Member[]>(defaultMembers);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMembershipType, setSelectedMembershipType] = useState<MembershipType | "all">("all");
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [membershipFilter, setMembershipFilter] = useState<
+    Member["membershipType"] | "all"
+  >("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
   const filteredMembers = members.filter((member) => {
-    const matchesSearch = 
+    const matchesSearch =
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone.includes(searchTerm);
-    const matchesMembership = selectedMembershipType === "all" || member.membershipType === selectedMembershipType;
+
+    const matchesMembership =
+      membershipFilter === "all" || member.membershipType === membershipFilter;
+
     return matchesSearch && matchesMembership;
   });
 
+  // Calculate stats
   const stats = {
     total: members.length,
-    premium: members.filter(m => m.membershipType === "premium").length,
-    vip: members.filter(m => m.membershipType === "vip").length,
-    basic: members.filter(m => m.membershipType === "basic").length,
+    premium: members.filter((m) => m.membershipType === "premium").length,
+    vip: members.filter((m) => m.membershipType === "vip").length,
+    basic: members.filter((m) => m.membershipType === "basic").length,
+  };
+
+  const handleAdd = (data: FormData) => {
+    const newMember = {
+      ...data,
+      id: Math.random().toString(),
+    };
+    setMembers((prev) => [...prev, newMember]);
+  };
+
+  const handleEdit = (data: FormData) => {
+    if (!editingMember) return;
+
+    setMembers((prev) =>
+      prev.map((member) =>
+        member.id === editingMember.id ? { ...data, id: member.id } : member,
+      ),
+    );
+    setEditingMember(null);
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Stats Cards */}
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">Üyeler</h1>
+        <p className="text-muted-foreground mt-2">
+          Spor salonu üyelerini yönet
+        </p>
+      </div>
+
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatsCard title="Toplam Üye" value={stats.total} Icon={Users} />
-        <StatsCard title="Premium Üyeler" value={stats.premium} Icon={Crown} iconColor="text-purple-500" />
-        <StatsCard title="VIP Üyeler" value={stats.vip} Icon={Crown} iconColor="text-yellow-500" />
-        <StatsCard title="Temel Üyeler" value={stats.basic} Icon={Users} iconColor="text-blue-500" />
+        <StatsCard title="Toplam Üye" value={stats.total} icon={Users} />
+        <StatsCard
+          title="Premium Üyeler"
+          value={stats.premium}
+          icon={Crown}
+          iconColor="text-purple-500"
+        />
+        <StatsCard
+          title="VIP Üyeler"
+          value={stats.vip}
+          icon={Crown}
+          iconColor="text-yellow-500"
+        />
+        <StatsCard
+          title="Temel Üyeler"
+          value={stats.basic}
+          icon={Users}
+          iconColor="text-blue-500"
+        />
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="İsim, e-posta veya telefon ile ara..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        
-        <Select
-          value={selectedMembershipType}
-          onValueChange={(value: MembershipType | "all") => setSelectedMembershipType(value)}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Üyelik Tipi" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tüm Üyelikler</SelectItem>
-            {Object.entries(MEMBERSHIP_CONFIG).map(([value, { label }]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
-          <DialogTrigger asChild>
-            <Button className="whitespace-nowrap">
-              <Plus className="mr-2 h-4 w-4" /> Yeni Üye
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Yeni Üye Ekle</DialogTitle>
-            </DialogHeader>
-            <MemberForm
-              onSubmit={(data) => {
-                setMembers(prev => [...prev, { ...data, id: Math.random().toString() }]);
-                setShowAddMemberDialog(false);
-              }}
-              onCancel={() => setShowAddMemberDialog(false)}
+      <Card className="p-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="İsim, e-posta veya telefon ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
             />
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
 
-      {/* Members Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredMembers.map((member) => (
-          <MemberCard
-            key={member.id}
-            member={member}
-            onEdit={setEditingMember}
-          />
-        ))}
-      </div>
+          <Select
+            value={membershipFilter}
+            onValueChange={(value: Member["membershipType"] | "all") =>
+              setMembershipFilter(value)
+            }
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Üyelik Tipi" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tüm Üyelikler</SelectItem>
+              <SelectItem value="basic">Temel Üyelik</SelectItem>
+              <SelectItem value="premium">Premium Üyelik</SelectItem>
+              <SelectItem value="vip">VIP Üyelik</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="whitespace-nowrap">
+                <Plus className="mr-2 h-4 w-4" /> Yeni Üye
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Yeni Üye Ekle</DialogTitle>
+              </DialogHeader>
+              <MemberForm
+                onSubmit={handleAdd}
+                onCancel={() => setEditingMember(null)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredMembers.map((member) => (
+            <div
+              key={member.id}
+              className="flex flex-col p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-all"
+            >
+              <div className="flex items-start gap-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={member.avatarUrl} />
+                  <AvatarFallback>{member.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">{member.name}</h3>
+                      <Badge
+                        className={`mt-1 ${member.membershipType === "premium" ? "bg-purple-500" : member.membershipType === "vip" ? "bg-yellow-500" : "bg-blue-500"}`}
+                      >
+                        {member.membershipType === "premium"
+                          ? "Premium Üyelik"
+                          : member.membershipType === "vip"
+                            ? "VIP Üyelik"
+                            : "Temel Üyelik"}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingMember(member)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="h-4 w-4" />
+                  <span>{member.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span>{member.phone}</span>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Aldığı Hizmetler:</p>
+                <div className="flex flex-wrap gap-2">
+                  {member.subscribedServices.map((service) => (
+                    <Badge key={service} variant="outline">
+                      {service}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {/* Edit Member Dialog */}
-      <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
-        <DialogContent className="max-w-2xl">
+      <Dialog
+        open={!!editingMember}
+        onOpenChange={() => setEditingMember(null)}
+      >
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Üye Düzenle</DialogTitle>
           </DialogHeader>
           {editingMember && (
             <MemberForm
               member={editingMember}
-              onSubmit={(data) => {
-                setMembers(prev =>
-                  prev.map(m =>
-                    m.id === editingMember.id ? { ...data, id: m.id } : m
-                  )
-                );
-                setEditingMember(null);
-              }}
+              onSubmit={handleEdit}
               onCancel={() => setEditingMember(null)}
             />
           )}

@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
+import { appointmentFormSchema } from "@/lib/validations";
 import {
   Form,
   FormControl,
@@ -19,19 +19,22 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { appointmentFormSchema } from "@/lib/validations";
+import { Button } from "@/components/ui/button";
+import { DialogFooter } from "@/components/ui/dialog";
 import type { Member } from "@/types/member";
 import type { Trainer } from "@/types/trainer";
 import type { Service } from "@/types/service";
 import type { Appointment } from "@/types";
 import * as z from "zod";
 
+type FormData = z.infer<typeof appointmentFormSchema>;
+
 interface AppointmentFormProps {
   appointment?: Appointment;
   members: Member[];
   trainers: Trainer[];
   services: Service[];
-  onSubmit: (data: any) => void;
+  onSubmit: (data: FormData) => void;
   onCancel: () => void;
 }
 
@@ -43,15 +46,15 @@ export function AppointmentForm({
   onSubmit,
   onCancel,
 }: AppointmentFormProps) {
-  const form = useForm<z.infer<typeof appointmentFormSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(appointmentFormSchema),
-    defaultValues: appointment || {
-      memberId: "",
-      trainerId: "",
-      serviceId: "",
-      date: new Date().toISOString().split("T")[0],
-      time: "",
-      notes: "",
+    defaultValues: {
+      memberId: appointment?.memberId || "",
+      trainerId: appointment?.trainerId || "",
+      serviceId: appointment?.serviceId || "",
+      date: appointment?.date || new Date().toISOString().split("T")[0],
+      time: appointment?.time || "",
+      notes: appointment?.notes || "",
     },
   });
 
@@ -133,33 +136,39 @@ export function AppointmentForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tarih</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tarih</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    {...field}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="time"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Saat</FormLabel>
-              <FormControl>
-                <Input type="time" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Saat</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -171,6 +180,7 @@ export function AppointmentForm({
                 <Textarea
                   {...field}
                   placeholder="Randevu ile ilgili notlar..."
+                  className="resize-none"
                 />
               </FormControl>
               <FormMessage />
@@ -178,12 +188,12 @@ export function AppointmentForm({
           )}
         />
 
-        <div className="flex justify-end gap-4 mt-6">
+        <DialogFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
             İptal
           </Button>
           <Button type="submit">{appointment ? "Güncelle" : "Ekle"}</Button>
-        </div>
+        </DialogFooter>
       </form>
     </Form>
   );
