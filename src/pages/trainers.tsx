@@ -32,14 +32,13 @@ const TrainerForm = ({
   onCancel,
 }: {
   trainer?: Trainer;
-  onSubmit: (trainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => void;
+  onSubmit: (trainer: Omit<Trainer, "id">) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState<Omit<Trainer, "id" | "createdAt" | "updatedAt">>(
+  const [formData, setFormData] = useState<Omit<Trainer, "id">>(
     trainer
       ? {
-          firstName: trainer.firstName,
-          lastName: trainer.lastName,
+          name: trainer.name,
           email: trainer.email,
           phone: trainer.phone || "",
           specialization: trainer.specialization || "",
@@ -47,8 +46,7 @@ const TrainerForm = ({
           availability: trainer.availability || [],
         }
       : {
-          firstName: "",
-          lastName: "",
+          name: "",
           email: "",
           phone: "",
           specialization: "",
@@ -59,8 +57,8 @@ const TrainerForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.email) {
-      alert("Lütfen zorunlu alanları doldurun (Ad, Soyad, E-posta)");
+    if (!formData.name || !formData.email) {
+      alert("Lütfen zorunlu alanları doldurun (Ad, E-posta)");
       return;
     }
     onSubmit(formData);
@@ -75,22 +73,9 @@ const TrainerForm = ({
           </label>
           <Input
             required
-            value={formData.firstName}
+            value={formData.name}
             onChange={(e) =>
-              setFormData((prev) => ({ ...prev, firstName: e.target.value }))
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">
-            Soyad<span className="text-red-500">*</span>
-          </label>
-          <Input
-            required
-            value={formData.lastName}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+              setFormData((prev) => ({ ...prev, name: e.target.value }))
             }
           />
         </div>
@@ -148,9 +133,7 @@ const TrainerForm = ({
         <Button type="button" variant="outline" onClick={onCancel}>
           İptal
         </Button>
-        <Button type="submit">
-          {trainer ? "Güncelle" : "Ekle"}
-        </Button>
+        <Button type="submit">{trainer ? "Güncelle" : "Ekle"}</Button>
       </DialogFooter>
     </form>
   );
@@ -161,34 +144,29 @@ const TrainersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const filteredTrainers = trainers.filter(
-    (trainer) =>
-      `${trainer.firstName} ${trainer.lastName} ${trainer.specialization || ""}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
+  const filteredTrainers = trainers.filter((trainer) =>
+    `${trainer.name} ${trainer.specialization || ""}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
 
-  const handleAdd = (newTrainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => {
+  const handleAdd = (newTrainer: Omit<Trainer, "id">) => {
     const currentDate = new Date().toISOString();
     const trainerWithId = {
       ...newTrainer,
       id: Math.random().toString(),
-      createdAt: currentDate,
-      updatedAt: currentDate,
     };
     setTrainers((prev) => [...prev, trainerWithId]);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (id: string, updatedTrainer: Omit<Trainer, "id" | "createdAt" | "updatedAt">) => {
+  const handleEdit = (id: string, updatedTrainer: Omit<Trainer, "id">) => {
     setTrainers((prev) =>
       prev.map((trainer) =>
         trainer.id === id
           ? {
               ...updatedTrainer,
               id: trainer.id,
-              createdAt: trainer.createdAt,
-              updatedAt: new Date().toISOString(),
             }
           : trainer
       )
@@ -244,15 +222,10 @@ const TrainersPage = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarFallback>
-                      {trainer.firstName[0]}
-                      {trainer.lastName[0]}
-                    </AvatarFallback>
+                    <AvatarFallback>{trainer.name[0]}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium">
-                      {trainer.firstName} {trainer.lastName}
-                    </h3>
+                    <h3 className="font-medium">{trainer.name}</h3>
                     {trainer.specialization && (
                       <p className="text-sm text-muted-foreground">
                         {trainer.specialization}
@@ -296,7 +269,9 @@ const TrainersPage = () => {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(trainer.id)}>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(trainer.id)}
+                        >
                           Sil
                         </AlertDialogAction>
                       </AlertDialogFooter>

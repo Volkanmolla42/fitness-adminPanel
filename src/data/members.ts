@@ -1,4 +1,4 @@
-import { Member } from '@/types/member';
+import { Member } from "@/types/member";
 
 const defaultMembers: Member[] = [
   {
@@ -23,13 +23,13 @@ const defaultMembers: Member[] = [
   },
   {
     id: "3",
-    name: "Zeynep Kaya",
-    email: "zeynep@example.com",
+    name: "Volkan Molla",
+    email: "vm@example.com",
     phone: "(555) 234-5678",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=zeynep",
+    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=volkan",
     membershipType: "basic",
-    subscribedServices: ["Yoga Dersi"],
-    startDate: "2024-02-01",
+    subscribedServices: ["fitness"],
+    startDate: "2024-01-01",
   },
 ];
 

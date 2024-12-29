@@ -4,7 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import { Appointment } from "@/types";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -54,7 +59,9 @@ const AppointmentCard = ({
   onEdit,
 }: AppointmentCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<Appointment["status"] | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<
+    Appointment["status"] | null
+  >(null);
 
   const handleChangeStatus = (status: Appointment["status"]) => {
     setPendingStatus(status);
@@ -69,9 +76,15 @@ const AppointmentCard = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-500" />
-              <span className="text-base sm:text-lg font-semibold">{appointment.time}</span>
+              <span className="text-base sm:text-lg font-semibold">
+                {appointment.time}
+              </span>
             </div>
-            <Badge className={`${getStatusColor(appointment.status)} text-xs sm:text-sm`}>
+            <Badge
+              className={`${getStatusColor(
+                appointment.status
+              )} text-xs sm:text-sm`}
+            >
               {getStatusText(appointment.status)}
             </Badge>
           </div>
@@ -91,7 +104,9 @@ const AppointmentCard = ({
               <span className="text-gray-700">{service.name}</span>
             </div>
             {appointment.notes && (
-              <p className="text-sm text-gray-600 mt-2 break-words">{appointment.notes}</p>
+              <p className="text-sm text-gray-600 mt-2 break-words">
+                {appointment.notes}
+              </p>
             )}
           </div>
 
@@ -149,14 +164,24 @@ const AppointmentCard = ({
         <DialogContent>
           <DialogTitle>Eylemi Onayla</DialogTitle>
           <DialogDescription>
-            Bu randevuyu {pendingStatus === "completed" ? "tamamlamak" : pendingStatus === "cancelled" ? "iptal etmek" : "başlatmak"} istediğinize emin misiniz?
+            Bu randevuyu{" "}
+            {pendingStatus === "completed"
+              ? "tamamlamak"
+              : pendingStatus === "cancelled"
+              ? "iptal etmek"
+              : "başlatmak"}{" "}
+            istediğinize emin misiniz?
           </DialogDescription>
-          <Button onClick={() => {
-            if (pendingStatus) {
-              onStatusChange(appointment.id, pendingStatus);
-            }
-            setIsModalOpen(false);
-          }}>Evet</Button>
+          <Button
+            onClick={() => {
+              if (pendingStatus) {
+                onStatusChange(appointment.id, pendingStatus);
+              }
+              setIsModalOpen(false);
+            }}
+          >
+            Evet
+          </Button>
           <Button onClick={() => setIsModalOpen(false)}>Hayır</Button>
         </DialogContent>
       </Dialog>

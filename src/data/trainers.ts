@@ -1,20 +1,18 @@
-import { Trainer } from '@/types/trainer';
+import { Trainer } from "@/types/trainer";
 
 export const defaultTrainers: Trainer[] = [
   {
     id: "1",
-    firstName: "Can",
-    lastName: "Yıldız",
+    name: "Can Yılmaz",
     email: "can@example.com",
     phone: "555-0201",
-    specialization: "Fitness"
+    specialization: "Fitness",
   },
   {
     id: "2",
-    firstName: "Zeynep",
-    lastName: "Ak",
+    name: "Zeynep Yılmaz",
     email: "zeynep@example.com",
     phone: "555-0202",
-    specialization: "Pilates"
-  }
+    specialization: "Pilates",
+  },
 ];

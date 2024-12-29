@@ -64,10 +64,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Üye</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Üye seçin" />
@@ -76,7 +73,7 @@ export function AppointmentForm({
                 <SelectContent>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
-                      {`${member.firstName} ${member.lastName}`}
+                      {member.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -92,10 +89,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Eğitmen</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Eğitmen seçin" />
@@ -104,7 +98,7 @@ export function AppointmentForm({
                 <SelectContent>
                   {trainers.map((trainer) => (
                     <SelectItem key={trainer.id} value={trainer.id}>
-                      {`${trainer.firstName} ${trainer.lastName}`}
+                      {trainer.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -120,10 +114,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hizmet</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Hizmet seçin" />
@@ -177,7 +168,10 @@ export function AppointmentForm({
             <FormItem>
               <FormLabel>Notlar</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="Randevu ile ilgili notlar..." />
+                <Textarea
+                  {...field}
+                  placeholder="Randevu ile ilgili notlar..."
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -188,9 +182,7 @@ export function AppointmentForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             İptal
           </Button>
-          <Button type="submit">
-            {appointment ? "Güncelle" : "Ekle"}
-          </Button>
+          <Button type="submit">{appointment ? "Güncelle" : "Ekle"}</Button>
         </div>
       </form>
     </Form>

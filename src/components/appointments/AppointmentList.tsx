@@ -1,5 +1,5 @@
 import React from "react";
-import { AppointmentCard } from "./AppointmentCard";
+import AppointmentCard from "./AppointmentCard";
 import { Appointment } from "@/types";
 
 interface AppointmentListProps {

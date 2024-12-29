@@ -107,11 +107,9 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
           value=""
           onValueChange={(value) => {
             if (!selectedSpecializations.includes(value)) {
-              setValue(
-                "specialization",
-                [...selectedSpecializations, value],
-                { shouldValidate: true }
-              );
+              setValue("specialization", [...selectedSpecializations, value], {
+                shouldValidate: true,
+              });
             }
           }}
         >

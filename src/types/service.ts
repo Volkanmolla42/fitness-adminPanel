@@ -5,6 +5,4 @@ export interface Service {
   duration?: number; // in minutes
   price?: number;
   isActive?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
 }
