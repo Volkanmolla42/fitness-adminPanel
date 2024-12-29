@@ -187,7 +187,7 @@ const TrainersPage = () => {
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="px-2 py-6 md:p-6">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -218,7 +218,7 @@ const TrainersPage = () => {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTrainers.map((trainer) => (
-            <Card key={trainer.id} className="p-6">
+            <Card key={trainer.id} className="px-4 py-6 md:p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>

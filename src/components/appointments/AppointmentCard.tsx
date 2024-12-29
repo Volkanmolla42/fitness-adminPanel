@@ -116,7 +116,7 @@ const AppointmentCard = ({
               variant="outline"
               size="sm"
               onClick={() => onEdit(appointment)}
-              className="flex-1"
+              className="flex-1 p-2"
             >
               <Pencil className="mr-2 h-4 w-4" />
               Düzenle
@@ -128,7 +128,7 @@ const AppointmentCard = ({
                   variant="outline"
                   size="sm"
                   onClick={() => handleChangeStatus("in-progress")}
-                  className="flex-1"
+                  className="flex-1 p-2"
                 >
                   <Clock className="mr-2 h-4 w-4" />
                   Başlat
@@ -137,7 +137,7 @@ const AppointmentCard = ({
                   variant="outline"
                   size="sm"
                   onClick={() => handleChangeStatus("cancelled")}
-                  className="flex-1 text-red-600 hover:text-red-700"
+                  className="flex-1 text-red-600 hover:text-red-700 p-2"
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   İptal Et
@@ -150,7 +150,7 @@ const AppointmentCard = ({
                 variant="outline"
                 size="sm"
                 onClick={() => handleChangeStatus("completed")}
-                className="flex-1 text-green-600 hover:text-green-700"
+                className="flex-1 text-green-600 hover:text-green-700 p-2"
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Tamamla

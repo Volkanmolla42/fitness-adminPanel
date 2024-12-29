@@ -80,7 +80,7 @@ const AppointmentsWidget = ({
   return (
     <Card className="w-full bg-white p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
           <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
             {title}
           </h2>
