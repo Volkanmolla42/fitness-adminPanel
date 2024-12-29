@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, XCircle, Pencil } from "lucide-react";
-import { Appointment } from "@/types";
+import { Appointment } from "@/types/appointment";
 import {
   Dialog,
   DialogContent,

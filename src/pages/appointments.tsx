@@ -15,7 +15,7 @@ import { defaultServices } from "@/data/services";
 import { defaultAppointments } from "@/data/appointments";
 import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
 import AppointmentCard from "@/components/appointments/AppointmentCard";
-import type { Appointment } from "@/types";
+import type { Appointment } from "@/types/appointment";
 
 function AppointmentsPage() {
   const [appointments, setAppointments] = useState(defaultAppointments);

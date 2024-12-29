@@ -9,7 +9,7 @@ import { defaultAppointments } from "@/data/appointments";
 import { defaultMembers } from "@/data/members";
 import { defaultTrainers } from "@/data/trainers";
 import { defaultServices } from "@/data/services";
-import type { Appointment } from "@/types";
+import type { Appointment } from "@/types/appointment";
 
 interface AppointmentsWidgetProps {
   appointments?: Appointment[];

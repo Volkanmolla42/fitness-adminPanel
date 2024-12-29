@@ -1,6 +1,6 @@
 import React from "react";
 import AppointmentCard from "./AppointmentCard";
-import { Appointment } from "@/types";
+import { Appointment } from "@/types/appointment";
 
 interface AppointmentListProps {
   appointments: Appointment[];
