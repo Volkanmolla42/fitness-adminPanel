@@ -62,7 +62,13 @@ const ServicesPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">Hizmetler</h1>
+        <p className="text-muted-foreground mt-2">
+          Spor salonu hizmetlerini yönet
+        </p>
+      </div>
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
