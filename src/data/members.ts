@@ -3,7 +3,8 @@ import { Member } from "@/types/member";
 export const defaultMembers: Member[] = [
   {
     id: "1",
-    name: "Ahmet ÇELİK",
+    firstName: "Ahmet",
+    lastName: "ÇELİK",
     email: "ahmet@example.com",
     phone: "(555) 123-4567",
     avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=ahmet",
@@ -14,7 +15,8 @@ export const defaultMembers: Member[] = [
   },
   {
     id: "2",
-    name: "Zeynep Kaya",
+    firstName: "Zeynep",
+    lastName: "Kaya",
     email: "zeynep@example.com",
     phone: "(555) 234-5678",
     avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=zeynep",
@@ -25,7 +27,8 @@ export const defaultMembers: Member[] = [
   },
   {
     id: "3",
-    name: "Volkan Molla",
+    firstName: "Volkan",
+    lastName: "Molla",
     email: "vm@example.com",
     phone: "(555) 234-5678",
     avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=volkan",

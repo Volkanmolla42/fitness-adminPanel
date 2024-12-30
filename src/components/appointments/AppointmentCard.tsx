@@ -13,7 +13,10 @@ import {
 
 interface AppointmentCardProps {
   appointment: Appointment;
-  member: { name: string };
+  member: {
+    firstName: string;
+    lastName: string;
+  };
   trainer: { name: string };
   service: { name: string };
   onStatusChange: (id: string, status: Appointment["status"]) => void;
@@ -82,7 +85,7 @@ const AppointmentCard = ({
             </div>
             <Badge
               className={`${getStatusColor(
-                appointment.status
+                appointment.status,
               )} text-xs sm:text-sm`}
             >
               {getStatusText(appointment.status)}
@@ -93,7 +96,7 @@ const AppointmentCard = ({
           <div className="space-y-2 text-sm sm:text-base">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="font-medium min-w-[80px]">Üye:</span>
-              <span className="text-gray-700">{member.name}</span>
+              <span className="text-gray-700">{`${member.firstName} ${member.lastName}`}</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="font-medium min-w-[80px]">Eğitmen:</span>
@@ -168,8 +171,8 @@ const AppointmentCard = ({
             {pendingStatus === "completed"
               ? "tamamlamak"
               : pendingStatus === "cancelled"
-              ? "iptal etmek"
-              : "başlatmak"}{" "}
+                ? "iptal etmek"
+                : "başlatmak"}{" "}
             istediğinize emin misiniz?
           </DialogDescription>
           <Button

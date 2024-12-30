@@ -75,7 +75,8 @@ const MemberForm = ({
   const form = useForm<FormData>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      name: member?.name || "",
+      firstName: member?.firstName || "",
+      lastName: member?.lastName || "",
       email: member?.email || "",
       phone: member?.phone || "",
       avatarUrl:
@@ -90,10 +91,10 @@ const MemberForm = ({
 
   const sortedServices = [...defaultServices].sort((a, b) => {
     const aCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(a.name)
+      m.subscribedServices.includes(a.name),
     ).length;
     const bCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(b.name)
+      m.subscribedServices.includes(b.name),
     ).length;
     return bCount - aCount;
   });
@@ -262,9 +263,14 @@ const MembersPage = () => {
 
   const filteredMembers = members.filter((member) => {
     const matchesSearch =
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.includes(searchTerm);
+      member.firstName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      false ||
+      member.lastName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      false ||
+      member.email?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      false ||
+      member.phone?.includes(searchTerm) ||
+      false;
 
     const matchesMembership =
       membershipFilter === "all" || member.membershipType === membershipFilter;
@@ -294,8 +300,8 @@ const MembersPage = () => {
 
     setMembers((prev) =>
       prev.map((member) =>
-        member.id === editingMember.id ? { ...data, id: member.id } : member
-      )
+        member.id === editingMember.id ? { ...data, id: member.id } : member,
+      ),
     );
     setEditingMember(null);
   };
@@ -390,26 +396,28 @@ const MembersPage = () => {
               <div className="flex items-start gap-4">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={member.avatarUrl} />
-                  <AvatarFallback>{member.name[0]}</AvatarFallback>
+                  <AvatarFallback>{member.firstName}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg">{member.name}</h3>
+                      <h3 className="font-semibold text-lg">
+                        {`${member.firstName} ${member.lastName}`}
+                      </h3>
                       <Badge
                         className={`mt-1 ${
                           member.membershipType === "premium"
                             ? "bg-purple-500"
                             : member.membershipType === "vip"
-                            ? "bg-yellow-500"
-                            : "bg-blue-500"
+                              ? "bg-yellow-500"
+                              : "bg-blue-500"
                         }`}
                       >
                         {member.membershipType === "premium"
                           ? "Premium Üyelik"
                           : member.membershipType === "vip"
-                          ? "VIP Üyelik"
-                          : "Temel Üyelik"}
+                            ? "VIP Üyelik"
+                            : "Temel Üyelik"}
                       </Badge>
                     </div>
                     <Button

@@ -3,7 +3,7 @@ import * as z from "zod";
 // Common validation patterns
 const phoneRegex =
   /^(\+90|0)?\s*([0-9]{3})\s*([0-9]{3})\s*([0-9]{2})\s*([0-9]{2})$/;
-const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]{2,}$/;
+const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ]{2,}$/;
 
 // Common validation messages
 export const validationMessages = {
@@ -22,10 +22,14 @@ export const validationMessages = {
 
 // Member validation schema
 export const memberSchema = z.object({
-  name: z
+  firstName: z
     .string()
-    .min(2, validationMessages.minLength("İsim", 2))
-    .regex(nameRegex, validationMessages.name),
+    .min(2, validationMessages.minLength("Ad", 2))
+    .regex(nameRegex, "Geçerli bir ad giriniz"),
+  lastName: z
+    .string()
+    .min(2, validationMessages.minLength("Soyad", 2))
+    .regex(nameRegex, "Geçerli bir soyad giriniz"),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   membershipType: z.enum(["basic", "premium", "vip"]),
