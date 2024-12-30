@@ -183,7 +183,7 @@ const TrainersPage = () => {
       <div>
         <h1 className="text-3xl font-bold">Eğitmenler</h1>
         <p className="text-muted-foreground mt-2">
-          Spor salonu eğitmenlerini yönet
+          Spor salonu eğitmenlerini yönet.
         </p>
       </div>
 
