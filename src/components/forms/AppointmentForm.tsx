@@ -1,4 +1,3 @@
-import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentFormSchema } from "@/lib/validations";
@@ -49,9 +48,9 @@ export function AppointmentForm({
   const form = useForm<FormData>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      memberId: appointment?.memberId || "",
-      trainerId: appointment?.trainerId || "",
-      serviceId: appointment?.serviceId || "",
+      member_id: appointment?.memberId || "",
+      trainer_id: appointment?.trainerId || "",
+      service_id: appointment?.serviceId || "",
       date: appointment?.date || new Date().toISOString().split("T")[0],
       time: appointment?.time || "",
       notes: appointment?.notes || "",
@@ -63,7 +62,7 @@ export function AppointmentForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="memberId"
+          name="member_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Üye</FormLabel>
@@ -88,7 +87,7 @@ export function AppointmentForm({
 
         <FormField
           control={form.control}
-          name="trainerId"
+          name="trainer_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Eğitmen</FormLabel>
@@ -113,7 +112,7 @@ export function AppointmentForm({
 
         <FormField
           control={form.control}
-          name="serviceId"
+          name="service_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hizmet</FormLabel>
