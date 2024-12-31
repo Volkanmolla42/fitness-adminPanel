@@ -1,13 +1,14 @@
 export interface Trainer {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone?: string;
+  phone: string;
   categories: string[];
   bio?: string;
   availability?: string[];
-  startDate?: string;
-  workingHours?: {
+  startDate: string;
+  workingHours: {
     start: string;
     end: string;
   };
