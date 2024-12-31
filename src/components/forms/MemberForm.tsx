@@ -54,10 +54,10 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
   const sortedServices = [...defaultServices].sort((a, b) => {
     const aCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(a.name),
+      m.subscribedServices.includes(a.name)
     ).length;
     const bCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(b.name),
+      m.subscribedServices.includes(b.name)
     ).length;
     return bCount - aCount;
   });
@@ -139,7 +139,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="basic">Temel Üyelik</SelectItem>
-                  <SelectItem value="premium">Premium Üyelik</SelectItem>
                   <SelectItem value="vip">VIP Üyelik</SelectItem>
                 </SelectContent>
               </Select>
