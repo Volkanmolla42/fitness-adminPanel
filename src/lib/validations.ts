@@ -3,7 +3,7 @@ import * as z from "zod";
 // Common validation patterns
 const phoneRegex =
   /^(\+90|0)?\s*([0-9]{3})\s*([0-9]{3})\s*([0-9]{2})\s*([0-9]{2})$/;
-const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ]{2,}$/;
+const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]{2,}$/;
 
 // Common validation messages
 export const validationMessages = {
@@ -22,23 +22,23 @@ export const validationMessages = {
 
 // Member validation schema
 export const memberSchema = z.object({
-  firstName: z
+  first_name: z
     .string()
     .min(2, validationMessages.minLength("Ad", 2))
     .regex(nameRegex, "Geçerli bir ad giriniz"),
-  lastName: z
+  last_name: z
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
-  membershipType: z.enum(["basic", "vip"]),
-  subscribedServices: z
+  membership_type: z.enum(["basic", "premium", "vip"]),
+  subscribed_services: z
     .array(z.string())
     .min(1, "En az bir hizmet seçilmelidir"),
-  avatarUrl: z.string().optional(),
-  startDate: z.string().min(1, validationMessages.required),
-  endDate: z.string().min(1, validationMessages.required),
+  avatar_url: z.string().optional(),
+  start_date: z.string().min(1, validationMessages.required),
+  end_date: z.string().min(1, validationMessages.required),
 });
 
 // Trainer validation schema
@@ -53,8 +53,8 @@ export const trainerSchema = z.object({
     .array(z.string())
     .min(1, "En az bir uzmanlık alanı seçilmelidir"),
   bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
-  startDate: z.string().min(1, validationMessages.required),
-  workingHours: z.object({
+  start_date: z.string().min(1, validationMessages.required),
+  working_hours: z.object({
     start: z.string().min(1, "Başlangıç saati zorunludur"),
     end: z.string().min(1, "Bitiş saati zorunludur"),
   }),
@@ -72,7 +72,7 @@ export const serviceSchema = z.object({
     .number()
     .min(1, "Süre 1'den büyük olmalıdır")
     .max(480, "Süre 8 saatten fazla olamaz"),
-  maxParticipants: z
+  max_participants: z
     .number()
     .min(1, "Katılımcı sayısı 1'den büyük olmalıdır")
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
@@ -87,9 +87,9 @@ export const serviceSchema = z.object({
 // Appointment validation schema
 export const appointmentFormSchema = z
   .object({
-    memberId: z.string().min(1, { message: "Üye seçimi zorunludur" }),
-    trainerId: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
-    serviceId: z.string().min(1, { message: "Hizmet seçimi zorunludur" }),
+    member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
+    trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
+    service_id: z.string().min(1, { message: "Hizmet seçimi zorunludur" }),
     date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
     time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
     notes: z.string().optional(),
@@ -108,5 +108,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    }
+    },
   );

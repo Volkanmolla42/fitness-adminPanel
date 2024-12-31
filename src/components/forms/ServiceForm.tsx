@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
+import type { Database } from "@/types/supabase";
+
+type Service = Database["public"]["Tables"]["services"]["Row"];
+type ServiceInput = Omit<Service, "id" | "created_at">;
 
 export const categories = [
   "Fitness",
@@ -26,56 +30,42 @@ export const categories = [
 ];
 
 interface ServiceFormProps {
-  service?: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    duration: number;
-    maxParticipants: number;
-    category: string;
-  };
-  onSubmit: (data: any) => void;
+  service?: Service;
+  onSubmit: (data: ServiceInput) => void;
   onCancel: () => void;
 }
 
 export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm({
+  const form = useForm<ServiceInput>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
       name: service?.name || "",
       description: service?.description || "",
       price: service?.price || 0,
       duration: service?.duration || 60,
-      maxParticipants: service?.maxParticipants || 1,
+      max_participants: service?.max_participants || 1,
       category: service?.category || "",
     },
   });
 
-  const selectedCategory = watch("category");
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">Hizmet Adı</label>
-        <Input {...register("name")} />
-        {errors.name && (
-          <p className="text-sm text-destructive">{errors.name.message}</p>
+        <Input {...form.register("name")} />
+        {form.formState.errors.name && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.name.message}
+          </p>
         )}
       </div>
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Açıklama</label>
-        <Textarea {...register("description")} />
-        {errors.description && (
+        <Textarea {...form.register("description")} />
+        {form.formState.errors.description && (
           <p className="text-sm text-destructive">
-            {errors.description.message}
+            {form.formState.errors.description.message}
           </p>
         )}
       </div>
@@ -85,10 +75,12 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           <label className="text-sm font-medium">Fiyat (₺)</label>
           <Input
             type="number"
-            {...register("price", { valueAsNumber: true })}
+            {...form.register("price", { valueAsNumber: true })}
           />
-          {errors.price && (
-            <p className="text-sm text-destructive">{errors.price.message}</p>
+          {form.formState.errors.price && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.price.message}
+            </p>
           )}
         </div>
 
@@ -96,11 +88,11 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           <label className="text-sm font-medium">Süre (Dakika)</label>
           <Input
             type="number"
-            {...register("duration", { valueAsNumber: true })}
+            {...form.register("duration", { valueAsNumber: true })}
           />
-          {errors.duration && (
+          {form.formState.errors.duration && (
             <p className="text-sm text-destructive">
-              {errors.duration.message}
+              {form.formState.errors.duration.message}
             </p>
           )}
         </div>
@@ -111,11 +103,11 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           <label className="text-sm font-medium">Maksimum Katılımcı</label>
           <Input
             type="number"
-            {...register("maxParticipants", { valueAsNumber: true })}
+            {...form.register("max_participants", { valueAsNumber: true })}
           />
-          {errors.maxParticipants && (
+          {form.formState.errors.max_participants && (
             <p className="text-sm text-destructive">
-              {errors.maxParticipants.message}
+              {form.formState.errors.max_participants.message}
             </p>
           )}
         </div>
@@ -123,9 +115,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         <div className="space-y-2">
           <label className="text-sm font-medium">Kategori</label>
           <Select
-            value={selectedCategory}
+            value={form.watch("category")}
             onValueChange={(value) =>
-              setValue("category", value, { shouldValidate: true })
+              form.setValue("category", value, { shouldValidate: true })
             }
           >
             <SelectTrigger>
@@ -139,9 +131,9 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {errors.category && (
+          {form.formState.errors.category && (
             <p className="text-sm text-destructive">
-              {errors.category.message}
+              {form.formState.errors.category.message}
             </p>
           )}
         </div>

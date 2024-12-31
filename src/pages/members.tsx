@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-
+import React, { useState, useEffect } from "react";
+import { MemberForm } from "@/components/forms/MemberForm";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,38 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search, Plus, Pencil, Phone, Mail, Crown, Users } from "lucide-react";
-import { memberSchema } from "@/lib/validations";
-import * as z from "zod";
+import { supabase } from "@/lib/supabase";
+import {
+  getMembers,
+  createMember,
+  updateMember,
+  deleteMember,
+} from "@/lib/queries";
+import type { Database } from "@/types/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
-import { defaultMembers } from "@/data/members";
-import { MemberForm } from "@/components/forms/MemberForm";
-
-type FormData = z.infer<typeof memberSchema>;
-
-interface Member extends FormData {
-  id: string;
-}
+type Member = Database["public"]["Tables"]["members"]["Row"];
 
 const StatsCard = ({
   title,
@@ -68,85 +48,144 @@ const StatsCard = ({
 );
 
 const MembersPage = () => {
-  const [members, setMembers] = useState<Member[]>(defaultMembers);
+  const { toast } = useToast();
+  const [members, setMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [membershipFilter, setMembershipFilter] = useState<
-    Member["membershipType"] | "all"
+    Member["membership_type"] | "all"
   >("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [addingMember, setAddingMember] = useState(false);
-  // Benzersiz hizmetleri al
-  const uniqueServices = Array.from(
-    new Set(members.flatMap((member) => member.subscribedServices))
-  ).sort();
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Tüm arama önerilerini oluştur
-  const searchSuggestions = [
-    {
-      group: "Hizmetler",
-      items: uniqueServices.map((service) => ({
-        type: "service" as const,
-        value: service,
-        label: service,
-      })),
-    },
-    {
-      group: "Üyeler",
-      items: members.map((member) => ({
-        type: "member" as const,
-        value: `${member.firstName} ${member.lastName}`,
-        label: `${member.firstName} ${member.lastName}`,
-        member,
-      })),
-    },
-  ];
+  useEffect(() => {
+    fetchMembers();
+    setupRealtimeSubscription();
+    return () => {
+      supabase.channel("members").unsubscribe();
+    };
+  }, []);
+
+  const fetchMembers = async () => {
+    try {
+      const data = await getMembers();
+      setMembers(data);
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Üyeler yüklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    supabase
+      .channel("members")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "members" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setMembers((prev) => [payload.new as Member, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setMembers((prev) =>
+              prev.map((member) =>
+                member.id === payload.new.id ? (payload.new as Member) : member,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            setMembers((prev) =>
+              prev.filter((member) => member.id !== payload.old.id),
+            );
+          }
+        },
+      )
+      .subscribe();
+  };
+
   const filteredMembers = members.filter((member) => {
-    const memberName = `${member.firstName} ${member.lastName}`.toLowerCase();
     const matchesSearch =
-      memberName.includes(searchTerm.toLowerCase()) ||
-      member.email?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      member.phone?.includes(searchTerm) ||
-      member.subscribedServices.some((service) =>
-        service.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      `${member.first_name} ${member.last_name}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.phone.includes(searchTerm);
 
     const matchesMembership =
-      membershipFilter === "all" || member.membershipType === membershipFilter;
+      membershipFilter === "all" || member.membership_type === membershipFilter;
 
     return matchesSearch && matchesMembership;
   });
 
-  const handleSearchSelect = (value: string, type: "service" | "member") => {
-    setSearchTerm(value);
-    setIsSearchOpen(false);
+  const handleAdd = async (data: Omit<Member, "id" | "created_at">) => {
+    try {
+      await createMember(data);
+      setAddingMember(false);
+      toast({
+        title: "Başarılı",
+        description: "Yeni üye başarıyla eklendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Üye eklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleEdit = async (data: Omit<Member, "id" | "created_at">) => {
+    if (!editingMember) return;
+
+    try {
+      await updateMember(editingMember.id, data);
+      setEditingMember(null);
+      toast({
+        title: "Başarılı",
+        description: "Üye bilgileri güncellendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Üye güncellenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMember(id);
+      toast({
+        title: "Başarılı",
+        description: "Üye başarıyla silindi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Üye silinirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Calculate stats
   const stats = {
     total: members.length,
-    vip: members.filter((m) => m.membershipType === "vip").length,
-    basic: members.filter((m) => m.membershipType === "basic").length,
+    vip: members.filter((m) => m.membership_type === "vip").length,
+    basic: members.filter((m) => m.membership_type === "basic").length,
   };
 
-  const handleAdd = (data: FormData) => {
-    const newMember = {
-      ...data,
-      id: Math.random().toString(),
-    };
-    setMembers((prev) => [...prev, newMember]);
-    setAddingMember(false);
-  };
-
-  const handleEdit = (data: FormData) => {
-    if (!editingMember) return;
-
-    setMembers((prev) =>
-      prev.map((member) =>
-        member.id === editingMember.id ? { ...data, id: member.id } : member
-      )
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
     );
-    setEditingMember(null);
-  };
+  }
 
   return (
     <div className="space-y-8">
@@ -177,89 +216,16 @@ const MembersPage = () => {
       <Card className="p-6">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
-            <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-              <PopoverTrigger asChild>
-                <div className="relative flex-1 ">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="İsim, e-posta, telefon veya hizmet ara..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setIsSearchOpen(true);
-                    }}
-                    className="pl-9"
-                    onClick={() => setIsSearchOpen(true)}
-                  />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
-                <Command>
-                  <CommandInput
-                    placeholder="Arama yap..."
-                    value={searchTerm}
-                    onValueChange={setSearchTerm}
-                  />
-                  <CommandList>
-                    <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
-                    {searchSuggestions.map((group) => (
-                      <CommandGroup key={group.group} heading={group.group}>
-                        {group.items
-                          .filter((item) =>
-                            item.label
-                              .toLowerCase()
-                              .includes(searchTerm.toLowerCase())
-                          )
-                          .slice(0, 5) // Her gruptan en fazla 5 öneri
-                          .map((item) => (
-                            <CommandItem
-                              key={item.value}
-                              value={item.value}
-                              onSelect={() =>
-                                handleSearchSelect(item.value, item.type)
-                              }
-                            >
-                              {item.type === "service" ? (
-                                <>
-                                  <div className="mr-2">🎯</div>
-                                  {item.label}
-                                </>
-                              ) : (
-                                <>
-                                  <div className="mr-2">👤</div>
-                                  {item.label}
-                                </>
-                              )}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    ))}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="İsim, e-posta, telefon veya hizmet ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
-          <Select
-            value={membershipFilter}
-            onValueChange={(value: Member["membershipType"] | "all") =>
-              setMembershipFilter(value)
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Üyelik Tipi" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm Üyelikler</SelectItem>
-              <SelectItem value="basic">Temel Üyelik</SelectItem>
-              <SelectItem value="vip">VIP Üyelik</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Dialog
-            open={addingMember}
-            onOpenChange={(open) => setAddingMember(open)}
-          >
+          <Dialog open={addingMember} onOpenChange={setAddingMember}>
             <DialogTrigger asChild>
               <Button onClick={() => setAddingMember(true)}>
                 <Plus className="mr-2 h-4 w-4" /> Yeni Üye
@@ -271,7 +237,7 @@ const MembersPage = () => {
               </DialogHeader>
               <MemberForm
                 onSubmit={handleAdd}
-                onCancel={() => setAddingMember(null)}
+                onCancel={() => setAddingMember(false)}
               />
             </DialogContent>
           </Dialog>
@@ -285,23 +251,23 @@ const MembersPage = () => {
             >
               <div className="flex items-start gap-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={member.avatarUrl} />
-                  <AvatarFallback>{member.firstName}</AvatarFallback>
+                  <AvatarImage src={member.avatar_url} />
+                  <AvatarFallback>{member.first_name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex justify-between">
                     <div>
                       <h3 className="font-semibold text-lg">
-                        {`${member.firstName} ${member.lastName}`}
+                        {`${member.first_name} ${member.last_name}`}
                       </h3>
                       <Badge
                         className={`mt-1 ${
-                          member.membershipType === "basic"
+                          member.membership_type === "basic"
                             ? "bg-blue-500"
                             : "bg-yellow-500"
                         }`}
                       >
-                        {member.membershipType === "basic"
+                        {member.membership_type === "basic"
                           ? "Temel Üyelik"
                           : "VIP Üyelik"}
                       </Badge>
@@ -331,7 +297,7 @@ const MembersPage = () => {
               <div className="mt-4">
                 <p className="text-sm font-medium mb-2">Aldığı Hizmetler:</p>
                 <div className="flex flex-wrap gap-2">
-                  {member.subscribedServices.map((service) => (
+                  {member.subscribed_services.map((service) => (
                     <Badge key={service} variant="outline">
                       {service}
                     </Badge>
@@ -346,7 +312,7 @@ const MembersPage = () => {
       {/* Edit Member Dialog */}
       <Dialog
         open={!!editingMember}
-        onOpenChange={() => setEditingMember(null)}
+        onOpenChange={(open) => !open && setEditingMember(null)}
       >
         <DialogContent>
           <DialogHeader>
@@ -354,18 +320,7 @@ const MembersPage = () => {
           </DialogHeader>
           {editingMember && (
             <MemberForm
-              member={{
-                id: editingMember.id,
-                firstName: editingMember.firstName || "",
-                lastName: editingMember.lastName || "",
-                email: editingMember.email || "",
-                phone: editingMember.phone || "",
-                membershipType: editingMember.membershipType || "basic",
-                subscribedServices: editingMember.subscribedServices || [],
-                startDate: editingMember.startDate || "",
-                endDate: editingMember.endDate || "",
-                avatarUrl: editingMember.avatarUrl || "",
-              }}
+              member={editingMember}
               onSubmit={handleEdit}
               onCancel={() => setEditingMember(null)}
             />

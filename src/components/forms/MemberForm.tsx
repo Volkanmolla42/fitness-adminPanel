@@ -23,86 +23,57 @@ import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { defaultServices } from "@/data/services";
 import { defaultMembers } from "@/data/members";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import * as z from "zod";
+import type { Database } from "@/types/supabase";
 
-type FormData = z.infer<typeof memberSchema>;
+type Member = Database["public"]["Tables"]["members"]["Row"];
+type MemberInput = Omit<Member, "id" | "created_at">;
 
 interface MemberFormProps {
-  member?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    membershipType: "basic" | "vip";
-    subscribedServices: string[];
-    startDate: string;
-    endDate: string;
-    avatarUrl: string;
-  };
-  onSubmit: (data: FormData) => void;
+  member?: Member;
+  onSubmit: (data: MemberInput) => void;
   onCancel: () => void;
 }
 
 export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
-  const [open, setOpen] = React.useState(false);
-
-  const form = useForm<FormData>({
+  const form = useForm<MemberInput>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
-      firstName: member?.firstName || "",
-      lastName: member?.lastName || "",
+      first_name: member?.first_name || "",
+      last_name: member?.last_name || "",
       email: member?.email || "",
       phone: member?.phone || "",
-      avatarUrl:
-        member?.avatarUrl ||
+      avatar_url:
+        member?.avatar_url ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
-      membershipType: member?.membershipType || "basic",
-      subscribedServices: member?.subscribedServices || [],
-      startDate: member?.startDate || new Date().toISOString().split("T")[0],
-      endDate: member?.endDate || new Date().toISOString().split("T")[0],
+      membership_type: member?.membership_type || "basic",
+      subscribed_services: member?.subscribed_services || [],
+      start_date: member?.start_date || new Date().toISOString().split("T")[0],
+      end_date: member?.end_date || new Date().toISOString().split("T")[0],
     },
   });
 
   const sortedServices = [...defaultServices].sort((a, b) => {
     const aCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(a.name)
+      m.subscribedServices.includes(a.name),
     ).length;
     const bCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(b.name)
+      m.subscribedServices.includes(b.name),
     ).length;
     return bCount - aCount;
   });
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 p-4 max-h-[80vh] overflow-y-auto"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="firstName"
+            name="first_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Ad</FormLabel>
                 <FormControl>
-                  <Input className="bg-white" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -111,18 +82,20 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
           <FormField
             control={form.control}
-            name="lastName"
+            name="last_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Soyad</FormLabel>
                 <FormControl>
-                  <Input className="bg-white" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </div>
 
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="email"
@@ -130,7 +103,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>E-posta</FormLabel>
                 <FormControl>
-                  <Input type="email" className="bg-white" {...field} />
+                  <Input type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -144,98 +117,92 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>Telefon</FormLabel>
                 <FormControl>
-                  <Input
-                    className="bg-white"
-                    {...field}
-                    placeholder="5XX XXX XXXX"
-                  />
+                  <Input {...field} placeholder="(555) 123-4567" />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="membershipType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Üyelik Tipi</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Üyelik tipi seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="basic">Temel Üyelik</SelectItem>
-                    <SelectItem value="vip">VIP Üyelik</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="subscribedServices"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Aldığı Hizmetler</FormLabel>
-                <Select
-                  value=""
-                  onValueChange={(value) => {
-                    if (!field.value.includes(value)) {
-                      field.onChange([...field.value, value]);
-                    }
-                  }}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Hizmet seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {sortedServices.map((service) => (
-                      <SelectItem key={service.id} value={service.name}>
-                        {service.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {field.value.map((service) => (
-                    <Badge
-                      key={service}
-                      variant="secondary"
-                      className="cursor-pointer"
-                      onClick={() =>
-                        field.onChange(field.value.filter((s) => s !== service))
-                      }
-                    >
-                      {service} ×
-                    </Badge>
-                  ))}
-                </div>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        <FormField
+          control={form.control}
+          name="membership_type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Üyelik Tipi</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Üyelik tipi seçin" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="basic">Temel Üyelik</SelectItem>
+                  <SelectItem value="premium">Premium Üyelik</SelectItem>
+                  <SelectItem value="vip">VIP Üyelik</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="subscribed_services"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Aldığı Hizmetler</FormLabel>
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  if (!field.value.includes(value)) {
+                    field.onChange([...field.value, value]);
+                  }
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Hizmet seçin" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {sortedServices.map((service) => (
+                    <SelectItem key={service.id} value={service.name}>
+                      {service.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {field.value.map((service) => (
+                  <Badge
+                    key={service}
+                    variant="secondary"
+                    className="cursor-pointer"
+                    onClick={() =>
+                      field.onChange(field.value.filter((s) => s !== service))
+                    }
+                  >
+                    {service} ×
+                  </Badge>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="startDate"
+            name="start_date"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Başlangıç Tarihi</FormLabel>
                 <FormControl>
-                  <Input type="date" className="bg-white" {...field} />
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -244,12 +211,12 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
           <FormField
             control={form.control}
-            name="endDate"
+            name="end_date"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Bitiş Tarihi</FormLabel>
                 <FormControl>
-                  <Input type="date" className="bg-white" {...field} />
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -267,5 +234,3 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
     </Form>
   );
 }
-
-export default MemberForm;

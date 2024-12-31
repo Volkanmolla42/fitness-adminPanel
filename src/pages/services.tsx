@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,43 +23,141 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ServiceForm } from "@/components/forms/ServiceForm";
 import { Search, Plus, Pencil, Trash2, Timer, User2 } from "lucide-react";
-import { Service } from "@/types/service";
-import { defaultServices } from "@/data/services";
+import { supabase } from "@/lib/supabase";
+import {
+  getServices,
+  createService,
+  updateService,
+  deleteService,
+} from "@/lib/queries";
+import type { Database } from "@/types/supabase";
+import { useToast } from "@/components/ui/use-toast";
+
+type Service = Database["public"]["Tables"]["services"]["Row"];
 
 const ServicesPage = () => {
-  const [services, setServices] = useState<Service[]>(defaultServices);
+  const { toast } = useToast();
+  const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchServices();
+    setupRealtimeSubscription();
+    return () => {
+      supabase.channel("services").unsubscribe();
+    };
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const data = await getServices();
+      setServices(data);
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Hizmetler yüklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    supabase
+      .channel("services")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "services" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setServices((prev) => [payload.new as Service, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setServices((prev) =>
+              prev.map((service) =>
+                service.id === payload.new.id
+                  ? (payload.new as Service)
+                  : service,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            setServices((prev) =>
+              prev.filter((service) => service.id !== payload.old.id),
+            );
+          }
+        },
+      )
+      .subscribe();
+  };
 
   const filteredServices = services.filter(
     (service) =>
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchTerm.toLowerCase())
+      service.category.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleAdd = (newService: Omit<Service, "id">) => {
-    setServices((prev) => [
-      ...prev,
-      { ...newService, id: Math.random().toString() },
-    ]);
-    setShowAddDialog(false);
+  const handleAdd = async (data: Omit<Service, "id" | "created_at">) => {
+    try {
+      await createService(data);
+      setShowAddDialog(false);
+      toast({
+        title: "Başarılı",
+        description: "Yeni hizmet başarıyla eklendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Hizmet eklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEdit = (updatedService: Omit<Service, "id">) => {
-    setServices((prev) =>
-      prev.map((service) =>
-        service.id === editingService?.id
-          ? { ...updatedService, id: service.id }
-          : service
-      )
+  const handleEdit = async (data: Omit<Service, "id" | "created_at">) => {
+    if (!editingService) return;
+
+    try {
+      await updateService(editingService.id, data);
+      setEditingService(null);
+      toast({
+        title: "Başarılı",
+        description: "Hizmet başarıyla güncellendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Hizmet güncellenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteService(id);
+      toast({
+        title: "Başarılı",
+        description: "Hizmet başarıyla silindi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Hizmet silinirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
     );
-    setEditingService(null);
-  };
-
-  const handleDelete = (id: string) => {
-    setServices((prev) => prev.filter((service) => service.id !== id));
-  };
+  }
 
   return (
     <div className="space-y-8">
@@ -156,7 +254,7 @@ const ServicesPage = () => {
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <User2 className="mr-2 h-4 w-4" />
-                  {service.maxParticipants} kişi
+                  {service.max_participants} kişi
                 </div>
               </div>
               <div className="text-lg font-semibold">₺{service.price}</div>
@@ -168,7 +266,7 @@ const ServicesPage = () => {
       {/* Edit Service Dialog */}
       <Dialog
         open={!!editingService}
-        onOpenChange={() => setEditingService(null)}
+        onOpenChange={(open) => !open && setEditingService(null)}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
