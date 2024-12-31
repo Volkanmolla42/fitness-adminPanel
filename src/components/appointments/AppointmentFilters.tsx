@@ -1,4 +1,3 @@
-import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter } from "lucide-react";
@@ -19,14 +18,14 @@ export function AppointmentFilters({
       <div className="relative flex-1">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
         <Input
-          placeholder="Üye, eğitmen veya hizmet ara..."
+          placeholder="Üye, eğitmen, hizmet, not, tarih, veya saat ara... "
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-8 w-full"
         />
       </div>
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={onFilterClick}
         className="w-full sm:w-auto"
       >

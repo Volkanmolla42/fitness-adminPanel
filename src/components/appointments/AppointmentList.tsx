@@ -1,10 +1,9 @@
-import React from "react";
 import AppointmentCard from "./AppointmentCard";
 import { Appointment } from "@/types/appointment";
 
 interface AppointmentListProps {
   appointments: Appointment[];
-  members: Record<string, { name: string }>;
+  members: Record<string, { firstName: string; lastName: string }>;
   trainers: Record<string, { name: string }>;
   services: Record<string, { name: string }>;
   onStatusChange: (id: string, status: Appointment["status"]) => void;

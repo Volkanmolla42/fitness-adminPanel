@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ const AppointmentCard = ({
             </div>
             <Badge
               className={`${getStatusColor(
-                appointment.status,
+                appointment.status
               )} text-xs sm:text-sm`}
             >
               {getStatusText(appointment.status)}
@@ -171,8 +171,8 @@ const AppointmentCard = ({
             {pendingStatus === "completed"
               ? "tamamlamak"
               : pendingStatus === "cancelled"
-                ? "iptal etmek"
-                : "başlatmak"}{" "}
+              ? "iptal etmek"
+              : "başlatmak"}{" "}
             istediğinize emin misiniz?
           </DialogDescription>
           <Button

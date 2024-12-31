@@ -120,14 +120,16 @@ const AppointmentsWidget = ({
               )}
             >
               <div className="flex justify-between items-start mb-3">
-                <div className="text-lg font-semibold text-gray-900">
+                <div className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                  <Clock className="h-4 w-4 " />
+
                   {appointment.time}
                 </div>
                 <Badge
                   variant="secondary"
                   className={`text-xs ${getStatusColor(
                     appointment.status
-                  )} bg-opacity-10 text-gray-600`}
+                  )} bg-opacity-30 text-gray-600`}
                 >
                   {getStatusText(appointment.status)}
                 </Badge>
@@ -135,14 +137,14 @@ const AppointmentsWidget = ({
 
               <div className="space-y-2">
                 <div>
-                  <p className="font-medium text-gray-900 truncate">
-                    {member.name}
+                  <p className="font-medium  text-gray-900 truncate">
+                    {`${member.firstName} ${member.lastName}`}
                   </p>
-                  <p className="text-sm text-gray-600 truncate">
-                    {trainer.name}
+                  <p className="text-xs text-gray-500 truncate">
+                    {service.name}
                   </p>
                 </div>
-                <p className="text-sm text-gray-500 truncate">{service.name}</p>
+                <p className="text-sm text-gray-600 truncate">{trainer.name}</p>
               </div>
             </div>
           );

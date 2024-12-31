@@ -41,7 +41,9 @@ const TrainerForm = ({
           name: trainer.name,
           email: trainer.email,
           phone: trainer.phone || "",
-          categories: trainer.categories || "",
+          categories: Array.isArray(trainer.categories)
+            ? trainer.categories
+            : [trainer.categories],
           bio: trainer.bio || "",
           availability: trainer.availability || [],
         }
@@ -49,7 +51,7 @@ const TrainerForm = ({
           name: "",
           email: "",
           phone: "",
-          categories: "",
+          categories: [],
           bio: "",
           availability: [],
         }
@@ -112,7 +114,10 @@ const TrainerForm = ({
         <Input
           value={formData.categories}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, categories: e.target.value }))
+            setFormData((prev) => ({
+              ...prev,
+              categories: e.target.value.split(",").map((item) => item.trim()),
+            }))
           }
           placeholder="Örn: Fitness, Pilates, Yoga"
         />

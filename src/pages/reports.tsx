@@ -88,7 +88,7 @@ const ReportsPage = () => {
     const data = new Map();
     filteredAppointments.forEach((appointment) => {
       const service = defaultServices.find(
-        (s) => s.id === appointment.serviceId,
+        (s) => s.id === appointment.serviceId
       );
       if (service) {
         const date = new Date(appointment.date);
@@ -108,16 +108,11 @@ const ReportsPage = () => {
           .length,
       },
       {
-        name: "Premium",
-        value: defaultMembers.filter((m) => m.membershipType === "premium")
-          .length,
-      },
-      {
         name: "VIP",
         value: defaultMembers.filter((m) => m.membershipType === "vip").length,
       },
     ],
-    [],
+    []
   );
 
   // Hizmet kullanım istatistikleri
@@ -128,7 +123,7 @@ const ReportsPage = () => {
         kullanim: filteredAppointments.filter((a) => a.serviceId === service.id)
           .length,
       })),
-    [filteredAppointments],
+    [filteredAppointments]
   );
 
   // Günlük randevu dağılımı
@@ -141,7 +136,7 @@ const ReportsPage = () => {
           return hour === i + 8;
         }).length,
       })),
-    [filteredAppointments],
+    [filteredAppointments]
   );
 
   // PDF rapor oluşturma ve indirme fonksiyonu
@@ -161,26 +156,33 @@ const ReportsPage = () => {
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
       pdf.text(
-        `Rapor Dönemi: ${format(dateRange.start, "dd.MM.yyyy")} - ${format(dateRange.end, "dd.MM.yyyy")}`,
+        `Rapor Dönemi: ${format(dateRange.start, "dd.MM.yyyy")} - ${format(
+          dateRange.end,
+          "dd.MM.yyyy"
+        )}`,
         margin,
-        margin + 20,
+        margin + 20
       );
 
       // Özet bilgiler
       const totalRevenue = revenueData.reduce(
         (sum, item) => sum + item.gelir,
-        0,
+        0
       );
       pdf.setFontSize(11);
       pdf.text(
         [
           `Toplam Gelir: ₺${totalRevenue.toLocaleString("tr-TR")}`,
           `Aktif Üye Sayısı: ${defaultMembers.length}`,
-          `Tamamlanan Randevu: ${filteredAppointments.filter((a) => a.status === "completed").length}`,
-          `Doluluk Oranı: ${Math.round((filteredAppointments.length / (12 * 7)) * 100)}%`,
+          `Tamamlanan Randevu: ${
+            filteredAppointments.filter((a) => a.status === "completed").length
+          }`,
+          `Doluluk Oranı: ${Math.round(
+            (filteredAppointments.length / (12 * 7)) * 100
+          )}%`,
         ],
         margin,
-        margin + 35,
+        margin + 35
       );
 
       // Grafikleri ekle
@@ -309,7 +311,7 @@ const ReportsPage = () => {
                     <div className="text-xl md:text-2xl font-bold">
                       {
                         filteredAppointments.filter(
-                          (a) => a.status === "completed",
+                          (a) => a.status === "completed"
                         ).length
                       }
                     </div>
@@ -328,7 +330,7 @@ const ReportsPage = () => {
                   <CardContent>
                     <div className="text-xl md:text-2xl font-bold">
                       {Math.round(
-                        (filteredAppointments.length / (12 * 7)) * 100,
+                        (filteredAppointments.length / (12 * 7)) * 100
                       )}
                       %
                     </div>
@@ -473,7 +475,7 @@ const ReportsPage = () => {
                             <div className="text-xs text-muted-foreground">
                               {type.value} üye (
                               {Math.round(
-                                (type.value / defaultMembers.length) * 100,
+                                (type.value / defaultMembers.length) * 100
                               )}
                               %)
                             </div>

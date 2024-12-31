@@ -76,7 +76,7 @@ export function AppointmentForm({
                 <SelectContent>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
-                      {member.name}
+                      {`${member.firstName} ${member.lastName} `}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -1,4 +1,4 @@
-export type MembershipType = "basic" | "premium" | "vip";
+export type MembershipType = "basic" | "vip";
 
 export interface Member {
   id: string;
@@ -10,5 +10,5 @@ export interface Member {
   subscribedServices: string[];
   startDate: string;
   endDate: string;
-  avatarUrl: string;
+  avatarUrl?: string;
 }

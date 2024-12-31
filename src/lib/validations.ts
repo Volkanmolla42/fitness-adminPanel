@@ -32,7 +32,7 @@ export const memberSchema = z.object({
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
-  membershipType: z.enum(["basic", "premium", "vip"]),
+  membershipType: z.enum(["basic", "vip"]),
   subscribedServices: z
     .array(z.string())
     .min(1, "En az bir hizmet seçilmelidir"),
@@ -108,5 +108,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    },
+    }
   );

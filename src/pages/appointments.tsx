@@ -53,7 +53,8 @@ function AppointmentsPage() {
 
       const searchTerms = searchQuery.toLowerCase().split(" ");
       const searchString = `
-        ${member.name}
+        ${member.firstName}
+        ${member.lastName}
         ${trainer.name}
         ${service.name}
         ${appointment.date}
@@ -93,16 +94,6 @@ function AppointmentsPage() {
   // Handle search change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-  };
-
-  const handleAddAppointment = (data: Omit<Appointment, "id" | "status">) => {
-    const newAppointment: Appointment = {
-      ...data,
-      id: Math.random().toString(),
-      status: "scheduled",
-    };
-    setAppointments((prev) => [...prev, newAppointment]);
-    setIsDialogOpen(false);
   };
 
   const handleEditAppointment = (appointment: Appointment) => {
@@ -220,7 +211,8 @@ function AppointmentsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   member={{
-                    name: membersRecord[appointment.memberId].name,
+                    firstName: membersRecord[appointment.memberId].firstName,
+                    lastName: membersRecord[appointment.memberId].lastName,
                   }}
                   trainer={{
                     name: trainersRecord[appointment.trainerId].name,
@@ -247,7 +239,8 @@ function AppointmentsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   member={{
-                    name: membersRecord[appointment.memberId].name,
+                    firstName: membersRecord[appointment.memberId].firstName,
+                    lastName: membersRecord[appointment.memberId].lastName,
                   }}
                   trainer={{
                     name: trainersRecord[appointment.trainerId].name,
@@ -274,7 +267,8 @@ function AppointmentsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   member={{
-                    name: membersRecord[appointment.memberId].name,
+                    firstName: membersRecord[appointment.memberId].firstName,
+                    lastName: membersRecord[appointment.memberId].lastName,
                   }}
                   trainer={{
                     name: trainersRecord[appointment.trainerId].name,
@@ -301,7 +295,8 @@ function AppointmentsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   member={{
-                    name: membersRecord[appointment.memberId].name,
+                    firstName: membersRecord[appointment.memberId].firstName,
+                    lastName: membersRecord[appointment.memberId].lastName,
                   }}
                   trainer={{
                     name: trainersRecord[appointment.trainerId].name,
