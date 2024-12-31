@@ -9,6 +9,7 @@ import Services from "@/pages/services";
 import Reports from "@/pages/reports";
 import SettingsPage from "@/pages/settings";
 import { Toaster } from "@/components/ui/toaster";
+import { Analytics } from "@vercel/analytics/react";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         </Route>
       </Routes>
       <Toaster />
+      <Analytics />
     </Suspense>
   );
 }
