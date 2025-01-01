@@ -271,13 +271,17 @@ const TrainersPage = () => {
                 </div>
                 <div className="flex items-center text-sm">
                   <Clock className="mr-2 h-4 w-4" />
-                  {trainer.working_hours.start
-                    .toLocaleString()
-                    .replace(",", " - ")}{" "}
+                  {JSON.stringify(
+                    trainer.working_hours.start
+                      .toLocaleString()
+                      .replace(",", " - ")
+                  )}
                   ~{" "}
-                  {trainer.working_hours.end
-                    .toLocaleString()
-                    .replace(",", " - ")}
+                  {JSON.stringify(
+                    trainer.working_hours.end
+                      .toLocaleString()
+                      .replace(",", " - ")
+                  )}
                 </div>
                 {trainer.bio && (
                   <p className="text-sm text-muted-foreground mt-2">

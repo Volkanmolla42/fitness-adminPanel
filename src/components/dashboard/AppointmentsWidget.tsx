@@ -102,7 +102,7 @@ const AppointmentsWidget = ({
                 <div className="text-lg font-semibold flex items-center gap-2 text-gray-900">
                   <Clock className="h-4 w-4 " />
 
-                  {appointment.time}
+                  {appointment.time.slice(0, 5)}
                 </div>
                 <Badge
                   variant="secondary"

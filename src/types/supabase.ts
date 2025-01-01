@@ -154,7 +154,10 @@ export type Database = {
           name: string;
           phone: string;
           start_date: string;
-          working_hours: Json;
+          working_hours: {
+            start: string;
+            end: string;
+          };
         };
         Insert: {
           bio: string;
@@ -167,7 +170,10 @@ export type Database = {
           name: string;
           phone: string;
           start_date: string;
-          working_hours?: Json;
+          working_hours?: {
+            start: string;
+            end: string;
+          };
         };
         Update: {
           bio?: string;
@@ -180,7 +186,10 @@ export type Database = {
           name?: string;
           phone?: string;
           start_date?: string;
-          working_hours?: Json;
+          working_hours?: {
+            start: string;
+            end: string;
+          };
         };
         Relationships: [];
       };
