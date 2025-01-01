@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -10,9 +10,6 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { defaultMembers } from "@/data/members";
-import { defaultServices } from "@/data/services";
-import { defaultAppointments } from "@/data/appointments";
 import {
   LineChart,
   Line,
@@ -41,14 +38,87 @@ import {
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { supabase } from "@/lib/supabase";
+import { getAppointments, getMembers, getServices } from "@/lib/queries";
+import type { Database } from "@/types/supabase";
+import { useToast } from "@/components/ui/use-toast";
+
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
+type Member = Database["public"]["Tables"]["members"]["Row"];
+type Service = Database["public"]["Tables"]["services"]["Row"];
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 const ReportsPage = () => {
+  const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
     "week" | "month" | "year"
   >("month");
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    fetchData();
+    setupRealtimeSubscription();
+    return () => {
+      supabase.channel("reports").unsubscribe();
+    };
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [appointmentsData, membersData, servicesData] = await Promise.all([
+        getAppointments(),
+        getMembers(),
+        getServices(),
+      ]);
+
+      setAppointments(appointmentsData);
+      setMembers(membersData);
+      setServices(servicesData);
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Veriler yüklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    const channel = supabase.channel("reports");
+
+    // Appointments subscription
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "appointments" },
+      (payload) => {
+        if (payload.eventType === "INSERT") {
+          setAppointments((prev) => [payload.new as Appointment, ...prev]);
+        } else if (payload.eventType === "UPDATE") {
+          setAppointments((prev) =>
+            prev.map((appointment) =>
+              appointment.id === payload.new.id
+                ? (payload.new as Appointment)
+                : appointment,
+            ),
+          );
+        } else if (payload.eventType === "DELETE") {
+          setAppointments((prev) =>
+            prev.filter((appointment) => appointment.id !== payload.old.id),
+          );
+        }
+      },
+    );
+
+    channel.subscribe();
+  };
 
   // Tarih aralığını hesapla
   const dateRange = useMemo(() => {
@@ -74,22 +144,20 @@ const ReportsPage = () => {
 
   // Filtrelenmiş randevular
   const filteredAppointments = useMemo(() => {
-    return defaultAppointments.filter((appointment) => {
+    return appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.date);
       return isWithinInterval(appointmentDate, {
         start: dateRange.start,
         end: dateRange.end,
       });
     });
-  }, [dateRange]);
+  }, [appointments, dateRange]);
 
   // Gelir verileri
   const revenueData = useMemo(() => {
     const data = new Map();
     filteredAppointments.forEach((appointment) => {
-      const service = defaultServices.find(
-        (s) => s.id === appointment.serviceId
-      );
+      const service = services.find((s) => s.id === appointment.service_id);
       if (service) {
         const date = new Date(appointment.date);
         const key = format(date, "MMM", { locale: tr });
@@ -97,33 +165,33 @@ const ReportsPage = () => {
       }
     });
     return Array.from(data, ([month, gelir]) => ({ month, gelir }));
-  }, [filteredAppointments]);
+  }, [filteredAppointments, services]);
 
   // Üyelik tipleri dağılımı
   const membershipData = useMemo(
     () => [
       {
         name: "Temel",
-        value: defaultMembers.filter((m) => m.membershipType === "basic")
-          .length,
+        value: members.filter((m) => m.membership_type === "basic").length,
       },
       {
         name: "VIP",
-        value: defaultMembers.filter((m) => m.membershipType === "vip").length,
+        value: members.filter((m) => m.membership_type === "vip").length,
       },
     ],
-    []
+    [members],
   );
 
   // Hizmet kullanım istatistikleri
   const serviceUsageData = useMemo(
     () =>
-      defaultServices.map((service) => ({
+      services.map((service) => ({
         name: service.name,
-        kullanim: filteredAppointments.filter((a) => a.serviceId === service.id)
-          .length,
+        kullanim: filteredAppointments.filter(
+          (a) => a.service_id === service.id,
+        ).length,
       })),
-    [filteredAppointments]
+    [filteredAppointments, services],
   );
 
   // Günlük randevu dağılımı
@@ -136,7 +204,7 @@ const ReportsPage = () => {
           return hour === i + 8;
         }).length,
       })),
-    [filteredAppointments]
+    [filteredAppointments],
   );
 
   // PDF rapor oluşturma ve indirme fonksiyonu
@@ -158,31 +226,31 @@ const ReportsPage = () => {
       pdf.text(
         `Rapor Dönemi: ${format(dateRange.start, "dd.MM.yyyy")} - ${format(
           dateRange.end,
-          "dd.MM.yyyy"
+          "dd.MM.yyyy",
         )}`,
         margin,
-        margin + 20
+        margin + 20,
       );
 
       // Özet bilgiler
       const totalRevenue = revenueData.reduce(
         (sum, item) => sum + item.gelir,
-        0
+        0,
       );
       pdf.setFontSize(11);
       pdf.text(
         [
           `Toplam Gelir: ₺${totalRevenue.toLocaleString("tr-TR")}`,
-          `Aktif Üye Sayısı: ${defaultMembers.length}`,
+          `Aktif Üye Sayısı: ${members.length}`,
           `Tamamlanan Randevu: ${
             filteredAppointments.filter((a) => a.status === "completed").length
           }`,
           `Doluluk Oranı: ${Math.round(
-            (filteredAppointments.length / (12 * 7)) * 100
+            (filteredAppointments.length / (12 * 7)) * 100,
           )}%`,
         ],
         margin,
-        margin + 35
+        margin + 35,
       );
 
       // Grafikleri ekle
@@ -200,9 +268,21 @@ const ReportsPage = () => {
       pdf.save(`spor-salonu-rapor-${format(new Date(), "dd-MM-yyyy")}.pdf`);
     } catch (error) {
       console.error("PDF oluşturma hatası:", error);
-      alert("Rapor oluşturulurken bir hata oluştu.");
+      toast({
+        title: "Hata",
+        description: "Rapor oluşturulurken bir hata oluştu.",
+        variant: "destructive",
+      });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 px-2 md:px-4 pb-8">
@@ -295,7 +375,7 @@ const ReportsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="text-xl md:text-2xl font-bold">
-                      {defaultMembers.length}
+                      {members.length}
                     </div>
                     <p className="text-xs text-muted-foreground">Toplam</p>
                   </CardContent>
@@ -311,7 +391,7 @@ const ReportsPage = () => {
                     <div className="text-xl md:text-2xl font-bold">
                       {
                         filteredAppointments.filter(
-                          (a) => a.status === "completed"
+                          (a) => a.status === "completed",
                         ).length
                       }
                     </div>
@@ -330,7 +410,7 @@ const ReportsPage = () => {
                   <CardContent>
                     <div className="text-xl md:text-2xl font-bold">
                       {Math.round(
-                        (filteredAppointments.length / (12 * 7)) * 100
+                        (filteredAppointments.length / (12 * 7)) * 100,
                       )}
                       %
                     </div>
@@ -474,9 +554,7 @@ const ReportsPage = () => {
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {type.value} üye (
-                              {Math.round(
-                                (type.value / defaultMembers.length) * 100
-                              )}
+                              {Math.round((type.value / members.length) * 100)}
                               %)
                             </div>
                           </div>
@@ -505,26 +583,19 @@ const ReportsPage = () => {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>Günlük Randevu Dağılımı</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={appointmentsByHour}>
+                    <BarChart data={appointmentsByHour}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="saat" />
                       <YAxis />
                       <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="randevu"
-                        stroke="#82ca9d"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
+                      <Bar dataKey="randevu" fill="#8884d8" />
+                    </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
