@@ -145,7 +145,7 @@ const TrainersPage = () => {
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Eğitmen silinirken bir hata oluştu.",
+        description: "Eğitmen silinirken bir hata oluştu..",
         variant: "destructive",
       });
     }
