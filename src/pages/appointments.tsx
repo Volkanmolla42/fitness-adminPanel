@@ -87,15 +87,15 @@ function AppointmentsPage() {
               prev.map((appointment) =>
                 appointment.id === payload.new.id
                   ? (payload.new as Appointment)
-                  : appointment,
-              ),
+                  : appointment
+              )
             );
           } else if (payload.eventType === "DELETE") {
             setAppointments((prev) =>
-              prev.filter((appointment) => appointment.id !== payload.old.id),
+              prev.filter((appointment) => appointment.id !== payload.old.id)
             );
           }
-        },
+        }
       )
       .subscribe();
   };
@@ -105,27 +105,27 @@ function AppointmentsPage() {
     () =>
       members.reduce(
         (acc, member) => ({ ...acc, [member.id]: member }),
-        {} as Record<string, Member>,
+        {} as Record<string, Member>
       ),
-    [members],
+    [members]
   );
 
   const trainersRecord = useMemo(
     () =>
       trainers.reduce(
         (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
-        {} as Record<string, Trainer>,
+        {} as Record<string, Trainer>
       ),
-    [trainers],
+    [trainers]
   );
 
   const servicesRecord = useMemo(
     () =>
       services.reduce(
         (acc, service) => ({ ...acc, [service.id]: service }),
-        {} as Record<string, Service>,
+        {} as Record<string, Service>
       ),
-    [services],
+    [services]
   );
 
   // Filter appointments based on search query
@@ -163,17 +163,14 @@ function AppointmentsPage() {
 
   // Group appointments by status
   const groupedAppointments = useMemo(() => {
-    const groups = filteredAppointments.reduce(
-      (groups, appointment) => {
-        const status = appointment.status;
-        if (!groups[status]) {
-          groups[status] = [];
-        }
-        groups[status].push(appointment);
-        return groups;
-      },
-      {} as Record<Appointment["status"], Appointment[]>,
-    );
+    const groups = filteredAppointments.reduce((groups, appointment) => {
+      const status = appointment.status;
+      if (!groups[status]) {
+        groups[status] = [];
+      }
+      groups[status].push(appointment);
+      return groups;
+    }, {} as Record<Appointment["status"], Appointment[]>);
 
     // Sort appointments by time within each group
     Object.values(groups).forEach((group) => {
@@ -193,7 +190,7 @@ function AppointmentsPage() {
   };
 
   const handleFormSubmit = async (
-    data: Omit<Appointment, "id" | "created_at" | "status">,
+    data: Omit<Appointment, "id" | "created_at" | "status">
   ) => {
     try {
       if (selectedAppointment) {
@@ -224,7 +221,7 @@ function AppointmentsPage() {
 
   const handleStatusChange = async (
     id: string,
-    status: Appointment["status"],
+    status: Appointment["status"]
   ) => {
     try {
       await updateAppointment(id, { status });
@@ -320,9 +317,12 @@ function AppointmentsPage() {
                   lastName: membersRecord[appointment.member_id].last_name,
                 }}
                 trainer={{
-                  name: `${trainersRecord[appointment.trainer_id].first_name} ${trainersRecord[appointment.trainer_id].last_name}`,
+                  firstName: trainersRecord[appointment.trainer_id].first_name,
+                  lastName: trainersRecord[appointment.trainer_id].last_name,
                 }}
-                service={servicesRecord[appointment.service_id]}
+                service={{
+                  name: servicesRecord[appointment.service_id].name,
+                }}
                 onStatusChange={handleStatusChange}
                 onEdit={handleEditAppointment}
               />
@@ -347,7 +347,8 @@ function AppointmentsPage() {
                   lastName: membersRecord[appointment.member_id].last_name,
                 }}
                 trainer={{
-                  name: `${trainersRecord[appointment.trainer_id].first_name} ${trainersRecord[appointment.trainer_id].last_name}`,
+                  firstName: trainersRecord[appointment.trainer_id].first_name,
+                  lastName: trainersRecord[appointment.trainer_id].last_name,
                 }}
                 service={servicesRecord[appointment.service_id]}
                 onStatusChange={handleStatusChange}
@@ -374,7 +375,8 @@ function AppointmentsPage() {
                   lastName: membersRecord[appointment.member_id].last_name,
                 }}
                 trainer={{
-                  name: `${trainersRecord[appointment.trainer_id].first_name} ${trainersRecord[appointment.trainer_id].last_name}`,
+                  firstName: trainersRecord[appointment.trainer_id].first_name,
+                  lastName: trainersRecord[appointment.trainer_id].last_name,
                 }}
                 service={servicesRecord[appointment.service_id]}
                 onStatusChange={handleStatusChange}
@@ -401,7 +403,8 @@ function AppointmentsPage() {
                   lastName: membersRecord[appointment.member_id].last_name,
                 }}
                 trainer={{
-                  name: `${trainersRecord[appointment.trainer_id].first_name} ${trainersRecord[appointment.trainer_id].last_name}`,
+                  firstName: trainersRecord[appointment.trainer_id].first_name,
+                  lastName: trainersRecord[appointment.trainer_id].last_name,
                 }}
                 service={servicesRecord[appointment.service_id]}
                 onStatusChange={handleStatusChange}

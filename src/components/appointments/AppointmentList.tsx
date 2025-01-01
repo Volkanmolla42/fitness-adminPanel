@@ -1,10 +1,11 @@
+import { Database } from "@/types/supabase";
 import AppointmentCard from "./AppointmentCard";
-import { Appointment } from "@/types/appointment";
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 interface AppointmentListProps {
   appointments: Appointment[];
   members: Record<string, { firstName: string; lastName: string }>;
-  trainers: Record<string, { name: string }>;
+  trainers: Record<string, { firstName: string; lastName: string }>;
   services: Record<string, { name: string }>;
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
@@ -24,9 +25,9 @@ export function AppointmentList({
         <AppointmentCard
           key={appointment.id}
           appointment={appointment}
-          member={members[appointment.memberId]}
-          trainer={trainers[appointment.trainerId]}
-          service={services[appointment.serviceId]}
+          member={members[appointment.member_id]}
+          trainer={trainers[appointment.trainer_id]}
+          service={services[appointment.service_id]}
           onStatusChange={onStatusChange}
           onEdit={onEdit}
         />

@@ -93,15 +93,15 @@ const MembersPage = () => {
           } else if (payload.eventType === "UPDATE") {
             setMembers((prev) =>
               prev.map((member) =>
-                member.id === payload.new.id ? (payload.new as Member) : member,
-              ),
+                member.id === payload.new.id ? (payload.new as Member) : member
+              )
             );
           } else if (payload.eventType === "DELETE") {
             setMembers((prev) =>
-              prev.filter((member) => member.id !== payload.old.id),
+              prev.filter((member) => member.id !== payload.old.id)
             );
           }
-        },
+        }
       )
       .subscribe();
   };

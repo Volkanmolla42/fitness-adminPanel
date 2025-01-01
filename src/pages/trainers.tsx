@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { TrainerForm } from "@/components/forms/TrainerForm";
-import { Search, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Phone, Mail, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   getTrainers,
@@ -80,15 +80,15 @@ const TrainersPage = () => {
               prev.map((trainer) =>
                 trainer.id === payload.new.id
                   ? (payload.new as Trainer)
-                  : trainer,
-              ),
+                  : trainer
+              )
             );
           } else if (payload.eventType === "DELETE") {
             setTrainers((prev) =>
-              prev.filter((trainer) => trainer.id !== payload.old.id),
+              prev.filter((trainer) => trainer.id !== payload.old.id)
             );
           }
-        },
+        }
       )
       .subscribe();
   };
@@ -96,7 +96,7 @@ const TrainersPage = () => {
   const filteredTrainers = trainers.filter((trainer) =>
     `${trainer.first_name} ${trainer.last_name} ${trainer.categories.join(" ")}`
       .toLowerCase()
-      .includes(searchQuery.toLowerCase()),
+      .includes(searchQuery.toLowerCase())
   );
 
   const handleAdd = async (data: Omit<Trainer, "id" | "created_at">) => {
@@ -268,6 +268,16 @@ const TrainersPage = () => {
                 <div className="flex items-center text-sm">
                   <Phone className="mr-2 h-4 w-4" />
                   {trainer.phone}
+                </div>
+                <div className="flex items-center text-sm">
+                  <Clock className="mr-2 h-4 w-4" />
+                  {trainer.working_hours.start
+                    .toLocaleString()
+                    .replace(",", " - ")}{" "}
+                  ~{" "}
+                  {trainer.working_hours.end
+                    .toLocaleString()
+                    .replace(",", " - ")}
                 </div>
                 {trainer.bio && (
                   <p className="text-sm text-muted-foreground mt-2">

@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from "react";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import AppointmentsWidget from "@/components/dashboard/AppointmentsWidget";
-import RevenueChart from "@/components/dashboard/RevenueChart";
 import { supabase } from "@/lib/supabase";
-import { getAppointments, getMembers, getServices } from "@/lib/queries";
+import {
+  getAppointments,
+  getMembers,
+  getServices,
+  getTrainers,
+} from "@/lib/queries"; // Add getTrainers
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"]; // Define Trainer type
 
 const DashboardPage = () => {
   const { toast } = useToast();
@@ -17,6 +23,7 @@ const DashboardPage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [trainers, setTrainers] = useState<Trainer[]>([]); // Add trainers state
 
   useEffect(() => {
     fetchData();
@@ -28,15 +35,22 @@ const DashboardPage = () => {
 
   const fetchData = async () => {
     try {
-      const [appointmentsData, membersData, servicesData] = await Promise.all([
+      const [
+        appointmentsData,
+        membersData,
+        servicesData,
+        trainersData, // Fetch trainers
+      ] = await Promise.all([
         getAppointments(),
         getMembers(),
         getServices(),
+        getTrainers(), // Add trainers fetch
       ]);
 
       setAppointments(appointmentsData);
       setMembers(membersData);
       setServices(servicesData);
+      setTrainers(trainersData); // Set trainers data
     } catch (error) {
       toast({
         title: "Hata",
@@ -63,15 +77,15 @@ const DashboardPage = () => {
             prev.map((appointment) =>
               appointment.id === payload.new.id
                 ? (payload.new as Appointment)
-                : appointment,
-            ),
+                : appointment
+            )
           );
         } else if (payload.eventType === "DELETE") {
           setAppointments((prev) =>
-            prev.filter((appointment) => appointment.id !== payload.old.id),
+            prev.filter((appointment) => appointment.id !== payload.old.id)
           );
         }
-      },
+      }
     );
 
     // Members subscription
@@ -83,10 +97,10 @@ const DashboardPage = () => {
           setMembers((prev) => [payload.new as Member, ...prev]);
         } else if (payload.eventType === "DELETE") {
           setMembers((prev) =>
-            prev.filter((member) => member.id !== payload.old.id),
+            prev.filter((member) => member.id !== payload.old.id)
           );
         }
-      },
+      }
     );
 
     channel.subscribe();
@@ -96,7 +110,7 @@ const DashboardPage = () => {
   const stats = {
     activeMembers: members.length,
     todayAppointments: appointments.filter(
-      (app) => app.date === new Date().toISOString().split("T")[0],
+      (app) => app.date === new Date().toISOString().split("T")[0]
     ).length,
     monthlyRevenue: appointments
       .filter((app) => {
@@ -137,34 +151,57 @@ const DashboardPage = () => {
           {
             title: "Aktif Üyeler",
             value: stats.activeMembers.toString(),
-            icon: "users",
+            icon: <Users />,
             description: "Toplam aktif spor salonu üyeleri",
           },
           {
             title: "Günün Randevuları",
             value: stats.todayAppointments.toString(),
-            icon: "calendar",
+            icon: <Calendar />,
             description: "Bugün için planlanan",
           },
           {
             title: "Aylık Gelir",
             value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
-            icon: "dollar",
+            icon: <DollarSign />,
             description: "Bu ayki gelir",
           },
           {
             title: "Büyüme Oranı",
             value: `%${stats.growthRate}`,
-            icon: "trending-up",
+            icon: <TrendingUp />,
             description: "Geçen aya göre",
           },
         ]}
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <AppointmentsWidget appointments={appointments} />
-        <RevenueChart />
-      </div>
+      <AppointmentsWidget
+        appointments={
+          appointments.map((appointment) => ({
+            ...appointment,
+            memberId: appointment.member_id,
+            trainerId: appointment.trainer_id,
+            serviceId: appointment.service_id,
+          })) as Appointment[]
+        }
+        members={members.reduce((acc, member) => {
+          acc[member.id] = {
+            first_name: member.first_name,
+            last_name: member.last_name,
+          };
+          return acc;
+        }, {} as Record<string, { first_name: string; last_name: string }>)}
+        trainers={trainers.reduce((acc, trainer) => {
+          acc[trainer.id] = {
+            first_name: trainer.first_name,
+            last_name: trainer.last_name,
+          };
+          return acc;
+        }, {} as Record<string, { first_name: string; last_name: string }>)}
+        services={services.reduce((acc, service) => {
+          acc[service.id] = { name: service.name };
+          return acc;
+        }, {} as Record<string, { name: string }>)}
+      />
     </div>
   );
 };

@@ -1,19 +1,18 @@
-import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { defaultAppointments } from "@/data/appointments";
-import { defaultMembers } from "@/data/members";
-import { defaultTrainers } from "@/data/trainers";
-import { defaultServices } from "@/data/services";
-import type { Appointment } from "@/types/appointment";
+import { Database } from "@/types/supabase";
+
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 interface AppointmentsWidgetProps {
-  appointments?: Appointment[];
-  title?: string;
+  appointments: Appointment[];
+  members: Record<string, { first_name: string; last_name: string }>;
+  trainers: Record<string, { first_name: string; last_name: string }>;
+  services: Record<string, { name: string }>;
   showAll?: boolean;
 }
 
@@ -51,27 +50,13 @@ const getRelevantAppointments = (appointments: Appointment[]) => {
 };
 
 const AppointmentsWidget = ({
-  appointments = defaultAppointments,
-  title = "Aktif Randevular",
+  appointments,
+  members,
+  trainers,
+  services,
   showAll = false,
 }: AppointmentsWidgetProps) => {
   const navigate = useNavigate();
-
-  // Create lookup objects for members, trainers, and services
-  const membersMap = defaultMembers.reduce(
-    (acc, member) => ({ ...acc, [member.id]: member }),
-    {} as Record<string, (typeof defaultMembers)[0]>
-  );
-
-  const trainersMap = defaultTrainers.reduce(
-    (acc, trainer) => ({ ...acc, [trainer.id]: trainer }),
-    {} as Record<string, (typeof defaultTrainers)[0]>
-  );
-
-  const servicesMap = defaultServices.reduce(
-    (acc, service) => ({ ...acc, [service.id]: service }),
-    {} as Record<string, (typeof defaultServices)[0]>
-  );
 
   const displayAppointments = showAll
     ? appointments
@@ -82,7 +67,7 @@ const AppointmentsWidget = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
-            {title}
+            Aktif randevular
           </h2>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
@@ -103,12 +88,6 @@ const AppointmentsWidget = ({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {displayAppointments.map((appointment) => {
-          const member = membersMap[appointment.memberId];
-          const trainer = trainersMap[appointment.trainerId];
-          const service = servicesMap[appointment.serviceId];
-
-          if (!member || !trainer || !service) return null;
-
           return (
             <div
               key={appointment.id}
@@ -138,13 +117,19 @@ const AppointmentsWidget = ({
               <div className="space-y-2">
                 <div>
                   <p className="font-medium  text-gray-900 truncate">
-                    {`${member.firstName} ${member.lastName}`}
+                    {`${members[appointment.member_id].first_name} ${
+                      members[appointment.member_id].last_name
+                    }`}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {service.name}
+                    {services[appointment.service_id].name}
                   </p>
                 </div>
-                <p className="text-sm text-gray-600 truncate">{trainer.name}</p>
+                <p className="text-sm text-gray-600 truncate">
+                  {`${trainers[appointment.trainer_id].first_name} ${
+                    trainers[appointment.trainer_id].last_name
+                  }`}
+                </p>
               </div>
             </div>
           );

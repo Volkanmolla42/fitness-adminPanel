@@ -38,7 +38,7 @@ export const createMember = async (member: Tables["members"]["Insert"]) => {
 
 export const updateMember = async (
   id: string,
-  member: Tables["members"]["Update"],
+  member: Tables["members"]["Update"]
 ) => {
   const { data, error } = await supabase
     .from("members")
@@ -81,7 +81,7 @@ export const createTrainer = async (trainer: Tables["trainers"]["Insert"]) => {
 
 export const updateTrainer = async (
   id: string,
-  trainer: Tables["trainers"]["Update"],
+  trainer: Tables["trainers"]["Update"]
 ) => {
   const { data, error } = await supabase
     .from("trainers")
@@ -124,7 +124,7 @@ export const createService = async (service: Tables["services"]["Insert"]) => {
 
 export const updateService = async (
   id: string,
-  service: Tables["services"]["Update"],
+  service: Tables["services"]["Update"]
 ) => {
   const { data, error } = await supabase
     .from("services")
@@ -155,7 +155,7 @@ export const getAppointments = async () => {
 };
 
 export const createAppointment = async (
-  appointment: Tables["appointments"]["Insert"],
+  appointment: Tables["appointments"]["Insert"]
 ) => {
   const { data, error } = await supabase
     .from("appointments")
@@ -169,7 +169,7 @@ export const createAppointment = async (
 
 export const updateAppointment = async (
   id: string,
-  appointment: Tables["appointments"]["Update"],
+  appointment: Tables["appointments"]["Update"]
 ) => {
   const { data, error } = await supabase
     .from("appointments")

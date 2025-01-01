@@ -44,7 +44,10 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
       categories: trainer?.categories || [],
       bio: trainer?.bio || "",
       start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
-      working_hours: trainer?.working_hours || { start: "09:00", end: "17:00" },
+      working_hours: {
+        start: trainer?.working_hours?.start || "09:00",
+        end: trainer?.working_hours?.end || "17:00",
+      },
     },
   });
 
@@ -52,7 +55,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -151,7 +154,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                       form.setValue(
                         "categories",
                         selectedCategories.filter((c) => c !== category),
-                        { shouldValidate: true },
+                        { shouldValidate: true }
                       );
                     }}
                   >
@@ -200,7 +203,11 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
               <FormItem>
                 <FormLabel>Çalışma Saati Başlangıç</FormLabel>
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input
+                    type="time"
+                    {...field}
+                    value={field.value.toString()}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -214,7 +221,11 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
               <FormItem>
                 <FormLabel>Çalışma Saati Bitiş</FormLabel>
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input
+                    type="time"
+                    {...field}
+                    value={field.value.toString()}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

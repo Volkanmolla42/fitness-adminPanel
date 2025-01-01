@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, XCircle, Pencil } from "lucide-react";
-import { Appointment } from "@/types/appointment";
+
+import { Database } from "@/types/supabase";
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,10 @@ interface AppointmentCardProps {
     firstName: string;
     lastName: string;
   };
-  trainer: { name: string };
+  trainer: {
+    firstName: string;
+    lastName: string;
+  };
   service: { name: string };
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
@@ -80,7 +85,7 @@ const AppointmentCard = ({
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-500" />
               <span className="text-base sm:text-lg font-semibold">
-                {appointment.time}
+                {appointment.time.slice(0, 5)}
               </span>
             </div>
             <Badge
@@ -100,7 +105,9 @@ const AppointmentCard = ({
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="font-medium min-w-[80px]">Eğitmen:</span>
-              <span className="text-gray-700">{trainer.name}</span>
+              <span className="text-gray-700">
+                {trainer.firstName} {trainer.lastName}
+              </span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="font-medium min-w-[80px]">Hizmet:</span>

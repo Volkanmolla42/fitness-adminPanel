@@ -112,5 +112,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    },
+    }
   );
