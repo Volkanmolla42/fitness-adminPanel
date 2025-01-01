@@ -1,6 +1,4 @@
-import { Trainer } from "@/types/trainer";
-import { defaultTrainers } from "@/data/trainers";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -24,171 +21,150 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { TrainerForm } from "@/components/forms/TrainerForm";
 import { Search, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import {
+  getTrainers,
+  createTrainer,
+  updateTrainer,
+  deleteTrainer,
+} from "@/lib/queries";
+import type { Database } from "@/types/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
-const TrainerForm = ({
-  trainer,
-  onSubmit,
-  onCancel,
-}: {
-  trainer?: Trainer;
-  onSubmit: (trainer: Omit<Trainer, "id">) => void;
-  onCancel: () => void;
-}) => {
-  const [formData, setFormData] = useState<Omit<Trainer, "id">>(
-    trainer
-      ? {
-          name: trainer.name,
-          email: trainer.email,
-          phone: trainer.phone || "",
-          categories: Array.isArray(trainer.categories)
-            ? trainer.categories
-            : [trainer.categories],
-          bio: trainer.bio || "",
-          availability: trainer.availability || [],
-        }
-      : {
-          name: "",
-          email: "",
-          phone: "",
-          categories: [],
-          bio: "",
-          availability: [],
-        }
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.email) {
-      alert("Lütfen zorunlu alanları doldurun (Ad, E-posta)");
-      return;
-    }
-    onSubmit(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">
-            Ad<span className="text-red-500">*</span>
-          </label>
-          <Input
-            required
-            value={formData.name}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, name: e.target.value }))
-            }
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">
-          E-posta<span className="text-red-500">*</span>
-        </label>
-        <Input
-          type="email"
-          required
-          value={formData.email}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, email: e.target.value }))
-          }
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Telefon</label>
-        <Input
-          type="tel"
-          value={formData.phone}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, phone: e.target.value }))
-          }
-          placeholder="555-0000"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Uzmanlık Alanı</label>
-        <Input
-          value={formData.categories}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              categories: e.target.value.split(",").map((item) => item.trim()),
-            }))
-          }
-          placeholder="Örn: Fitness, Pilates, Yoga"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Hakkında</label>
-        <Input
-          value={formData.bio}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, bio: e.target.value }))
-          }
-          placeholder="Eğitmen hakkında kısa bilgi"
-        />
-      </div>
-
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          İptal
-        </Button>
-        <Button type="submit">{trainer ? "Güncelle" : "Ekle"}</Button>
-      </DialogFooter>
-    </form>
-  );
-};
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
 const TrainersPage = () => {
-  const [trainers, setTrainers] = useState<Trainer[]>(defaultTrainers);
+  const { toast } = useToast();
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTrainers();
+    setupRealtimeSubscription();
+    return () => {
+      supabase.channel("trainers").unsubscribe();
+    };
+  }, []);
+
+  const fetchTrainers = async () => {
+    try {
+      const data = await getTrainers();
+      setTrainers(data);
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Eğitmenler yüklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setupRealtimeSubscription = () => {
+    supabase
+      .channel("trainers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trainers" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setTrainers((prev) => [payload.new as Trainer, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setTrainers((prev) =>
+              prev.map((trainer) =>
+                trainer.id === payload.new.id
+                  ? (payload.new as Trainer)
+                  : trainer,
+              ),
+            );
+          } else if (payload.eventType === "DELETE") {
+            setTrainers((prev) =>
+              prev.filter((trainer) => trainer.id !== payload.old.id),
+            );
+          }
+        },
+      )
+      .subscribe();
+  };
 
   const filteredTrainers = trainers.filter((trainer) =>
-    `${trainer.name} ${trainer.categories || ""}`
+    `${trainer.first_name} ${trainer.last_name} ${trainer.categories.join(" ")}`
       .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+      .includes(searchQuery.toLowerCase()),
   );
 
-  const handleAdd = (newTrainer: Omit<Trainer, "id">) => {
-    const currentDate = new Date().toISOString();
-    const trainerWithId = {
-      ...newTrainer,
-      id: Math.random().toString(),
-    };
-    setTrainers((prev) => [...prev, trainerWithId]);
-    setIsDialogOpen(false);
+  const handleAdd = async (data: Omit<Trainer, "id" | "created_at">) => {
+    try {
+      await createTrainer(data);
+      setIsDialogOpen(false);
+      toast({
+        title: "Başarılı",
+        description: "Yeni eğitmen başarıyla eklendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Eğitmen eklenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEdit = (id: string, updatedTrainer: Omit<Trainer, "id">) => {
-    setTrainers((prev) =>
-      prev.map((trainer) =>
-        trainer.id === id
-          ? {
-              ...updatedTrainer,
-              id: trainer.id,
-            }
-          : trainer
-      )
+  const handleEdit = async (data: Omit<Trainer, "id" | "created_at">) => {
+    if (!editingTrainer) return;
+
+    try {
+      await updateTrainer(editingTrainer.id, data);
+      setEditingTrainer(null);
+      toast({
+        title: "Başarılı",
+        description: "Eğitmen bilgileri güncellendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Eğitmen güncellenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTrainer(id);
+      toast({
+        title: "Başarılı",
+        description: "Eğitmen başarıyla silindi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Eğitmen silinirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
     );
-    setIsDialogOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setTrainers((prev) => prev.filter((trainer) => trainer.id !== id));
-  };
+  }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Eğitmenler</h1>
         <p className="text-muted-foreground mt-2">
-          Spor salonu eğitmenlerini yönet.
+          Spor salonu eğitmenlerini yönet
         </p>
       </div>
 
@@ -227,15 +203,15 @@ const TrainersPage = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarFallback>{trainer.name[0]}</AvatarFallback>
+                    <AvatarFallback>{trainer.first_name[0]}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-medium">{trainer.name}</h3>
-                    {trainer.categories && (
-                      <p className="text-sm text-muted-foreground">
-                        {trainer.categories}
-                      </p>
-                    )}
+                    <h3 className="font-medium">
+                      {trainer.first_name} {trainer.last_name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {trainer.categories.join(", ")}
+                    </p>
                   </div>
                 </div>
                 <div className="flex space-x-2">
@@ -252,7 +228,7 @@ const TrainersPage = () => {
                       <TrainerForm
                         trainer={trainer}
                         onSubmit={(updatedTrainer) =>
-                          handleEdit(trainer.id, updatedTrainer)
+                          handleEdit(updatedTrainer)
                         }
                         onCancel={() => setIsDialogOpen(false)}
                       />
@@ -289,12 +265,10 @@ const TrainersPage = () => {
                   <Mail className="mr-2 h-4 w-4" />
                   {trainer.email}
                 </div>
-                {trainer.phone && (
-                  <div className="flex items-center text-sm">
-                    <Phone className="mr-2 h-4 w-4" />
-                    {trainer.phone}
-                  </div>
-                )}
+                <div className="flex items-center text-sm">
+                  <Phone className="mr-2 h-4 w-4" />
+                  {trainer.phone}
+                </div>
                 {trainer.bio && (
                   <p className="text-sm text-muted-foreground mt-2">
                     {trainer.bio}

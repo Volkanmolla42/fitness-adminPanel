@@ -43,10 +43,14 @@ export const memberSchema = z.object({
 
 // Trainer validation schema
 export const trainerSchema = z.object({
-  name: z
+  first_name: z
     .string()
-    .min(2, validationMessages.minLength("İsim", 2))
-    .regex(nameRegex, validationMessages.name),
+    .min(2, validationMessages.minLength("Ad", 2))
+    .regex(nameRegex, "Geçerli bir ad giriniz"),
+  last_name: z
+    .string()
+    .min(2, validationMessages.minLength("Soyad", 2))
+    .regex(nameRegex, "Geçerli bir soyad giriniz"),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   categories: z
@@ -108,5 +112,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    }
+    },
   );

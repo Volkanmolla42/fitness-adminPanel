@@ -2,8 +2,14 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { trainerSchema } from "@/lib/validations";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -11,179 +17,218 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { categories } from "@/components/forms/ServiceForm";
+import type { Database } from "@/types/supabase";
+
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+type TrainerInput = Omit<Trainer, "id" | "created_at">;
 
 interface TrainerFormProps {
-  trainer?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    categories: string[];
-    bio: string;
-    startDate: string;
-    workingHours: {
-      start: string;
-      end: string;
-    };
-  };
-  onSubmit: (data: any) => void;
+  trainer?: Trainer;
+  onSubmit: (data: TrainerInput) => void;
   onCancel: () => void;
 }
 
 export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm({
+  const form = useForm<TrainerInput>({
     resolver: zodResolver(trainerSchema),
     defaultValues: {
-      name: trainer?.name || "",
+      first_name: trainer?.first_name || "",
+      last_name: trainer?.last_name || "",
       email: trainer?.email || "",
       phone: trainer?.phone || "",
       categories: trainer?.categories || [],
       bio: trainer?.bio || "",
-      startDate: trainer?.startDate || new Date().toISOString().split("T")[0],
-      workingHours: {
-        start: trainer?.workingHours?.start || "09:00",
-        end: trainer?.workingHours?.end || "17:00",
-      },
+      start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
+      working_hours: trainer?.working_hours || { start: "09:00", end: "17:00" },
     },
   });
 
-  const selectedCategories = watch("categories");
-
-  const handleFormSubmit = handleSubmit((data) => {
-    onSubmit(data);
-  });
+  const selectedCategories = form.watch("categories");
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Ad Soyad</label>
-        <Input {...register("name")} />
-        {errors.name && (
-          <p className="text-sm text-destructive">{errors.name.message}</p>
-        )}
-      </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="first_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ad</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">E-posta</label>
-          <Input type="email" {...register("email")} />
-          {errors.email && (
-            <p className="text-sm text-destructive">{errors.email.message}</p>
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Soyad</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>E-posta</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefon</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="555 123 45 67" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="categories"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Uzmanlık Alanları</FormLabel>
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  if (!field.value.includes(value)) {
+                    field.onChange([...field.value, value]);
+                  }
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Uzmanlık alanı seçin" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedCategories.map((category) => (
+                  <Badge
+                    key={category}
+                    variant="secondary"
+                    className="cursor-pointer"
+                    onClick={() => {
+                      form.setValue(
+                        "categories",
+                        selectedCategories.filter((c) => c !== category),
+                        { shouldValidate: true },
+                      );
+                    }}
+                  >
+                    {category} ×
+                  </Badge>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Telefon</label>
-          <Input {...register("phone")} placeholder="555 123 45 67" />
-          {errors.phone && (
-            <p className="text-sm text-destructive">{errors.phone.message}</p>
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Biyografi</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
-      </div>
+        />
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Uzmanlık Alanları</label>
-        <Select
-          value=""
-          onValueChange={(value) => {
-            if (!selectedCategories.includes(value)) {
-              setValue("categories", [...selectedCategories, value], {
-                shouldValidate: true,
-              });
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Uzmanlık alanı seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((spec) => (
-              <SelectItem key={spec} value={spec}>
-                {spec}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex flex-wrap gap-2 mt-2">
-          {selectedCategories.map((spec) => (
-            <Badge
-              key={spec}
-              variant="secondary"
-              className="cursor-pointer"
-              onClick={() => {
-                setValue(
-                  "categories",
-                  selectedCategories.filter((s) => s !== spec),
-                  { shouldValidate: true }
-                );
-              }}
-            >
-              {spec} ×
-            </Badge>
-          ))}
-        </div>
-        {errors.categories && (
-          <p className="text-sm text-destructive">
-            {errors.categories.message}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Biyografi</label>
-        <Textarea {...register("bio")} />
-        {errors.bio && (
-          <p className="text-sm text-destructive">{errors.bio.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Başlangıç Tarihi</label>
-        <Input type="date" {...register("startDate")} />
-        {errors.startDate && (
-          <p className="text-sm text-destructive">{errors.startDate.message}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Çalışma Saati Başlangıç</label>
-          <Input type="time" {...register("workingHours.start")} />
-          {errors.workingHours?.start && (
-            <p className="text-sm text-destructive">
-              {errors.workingHours.start.message}
-            </p>
+        <FormField
+          control={form.control}
+          name="start_date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Başlangıç Tarihi</FormLabel>
+              <FormControl>
+                <Input type="date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="working_hours.start"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Çalışma Saati Başlangıç</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="working_hours.end"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Çalışma Saati Bitiş</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Çalışma Saati Bitiş</label>
-          <Input type="time" {...register("workingHours.end")} />
-          {errors.workingHours?.end && (
-            <p className="text-sm text-destructive">
-              {errors.workingHours.end.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          İptal
-        </Button>
-        <Button type="submit">{trainer ? "Güncelle" : "Ekle"}</Button>
-      </DialogFooter>
-    </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            İptal
+          </Button>
+          <Button type="submit">{trainer ? "Güncelle" : "Ekle"}</Button>
+        </DialogFooter>
+      </form>
+    </Form>
   );
 }

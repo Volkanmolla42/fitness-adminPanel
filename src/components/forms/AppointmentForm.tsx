@@ -20,20 +20,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import type { Member } from "@/types/member";
-import type { Trainer } from "@/types/trainer";
-import type { Service } from "@/types/service";
-import type { Appointment } from "@/types/appointment";
-import * as z from "zod";
+import type { Database } from "@/types/supabase";
 
-type FormData = z.infer<typeof appointmentFormSchema>;
+type Member = Database["public"]["Tables"]["members"]["Row"];
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+type Service = Database["public"]["Tables"]["services"]["Row"];
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
+type AppointmentInput = Omit<Appointment, "id" | "created_at" | "status">;
 
 interface AppointmentFormProps {
   appointment?: Appointment;
   members: Member[];
   trainers: Trainer[];
   services: Service[];
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: AppointmentInput) => void;
   onCancel: () => void;
 }
 
@@ -45,12 +45,12 @@ export function AppointmentForm({
   onSubmit,
   onCancel,
 }: AppointmentFormProps) {
-  const form = useForm<FormData>({
+  const form = useForm<AppointmentInput>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      member_id: appointment?.memberId || "",
-      trainer_id: appointment?.trainerId || "",
-      service_id: appointment?.serviceId || "",
+      member_id: appointment?.member_id || "",
+      trainer_id: appointment?.trainer_id || "",
+      service_id: appointment?.service_id || "",
       date: appointment?.date || new Date().toISOString().split("T")[0],
       time: appointment?.time || "",
       notes: appointment?.notes || "",
@@ -66,7 +66,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Üye</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Üye seçin" />
@@ -75,7 +75,7 @@ export function AppointmentForm({
                 <SelectContent>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
-                      {`${member.firstName} ${member.lastName} `}
+                      {`${member.first_name} ${member.last_name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -91,7 +91,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Eğitmen</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Eğitmen seçin" />
@@ -100,7 +100,7 @@ export function AppointmentForm({
                 <SelectContent>
                   {trainers.map((trainer) => (
                     <SelectItem key={trainer.id} value={trainer.id}>
-                      {trainer.name}
+                      {`${trainer.first_name} ${trainer.last_name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -116,7 +116,7 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hizmet</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Hizmet seçin" />
