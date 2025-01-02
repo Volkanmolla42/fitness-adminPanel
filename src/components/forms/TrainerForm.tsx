@@ -9,15 +9,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,25 +30,33 @@ interface TrainerFormProps {
 }
 
 const formatPhoneNumber = (value: string) => {
-  // Remove all non-digits
   const numbers = value.replace(/\D/g, "");
-  
-  // Format as XXX XXX XX XX
   if (numbers.length <= 3) return numbers;
   if (numbers.length <= 6) return numbers.slice(0, 3) + " " + numbers.slice(3);
-  if (numbers.length <= 8) return numbers.slice(0, 3) + " " + numbers.slice(3, 6) + " " + numbers.slice(6);
-  return numbers.slice(0, 3) + " " + numbers.slice(3, 6) + " " + numbers.slice(6, 8) + " " + numbers.slice(8, 10);
+  if (numbers.length <= 8)
+    return (
+      numbers.slice(0, 3) + " " + numbers.slice(3, 6) + " " + numbers.slice(6)
+    );
+  return (
+    numbers.slice(0, 3) +
+    " " +
+    numbers.slice(3, 6) +
+    " " +
+    numbers.slice(6, 8) +
+    " " +
+    numbers.slice(8, 10)
+  );
 };
 
 export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const form = useForm<TrainerInput>({
     resolver: zodResolver(trainerSchema),
     defaultValues: {
       first_name: trainer?.first_name || "",
       last_name: trainer?.last_name || "",
-      name: `${trainer?.first_name || ""} ${trainer?.last_name || ""}`.trim(),
+      name: trainer?.name || "",
       email: trainer?.email || "",
       phone: trainer?.phone || "",
       categories: trainer?.categories || [],
@@ -74,7 +74,11 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
   const handleSubmit = async (data: TrainerInput) => {
     setIsSubmitting(true);
     try {
-      await onSubmit(data);
+      const updatedData = {
+        ...data,
+        name: `${data.first_name} ${data.last_name}`.trim(),
+      };
+      await onSubmit(updatedData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -138,7 +142,13 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                 <FormItem>
                   <FormLabel>Telefon</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input
+                      {...field}
+                      onChange={(e) => {
+                        const formatted = formatPhoneNumber(e.target.value);
+                        field.onChange(formatted);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,7 +167,11 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                     {categories.map((category) => (
                       <Badge
                         key={category}
-                        variant={selectedCategories?.includes(category) ? "default" : "outline"}
+                        variant={
+                          selectedCategories?.includes(category)
+                            ? "default"
+                            : "outline"
+                        }
                         className="cursor-pointer"
                         onClick={() => {
                           const current = field.value || [];
@@ -185,7 +199,11 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                 <FormItem>
                   <FormLabel>Biyografi</FormLabel>
                   <FormControl>
-                    <Textarea {...field} placeholder="Eğitmen hakkında kısa bir biyografi..." className="h-20" />
+                    <Textarea
+                      {...field}
+                      placeholder="Eğitmen hakkında kısa bir biyografi..."
+                      className="h-20"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

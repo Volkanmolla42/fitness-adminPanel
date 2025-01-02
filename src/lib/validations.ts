@@ -51,24 +51,16 @@ export const trainerSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  name: z
-    .string()
-    .min(2, validationMessages.minLength("Ad", 2))
-    .regex(nameRegex, "Geçerli bir ad giriniz"),
+  name: z.string().optional(),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
-  categories: z
-    .array(z.string())
-    .min(1, "En az bir uzmanlık alanı seçilmelidir")
-    .optional(),
+  categories: z.array(z.string()),
   bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
   start_date: z.string().min(1, validationMessages.required),
-  working_hours: z
-    .object({
-      start: z.string().min(1, "Başlangıç saati zorunludur"),
-      end: z.string().min(1, "Bitiş saati zorunludur"),
-    })
-    .optional(),
+  working_hours: z.object({
+    start: z.string().min(1, "Başlangıç saati zorunludur"),
+    end: z.string().min(1, "Bitiş saati zorunludur"),
+  }),
 });
 
 // Service validation schema
@@ -119,5 +111,5 @@ export const appointmentFormSchema = z
     {
       message: "Geçmiş bir saat için randevu oluşturamazsınız",
       path: ["time"],
-    }
+    },
   );
