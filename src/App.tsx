@@ -10,30 +10,33 @@ import Reports from "@/pages/reports";
 import SettingsPage from "@/pages/settings";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
+import { ThemeProvider } from "@/contexts/theme-context";
 
 function App() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Yükleniyor...
-        </div>
-      }
-    >
-      <Routes>
-        <Route element={<DashboardLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/trainers" element={<Trainers />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-      <Toaster />
-      <Analytics />
-    </Suspense>
+    <ThemeProvider>
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center">
+            Yükleniyor...
+          </div>
+        }
+      >
+        <Routes>
+          <Route element={<DashboardLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/members" element={<Members />} />
+            <Route path="/trainers" element={<Trainers />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+        <Toaster />
+        <Analytics />
+      </Suspense>
+    </ThemeProvider>
   );
 }
 
