@@ -51,17 +51,24 @@ export const trainerSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
+  name: z
+    .string()
+    .min(2, validationMessages.minLength("Ad", 2))
+    .regex(nameRegex, "Geçerli bir ad giriniz"),
   email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   categories: z
     .array(z.string())
-    .min(1, "En az bir uzmanlık alanı seçilmelidir"),
+    .min(1, "En az bir uzmanlık alanı seçilmelidir")
+    .optional(),
   bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
   start_date: z.string().min(1, validationMessages.required),
-  working_hours: z.object({
-    start: z.string().min(1, "Başlangıç saati zorunludur"),
-    end: z.string().min(1, "Bitiş saati zorunludur"),
-  }),
+  working_hours: z
+    .object({
+      start: z.string().min(1, "Başlangıç saati zorunludur"),
+      end: z.string().min(1, "Bitiş saati zorunludur"),
+    })
+    .optional(),
 });
 
 // Service validation schema

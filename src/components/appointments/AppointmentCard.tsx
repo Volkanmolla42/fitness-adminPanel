@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, XCircle, Pencil } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Pencil, User, UserCog, Briefcase } from "lucide-react";
 
 import { Database } from "@/types/supabase";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -78,50 +78,78 @@ const AppointmentCard = ({
 
   return (
     <>
-      <Card className="p-4 w-full">
+      <Card className="p-4 w-full hover:shadow-lg transition-shadow duration-200">
         <div className="flex flex-col space-y-4">
           {/* Header with time and status */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
-              <span className="text-base sm:text-lg font-semibold">
-                {appointment.time.slice(0, 5)}
-              </span>
+          <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-50 p-2 rounded-lg">
+                <Clock className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-blue-600">
+                  {appointment.time.slice(0, 5)}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {new Date(appointment.date).toLocaleDateString('tr-TR', {
+                    day: 'numeric',
+                    month: 'long'
+                  })}
+                </span>
+              </div>
             </div>
             <Badge
               className={`${getStatusColor(
                 appointment.status
-              )} text-xs sm:text-sm`}
+              )} text-sm px-3 py-1`}
             >
               {getStatusText(appointment.status)}
             </Badge>
           </div>
 
           {/* Details */}
-          <div className="space-y-2 text-sm sm:text-base">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-medium min-w-[80px]">Üye:</span>
-              <span className="text-gray-700">{`${member.firstName} ${member.lastName}`}</span>
+          <div className="space-y-3 text-sm sm:text-base">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-50 p-2 rounded-lg">
+                <User className="h-4 w-4 text-purple-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-sm">Üye</span>
+                <span className="font-medium">{`${member.firstName} ${member.lastName}`}</span>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-medium min-w-[80px]">Eğitmen:</span>
-              <span className="text-gray-700">
-                {trainer.firstName} {trainer.lastName}
-              </span>
+            
+            <div className="flex items-center gap-3">
+              <div className="bg-green-50 p-2 rounded-lg">
+                <UserCog className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-sm">Eğitmen</span>
+                <span className="font-medium">{`${trainer.firstName} ${trainer.lastName}`}</span>
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-medium min-w-[80px]">Hizmet:</span>
-              <span className="text-gray-700">{service.name}</span>
+            
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-50 p-2 rounded-lg">
+                <Briefcase className="h-4 w-4 text-orange-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-sm">Hizmet</span>
+                <span className="font-medium">{service.name}</span>
+              </div>
             </div>
+
             {appointment.notes && (
-              <p className="text-sm text-gray-600 mt-2 break-words">
-                {appointment.notes}
-              </p>
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 break-words">
+                  {appointment.notes}
+                </p>
+              </div>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <div className="flex flex-col sm:flex-row gap-2 mt-2 pt-3 border-t">
             <Button
               variant="outline"
               size="sm"
@@ -138,7 +166,7 @@ const AppointmentCard = ({
                   variant="outline"
                   size="sm"
                   onClick={() => handleChangeStatus("in-progress")}
-                  className="flex-1 p-2"
+                  className="flex-1 p-2 text-blue-600 hover:text-blue-700"
                 >
                   <Clock className="mr-2 h-4 w-4" />
                   Başlat
@@ -174,13 +202,7 @@ const AppointmentCard = ({
         <DialogContent>
           <DialogTitle>Eylemi Onayla</DialogTitle>
           <DialogDescription>
-            Bu randevuyu{" "}
-            {pendingStatus === "completed"
-              ? "tamamlamak"
-              : pendingStatus === "cancelled"
-              ? "iptal etmek"
-              : "başlatmak"}{" "}
-            istediğinize emin misiniz?
+            Bu randevuyu{" "}{pendingStatus === "completed" ? "tamamlamak" : pendingStatus === "cancelled" ? "iptal etmek" : "başlatmak"}{" "}istediğinize emin misiniz?
           </DialogDescription>
           <Button
             onClick={() => {

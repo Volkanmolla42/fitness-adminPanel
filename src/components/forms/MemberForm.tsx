@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { memberSchema } from "@/lib/validations";
@@ -21,11 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
-import { defaultServices } from "@/data/services";
-import { defaultMembers } from "@/data/members";
+import { getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
+type Service = Database["public"]["Tables"]["services"]["Row"];
 type MemberInput = Omit<Member, "id" | "created_at">;
 
 interface MemberFormProps {
@@ -35,6 +35,24 @@ interface MemberFormProps {
 }
 
 export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const servicesData = await getServices();
+        setServices(servicesData || []);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
   const form = useForm<MemberInput>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
@@ -50,16 +68,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       start_date: member?.start_date || new Date().toISOString().split("T")[0],
       end_date: member?.end_date || new Date().toISOString().split("T")[0],
     },
-  });
-
-  const sortedServices = [...defaultServices].sort((a, b) => {
-    const aCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(a.name)
-    ).length;
-    const bCount = defaultMembers.filter((m) =>
-      m.subscribedServices.includes(b.name)
-    ).length;
-    return bCount - aCount;
   });
 
   return (
@@ -103,7 +111,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>E-posta</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -117,7 +125,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>Telefon</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="(555) 123-4567" />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -131,15 +139,15 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Üyelik Tipi</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Üyelik tipi seçin" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="basic">Temel Üyelik</SelectItem>
-                  <SelectItem value="vip">VIP Üyelik</SelectItem>
+                  <SelectItem value="basic">Temel</SelectItem>
+                  <SelectItem value="vip">VIP</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -152,39 +160,25 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           name="subscribed_services"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Aldığı Hizmetler</FormLabel>
-              <Select
-                value=""
-                onValueChange={(value) => {
-                  if (!field.value.includes(value)) {
-                    field.onChange([...field.value, value]);
-                  }
-                }}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Hizmet seçin" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {sortedServices.map((service) => (
-                    <SelectItem key={service.id} value={service.name}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {field.value.map((service) => (
+              <FormLabel>Hizmetler</FormLabel>
+              <div className="flex flex-wrap gap-2">
+                {services.map((service) => (
                   <Badge
-                    key={service}
-                    variant="secondary"
-                    className="cursor-pointer"
-                    onClick={() =>
-                      field.onChange(field.value.filter((s) => s !== service))
+                    key={service.id}
+                    variant={
+                      field.value.includes(service.id)
+                        ? "default"
+                        : "secondary"
                     }
+                    className="cursor-pointer"
+                    onClick={() => {
+                      const newValue = field.value.includes(service.id)
+                        ? field.value.filter((id) => id !== service.id)
+                        : [...field.value, service.id];
+                      field.onChange(newValue);
+                    }}
                   >
-                    {service} ×
+                    {service.name}
                   </Badge>
                 ))}
               </div>

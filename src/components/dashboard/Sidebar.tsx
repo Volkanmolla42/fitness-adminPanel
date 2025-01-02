@@ -134,7 +134,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
     <>
       {/* Desktop Sidebar */}
       <div
-        className={cn("hidden md:flex h-screen w-64 border-r p-6", className)}
+        className={cn("hidden sticky top-0 md:flex h-screen w-64 border-r p-6", className)}
       >
         <SidebarContent className="w-full" />
       </div>

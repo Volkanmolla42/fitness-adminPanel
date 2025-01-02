@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Award, Clock, Mail, MapPin, Phone, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,51 +11,66 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { TrainerForm } from "@/components/forms/TrainerForm";
-import { Search, Plus, Pencil, Trash2, Phone, Mail, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   getTrainers,
+  getAppointments,
   createTrainer,
   updateTrainer,
   deleteTrainer,
 } from "@/lib/queries";
-import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
-
-type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+import { Trainer, Appointment, TrainerInput } from "@/types";
+import { TrainerForm } from "@/components/forms/TrainerForm";
 
 const TrainersPage = () => {
   const { toast } = useToast();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
+  const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchTrainers();
+    fetchData();
     setupRealtimeSubscription();
     return () => {
       supabase.channel("trainers").unsubscribe();
+      supabase.channel("appointments").unsubscribe();
     };
   }, []);
 
-  const fetchTrainers = async () => {
+  const fetchData = async () => {
     try {
-      const data = await getTrainers();
-      setTrainers(data);
+      setIsLoading(true);
+      const [trainersData, appointmentsData] = await Promise.all([
+        getTrainers(),
+        getAppointments(),
+      ]);
+
+      if (trainersData) {
+        setTrainers(trainersData);
+      }
+      if (appointmentsData) {
+        const validAppointments = appointmentsData.map((appointment) => {
+          const validStatus = [
+            "scheduled",
+            "in-progress",
+            "completed",
+            "cancelled",
+          ].includes(appointment.status)
+            ? appointment.status as Appointment["status"]
+            : "scheduled";
+
+          return {
+            ...appointment,
+            status: validStatus,
+          };
+        });
+        setAppointments(validAppointments);
+      }
     } catch (error) {
       toast({
         title: "Hata",
@@ -67,45 +83,32 @@ const TrainersPage = () => {
   };
 
   const setupRealtimeSubscription = () => {
-    supabase
+    const trainersChannel = supabase
       .channel("trainers")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "trainers" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setTrainers((prev) => [payload.new as Trainer, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            setTrainers((prev) =>
-              prev.map((trainer) =>
-                trainer.id === payload.new.id
-                  ? (payload.new as Trainer)
-                  : trainer
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setTrainers((prev) =>
-              prev.filter((trainer) => trainer.id !== payload.old.id)
-            );
-          }
-        }
+        fetchData
+      )
+      .subscribe();
+
+    const appointmentsChannel = supabase
+      .channel("appointments")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments" },
+        fetchData
       )
       .subscribe();
   };
 
-  const filteredTrainers = trainers.filter((trainer) =>
-    `${trainer.first_name} ${trainer.last_name} ${trainer.categories.join(" ")}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
-
-  const handleAdd = async (data: Omit<Trainer, "id" | "created_at">) => {
+  const handleCreate = async (data: TrainerInput) => {
     try {
       await createTrainer(data);
-      setIsDialogOpen(false);
+      setIsAddDialogOpen(false);
       toast({
         title: "Başarılı",
-        description: "Yeni eğitmen başarıyla eklendi.",
+        description: "Eğitmen başarıyla eklendi.",
       });
     } catch (error) {
       toast({
@@ -116,7 +119,7 @@ const TrainersPage = () => {
     }
   };
 
-  const handleEdit = async (data: Omit<Trainer, "id" | "created_at">) => {
+  const handleEdit = async (data: TrainerInput) => {
     if (!editingTrainer) return;
 
     try {
@@ -124,7 +127,7 @@ const TrainersPage = () => {
       setEditingTrainer(null);
       toast({
         title: "Başarılı",
-        description: "Eğitmen bilgileri güncellendi.",
+        description: "Eğitmen başarıyla güncellendi.",
       });
     } catch (error) {
       toast({
@@ -138,6 +141,7 @@ const TrainersPage = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteTrainer(id);
+      setSelectedTrainer(null);
       toast({
         title: "Başarılı",
         description: "Eğitmen başarıyla silindi.",
@@ -145,154 +149,212 @@ const TrainersPage = () => {
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Eğitmen silinirken bir hata oluştu..",
+        description: "Eğitmen silinirken bir hata oluştu.",
         variant: "destructive",
       });
     }
   };
 
-  if (isLoading) {
+  const getTrainerAppointments = (trainerId: string) => {
+    return appointments.filter((appointment) => appointment.trainer_id === trainerId);
+  };
+
+  const filteredTrainers = trainers.filter((trainer) => {
+    const searchString = searchQuery.toLowerCase();
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
+      trainer.first_name.toLowerCase().includes(searchString) ||
+      trainer.last_name.toLowerCase().includes(searchString) ||
+      trainer.email.toLowerCase().includes(searchString) ||
+      trainer.phone.toLowerCase().includes(searchString)
     );
-  }
+  });
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Eğitmenler</h1>
-        <p className="text-muted-foreground mt-2">
-          Spor salonu eğitmenlerini yönet
-        </p>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight">Eğitmenler</h2>
+          <p className="text-muted-foreground">
+            Eğitmenleri görüntüle, düzenle ve yönet
+          </p>
+        </div>
+
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Eğitmen Ekle
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Yeni Eğitmen</DialogTitle>
+            </DialogHeader>
+            <TrainerForm
+              onSubmit={handleCreate}
+              onCancel={() => setIsAddDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card className="px-2 py-6 md:p-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Eğitmen ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Eğitmen Ekle
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Yeni Eğitmen</DialogTitle>
-              </DialogHeader>
-              <TrainerForm
-                onSubmit={handleAdd}
-                onCancel={() => setIsDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+      <div className="flex items-center space-x-2">
+        <Input
+          placeholder="Eğitmen ara..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTrainers.map((trainer) => (
-            <Card key={trainer.id} className="px-4 py-6 md:p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <Avatar>
-                    <AvatarFallback>{trainer.first_name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">
-                      {trainer.first_name} {trainer.last_name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {trainer.categories.join(", ")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Eğitmen Düzenle</DialogTitle>
-                      </DialogHeader>
-                      <TrainerForm
-                        trainer={trainer}
-                        onSubmit={(updatedTrainer) =>
-                          handleEdit(updatedTrainer)
-                        }
-                        onCancel={() => setIsDialogOpen(false)}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Eğitmeni Sil</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Bu eğitmeni silmek istediğinize emin misiniz? Bu işlem
-                          geri alınamaz.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(trainer.id)}
-                        >
-                          Sil
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center text-sm">
-                  <Mail className="mr-2 h-4 w-4" />
-                  {trainer.email}
-                </div>
-                <div className="flex items-center text-sm">
-                  <Phone className="mr-2 h-4 w-4" />
-                  {trainer.phone}
-                </div>
-                <div className="flex items-center text-sm">
-                  <Clock className="mr-2 h-4 w-4" />
-                  {JSON.stringify(
-                    trainer.working_hours.start
-                      .toLocaleString()
-                      .replace(",", " - ")
-                  )}
-                  ~{" "}
-                  {JSON.stringify(
-                    trainer.working_hours.end
-                      .toLocaleString()
-                      .replace(",", " - ")
-                  )}
-                </div>
-                {trainer.bio && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {trainer.bio}
-                  </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredTrainers.map((trainer) => (
+          <Card
+            key={trainer.id}
+            className="p-4 cursor-pointer hover:shadow-md hover:-translate-y-1 hover:shadow-black/50 transition-all bg-white"
+            onClick={() => setSelectedTrainer(trainer)}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
+                {trainer.avatar_url ? (
+                  <img
+                    src={trainer.avatar_url}
+                    alt={`${trainer.first_name} ${trainer.last_name}`}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <Award className="w-12 h-12 text-muted-foreground" />
                 )}
               </div>
-            </Card>
-          ))}
-        </div>
-      </Card>
+
+              <h3 className="font-semibold text-lg">
+                {trainer.first_name} {trainer.last_name}
+              </h3>
+
+              <Badge variant="default" className="mt-2">
+                {trainer.specialization || "Genel Eğitmen"}
+              </Badge>
+
+              <div className="flex items-center text-sm text-muted-foreground mt-2">
+                <Mail className="w-4 h-4 mr-1" />
+                {trainer.email}
+              </div>
+
+              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                <Phone className="w-4 h-4 mr-1" />
+                {trainer.phone}
+              </div>
+
+              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                <Clock className="w-4 h-4 mr-1" />
+                {trainer.working_hours?.start || "09:00"} - {trainer.working_hours?.end || "17:00"}
+              </div>
+
+              {trainer.address && (
+                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  {trainer.address}
+                </div>
+              )}
+
+              <div className="w-full mt-3">
+                <p className="text-xs text-muted-foreground mb-1">Aktif Randevular</p>
+                <p className="text-lg font-semibold">
+                  {getTrainerAppointments(trainer.id).length}
+                </p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {selectedTrainer && (
+        <Dialog open={!!selectedTrainer} onOpenChange={() => setSelectedTrainer(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
+                  {selectedTrainer.avatar_url ? (
+                    <img
+                      src={selectedTrainer.avatar_url}
+                      alt={`${selectedTrainer.first_name} ${selectedTrainer.last_name}`}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <Award className="w-12 h-12 text-muted-foreground" />
+                  )}
+                </div>
+
+                <DialogTitle>
+                  {selectedTrainer.first_name} {selectedTrainer.last_name}
+                </DialogTitle>
+                <Badge variant="default" className="mt-1">
+                  {selectedTrainer.specialization || "Genel Eğitmen"}
+                </Badge>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" />
+                  <span>{selectedTrainer.email}</span>
+                </div>
+                <div className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" />
+                  <span>{selectedTrainer.phone}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span>
+                    {selectedTrainer.working_hours?.start || "09:00"} -{" "}
+                    {selectedTrainer.working_hours?.end || "17:00"}
+                  </span>
+                </div>
+                {selectedTrainer.address && (
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span>{selectedTrainer.address}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingTrainer(selectedTrainer);
+                    setSelectedTrainer(null);
+                  }}
+                >
+                  Düzenle
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleDelete(selectedTrainer.id)}
+                >
+                  Sil
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {editingTrainer && (
+        <Dialog open={!!editingTrainer} onOpenChange={() => setEditingTrainer(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Eğitmen Düzenle</DialogTitle>
+            </DialogHeader>
+            <TrainerForm
+              trainer={editingTrainer}
+              onSubmit={handleEdit}
+              onCancel={() => setEditingTrainer(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

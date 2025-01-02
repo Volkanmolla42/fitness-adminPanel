@@ -22,6 +22,7 @@ import {
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { Notification } from "@/components/ui/notification";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -39,6 +40,9 @@ function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+  const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -238,6 +242,84 @@ function AppointmentsPage() {
     }
   };
 
+  useEffect(() => {
+    const checkUpcomingAppointments = () => {
+      const now = new Date();
+      console.log("Checking appointments at:", now);
+      console.log("Total appointments:", appointments.length);
+      
+      // Mevcut bildirimleri kontrol et ve gerekirse kaldır
+      setActiveNotifications(prev => {
+        const updatedNotifications = prev.filter(notification => {
+          const appointment = appointments.find(a => String(a.id) === String(notification.id));
+          if (!appointment) return false;
+
+          const [hours, minutes] = appointment.time.split(':').map(num => parseInt(num, 10));
+          const appointmentDate = new Date(appointment.date);
+          appointmentDate.setHours(hours);
+          appointmentDate.setMinutes(minutes);
+          appointmentDate.setSeconds(0);
+
+          const minutesUntil = Math.floor((appointmentDate.getTime() - now.getTime()) / (60 * 1000));
+          return minutesUntil >= 10; // 10 dakikadan az kaldıysa kaldır
+        });
+        return updatedNotifications;
+      });
+
+      // Yaklaşan randevuları kontrol et
+      appointments.forEach((appointment) => {
+        // Eğer bu randevu daha önce kapatıldıysa veya görüldü olarak işaretlendiyse, atla
+        if (dismissedNotifications.has(String(appointment.id)) || acknowledgedNotifications.has(String(appointment.id))) {
+          return;
+        }
+
+        // Eğer bu randevu için zaten aktif bir bildirim varsa, atla
+        if (activeNotifications.some(n => n.id === String(appointment.id))) {
+          return;
+        }
+
+        if (!appointment?.date || !appointment?.time) {
+          console.log("Skipping appointment with no date or time:", appointment);
+          return;
+        }
+
+        try {
+          const [hours, minutes] = appointment.time.split(':').map(num => parseInt(num, 10));
+          const appointmentDate = new Date(appointment.date);
+          appointmentDate.setHours(hours);
+          appointmentDate.setMinutes(minutes);
+          appointmentDate.setSeconds(0);
+
+          const minutesUntil = Math.floor((appointmentDate.getTime() - now.getTime()) / (60 * 1000));
+          
+          // 10-20 dakika aralığındaysa bildirim göster
+          if (minutesUntil >= 10 && minutesUntil <= 20) {
+            const trainer = trainers.find((t) => t.id === appointment.trainer_id);
+            const member = members.find((m) => m.id === appointment.member_id);
+            if (trainer && member) {
+              const newNotification = {
+                id: String(appointment.id),
+                message: `${minutesUntil} dakika sonra <strong>${trainer.first_name} ${trainer.last_name}</strong> ile ${member.first_name} ${member.last_name} üyenin randevusu var. (${appointmentDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`
+              };
+              
+              setActiveNotifications(prev => [...prev, newNotification]);
+            }
+          }
+        } catch (error) {
+          console.error("Error checking appointment:", appointment, error);
+        }
+      });
+    };
+
+    // İlk kontrol
+    checkUpcomingAppointments();
+
+    // Her 60 saniyede bir kontrol et
+    const interval = setInterval(checkUpcomingAppointments, 60000);
+
+    return () => clearInterval(interval);
+  }, [appointments, trainers, members, dismissedNotifications, acknowledgedNotifications]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -248,6 +330,23 @@ function AppointmentsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="fixed bottom-4 right-4 space-y-2">
+        {activeNotifications.map((notification, index) => (
+          <Notification
+            key={notification.id}
+            message={notification.message}
+            index={index}
+            onAcknowledge={() => {
+              setAcknowledgedNotifications(prev => new Set([...prev, notification.id]));
+              setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
+            }}
+            onClose={() => {
+              setDismissedNotifications(prev => new Set([...prev, notification.id]));
+              setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
+            }}
+          />
+        ))}
+      </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Günlük Randevular</h1>

@@ -145,13 +145,36 @@ export const deleteService = async (id: string) => {
 
 // Appointments
 export const getAppointments = async () => {
-  const { data, error } = await supabase
-    .from("appointments")
-    .select("*, member:members(*), trainer:trainers(*), service:services(*)")
-    .order("date", { ascending: true });
+  console.log('Fetching appointments...');
+  
+  try {
+    // First, get all appointments
+    const { data: appointmentsData, error: appointmentsError } = await supabase
+      .from("appointments")
+      .select(`
+        *,
+        service:services(id, name),
+        member:members(id, first_name, last_name),
+        trainer:trainers(id, first_name, last_name)
+      `);
 
-  if (error) throw error;
-  return data;
+    if (appointmentsError) {
+      console.error('Error fetching appointments:', appointmentsError);
+      throw appointmentsError;
+    }
+
+    if (!appointmentsData) {
+      console.log('No appointments found');
+      return [];
+    }
+
+    console.log('Fetched appointments:', appointmentsData);
+    
+    return appointmentsData;
+  } catch (error) {
+    console.error('Exception in getAppointments:', error);
+    throw error;
+  }
 };
 
 export const createAppointment = async (
