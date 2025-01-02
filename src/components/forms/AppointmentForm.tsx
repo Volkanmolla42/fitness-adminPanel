@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import type { Database } from "@/types/supabase";
+import { useEffect } from "react";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -56,6 +57,24 @@ export function AppointmentForm({
       notes: appointment?.notes || "",
     },
   });
+
+  // Get the selected member's subscribed services
+  const selectedMember = members.find((member) => member.id === form.watch("member_id"));
+  const availableServices = services.filter((service) =>
+    selectedMember?.subscribed_services?.includes(service.id)
+  );
+
+  // Reset service selection when member changes
+  useEffect(() => {
+    if (form.watch("member_id") && form.watch("service_id")) {
+      const isServiceAvailable = selectedMember?.subscribed_services?.includes(
+        form.watch("service_id")
+      );
+      if (!isServiceAvailable) {
+        form.setValue("service_id", "");
+      }
+    }
+  }, [form.watch("member_id")]);
 
   return (
     <Form {...form}>
@@ -116,14 +135,20 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hizmet</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+                disabled={!form.watch("member_id")}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Hizmet seçin" />
+                    <SelectValue
+                      placeholder={form.watch("member_id") ? "Hizmet seçin" : "Önce üye seçin"}
+                    />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {services.map((service) => (
+                  {availableServices.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
                       {service.name}
                     </SelectItem>

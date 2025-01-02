@@ -58,6 +58,22 @@ const getStatusText = (status: Appointment["status"]) => {
   }
 };
 
+const getRemainingTime = (startTime: string) => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+  const [startHour, startMinute] = startTime.split(':').map(Number);
+  const startTotalMinutes = startHour * 60 + startMinute;
+  
+  // Assuming 60 minutes duration
+  const endTotalMinutes = startTotalMinutes + 60;
+  const remainingMinutes = endTotalMinutes - currentTotalMinutes;
+  
+  return remainingMinutes;
+};
+
 const AppointmentCard = ({
   appointment,
   member,
@@ -96,6 +112,17 @@ const AppointmentCard = ({
                     month: 'long'
                   })}
                 </span>
+                {appointment.status === "in-progress" && (
+                  <span className="text-sm font-medium text-yellow-600 mt-1">
+                    <Clock className="h-3 w-3 inline-block mr-1" />
+                    {(() => {
+                      const remainingMinutes = getRemainingTime(appointment.time);
+                      return remainingMinutes > 0 
+                        ? `${remainingMinutes} dakika kaldı`
+                        : 'Randevu süresi doldu';
+                    })()}
+                  </span>
+                )}
               </div>
             </div>
             <Badge

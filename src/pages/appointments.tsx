@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, CalendarDays, LayoutList } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
 import AppointmentCard from "@/components/appointments/AppointmentCard";
@@ -37,8 +38,8 @@ function AppointmentsPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] =
-    useState<Appointment | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'weekly'>('list');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
@@ -167,21 +168,14 @@ function AppointmentsPage() {
 
   // Group appointments by status
   const groupedAppointments = useMemo(() => {
-    const groups = filteredAppointments.reduce((groups, appointment) => {
+    return filteredAppointments.reduce((groups, appointment) => {
       const status = appointment.status;
       if (!groups[status]) {
         groups[status] = [];
       }
       groups[status].push(appointment);
       return groups;
-    }, {} as Record<Appointment["status"], Appointment[]>);
-
-    // Sort appointments by time within each group
-    Object.values(groups).forEach((group) => {
-      group.sort((a, b) => a.time.localeCompare(b.time));
-    });
-
-    return groups;
+    }, {} as Record<string, Appointment[]>);
   }, [filteredAppointments]);
 
   const handleSearchChange = (value: string) => {
@@ -320,6 +314,55 @@ function AppointmentsPage() {
     return () => clearInterval(interval);
   }, [appointments, trainers, members, dismissedNotifications, acknowledgedNotifications]);
 
+  // Get the current week's start and end dates
+  const getWeekDates = () => {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Adjust when current day is Sunday
+    const monday = new Date(now.setDate(diff));
+    const weekDates = [];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      weekDates.push(date);
+    }
+
+    return weekDates;
+  };
+
+  // Get appointments for a specific date
+  const getAppointmentsForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return appointments.filter(apt => apt.date === dateStr);
+  };
+
+  // Format time for display
+  const formatTime = (time: string) => {
+    return time.slice(0, 5);
+  };
+
+  // Get member and trainer names
+  const getMemberName = (memberId: string) => {
+    const member = members.find(m => m.id === memberId);
+    return member ? `${member.first_name} ${member.last_name}` : '';
+  };
+
+  const getTrainerName = (trainerId: string) => {
+    const trainer = trainers.find(t => t.id === trainerId);
+    return trainer ? `${trainer.first_name} ${trainer.last_name}` : '';
+  };
+
+  const getServiceName = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    return service ? service.name : '';
+  };
+
+  const getDayAbbreviation = (date: Date) => {
+    const days = ['Pzr', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+    return days[date.getDay()];
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -329,195 +372,295 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="fixed bottom-4 right-4 space-y-2">
-        {activeNotifications.map((notification, index) => (
-          <Notification
-            key={notification.id}
-            message={notification.message}
-            index={index}
-            onAcknowledge={() => {
-              setAcknowledgedNotifications(prev => new Set([...prev, notification.id]));
-              setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
-            }}
-            onClose={() => {
-              setDismissedNotifications(prev => new Set([...prev, notification.id]));
-              setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
-            }}
-          />
-        ))}
-      </div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Günlük Randevular</h1>
-          <p className="text-gray-500 text-sm sm:text-base">
-            {new Date().toLocaleDateString("tr-TR", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
+          <p className="text-muted-foreground">
+            Randevuları görüntüle, düzenle ve yönet
           </p>
         </div>
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) setSelectedAppointment(null);
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
-              </DialogTitle>
-            </DialogHeader>
-            <AppointmentForm
-              members={members}
-              trainers={trainers}
-              services={services}
-              appointment={selectedAppointment}
-              onSubmit={handleFormSubmit}
-              onCancel={() => {
-                setIsDialogOpen(false);
-                setSelectedAppointment(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button 
+            variant={viewMode === 'weekly' ? 'default' : 'outline'} 
+            onClick={() => setViewMode(viewMode === 'weekly' ? 'list' : 'weekly')}
+          >
+            {viewMode === 'weekly' ? (
+              <>
+                <LayoutList className="mr-2 h-4 w-4" />
+                Günlük Görünüm
+              </>
+            ) : (
+              <>
+                <CalendarDays className="mr-2 h-4 w-4" />
+                Haftalık Görünüm
+              </>
+            )}
+          </Button>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
+                </DialogTitle>
+              </DialogHeader>
+              <AppointmentForm
+                members={members}
+                trainers={trainers}
+                services={services}
+                appointment={selectedAppointment}
+                onSubmit={handleFormSubmit}
+                onCancel={() => {
+                  setIsDialogOpen(false);
+                  setSelectedAppointment(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="w-full">
+      <div className="flex items-center space-x-2">
         <AppointmentFilters
           searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
+          onSearchChange={(value) => setSearchQuery(value)}
           onFilterClick={() => {}}
         />
       </div>
 
-      {/* Ongoing Appointments */}
-      {groupedAppointments["in-progress"]?.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-blue-800">
-            Devam Eden Randevular
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["in-progress"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{
-                  firstName: membersRecord[appointment.member_id].first_name,
-                  lastName: membersRecord[appointment.member_id].last_name,
-                }}
-                trainer={{
-                  firstName: trainersRecord[appointment.trainer_id].first_name,
-                  lastName: trainersRecord[appointment.trainer_id].last_name,
-                }}
-                service={{
-                  name: servicesRecord[appointment.service_id].name,
-                }}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
+      {viewMode === 'weekly' ? (
+        <div className="bg-white rounded-lg shadow">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px] bg-muted/50">Saat</TableHead>
+                  {getWeekDates().map((date) => (
+                    <TableHead 
+                      key={date.toISOString()} 
+                      className={`
+                        min-w-[100px] bg-muted/50
+                        ${date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0] && 
+                        "bg-primary/10"
+                      }`}
+                    >
+                      <div className="font-bold">{getDayAbbreviation(date)}</div>
+                      <div>
+                        {date.toLocaleDateString('tr-TR', { 
+                          day: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => (
+                  <TableRow key={hour}>
+                    <TableCell className="font-medium text-sm p-1 bg-muted/50">
+                      {`${hour.toString().padStart(2, '0')}:00`}
+                    </TableCell>
+                    {getWeekDates().map((date) => {
+                      const dayAppointments = getAppointmentsForDate(date)
+                        .filter(apt => {
+                          const aptHour = parseInt(apt.time.split(':')[0]);
+                          return aptHour === hour;
+                        });
+
+                      return (
+                        <TableCell 
+                          key={date.toISOString()} 
+                          className={`
+                            p-0.5 h-[70px] align-top
+                            ${date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0] && 
+                            "bg-primary/5"
+                          }`}
+                        >
+                          {dayAppointments.map((apt) => (
+                            <div 
+                              key={apt.id}
+                              onClick={() => {
+                                setSelectedAppointment(apt);
+                                setIsDialogOpen(true);
+                              }}
+                              className={`
+                                p-0.5 rounded text-[10px] mb-0.5 cursor-pointer hover:opacity-80 transition-opacity
+                                ${apt.status === 'completed' ? 'bg-green-100 hover:bg-green-200' :
+                                apt.status === 'in-progress' ? 'bg-yellow-100 hover:bg-yellow-200' :
+                                apt.status === 'cancelled' ? 'bg-red-100 hover:bg-red-200' :
+                                'bg-blue-100 hover:bg-blue-200'
+                              }`}
+                            >
+                              <div className="font-medium flex justify-between items-center">
+                                <span>{formatTime(apt.time)}</span>
+                                <span className="text-[9px] text-muted-foreground">
+                                  {getDayAbbreviation(new Date(apt.date))}
+                                </span>
+                              </div>
+                              <div className="truncate">{getMemberName(apt.member_id)}</div>
+                              <div className="text-muted-foreground truncate">{getServiceName(apt.service_id)}</div>
+                            </div>
+                          ))}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
-      )}
+      ) : (
+        <div className="space-y-6">
+          {/* Devam Eden Randevular */}
+          {groupedAppointments['in-progress']?.length > 0 && (
+            <div className="bg-yellow-50/50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-4 text-yellow-800 flex items-center">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
+                Devam Eden Randevular
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupedAppointments['in-progress'].map((appointment) => (
+                  <AppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    member={{
+                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
+                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                    }}
+                    trainer={{
+                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                    }}
+                    service={{
+                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                    }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(appointment) => {
+                      setSelectedAppointment(appointment);
+                      setIsDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Upcoming Appointments */}
-      {groupedAppointments["scheduled"]?.length > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4">
-            Yaklaşan Randevular
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["scheduled"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{
-                  firstName: membersRecord[appointment.member_id].first_name,
-                  lastName: membersRecord[appointment.member_id].last_name,
-                }}
-                trainer={{
-                  firstName: trainersRecord[appointment.trainer_id].first_name,
-                  lastName: trainersRecord[appointment.trainer_id].last_name,
-                }}
-                service={servicesRecord[appointment.service_id]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+          {/* Planlanmış Randevular */}
+          {groupedAppointments['scheduled']?.length > 0 && (
+            <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
+                Planlanmış Randevular
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupedAppointments['scheduled'].map((appointment) => (
+                  <AppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    member={{
+                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
+                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                    }}
+                    trainer={{
+                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                    }}
+                    service={{
+                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                    }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(appointment) => {
+                      setSelectedAppointment(appointment);
+                      setIsDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Completed Appointments */}
-      {groupedAppointments["completed"]?.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-green-800">
-            Tamamlanan Randevular
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["completed"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{
-                  firstName: membersRecord[appointment.member_id].first_name,
-                  lastName: membersRecord[appointment.member_id].last_name,
-                }}
-                trainer={{
-                  firstName: trainersRecord[appointment.trainer_id].first_name,
-                  lastName: trainersRecord[appointment.trainer_id].last_name,
-                }}
-                service={servicesRecord[appointment.service_id]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+          {/* Tamamlanan Randevular */}
+          {groupedAppointments['completed']?.length > 0 && (
+            <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                Tamamlanan Randevular
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupedAppointments['completed'].map((appointment) => (
+                  <AppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    member={{
+                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
+                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                    }}
+                    trainer={{
+                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                    }}
+                    service={{
+                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                    }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(appointment) => {
+                      setSelectedAppointment(appointment);
+                      setIsDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Cancelled Appointments */}
-      {groupedAppointments["cancelled"]?.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-800">
-            İptal Edilen Randevular
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groupedAppointments["cancelled"].map((appointment) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                member={{
-                  firstName: membersRecord[appointment.member_id].first_name,
-                  lastName: membersRecord[appointment.member_id].last_name,
-                }}
-                trainer={{
-                  firstName: trainersRecord[appointment.trainer_id].first_name,
-                  lastName: trainersRecord[appointment.trainer_id].last_name,
-                }}
-                service={servicesRecord[appointment.service_id]}
-                onStatusChange={handleStatusChange}
-                onEdit={handleEditAppointment}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+          {/* İptal Edilen Randevular */}
+          {groupedAppointments['cancelled']?.length > 0 && (
+            <div className="bg-red-50/50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-4 text-red-800 flex items-center">
+                <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
+                İptal Edilen Randevular
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupedAppointments['cancelled'].map((appointment) => (
+                  <AppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    member={{
+                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
+                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                    }}
+                    trainer={{
+                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                    }}
+                    service={{
+                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                    }}
+                    onStatusChange={handleStatusChange}
+                    onEdit={(appointment) => {
+                      setSelectedAppointment(appointment);
+                      setIsDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* No Appointments Message */}
-      {Object.keys(groupedAppointments).length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>Bugün için randevu bulunmamaktadır.</p>
+          {/* Randevu Yoksa */}
+          {Object.keys(groupedAppointments).length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Görüntülenecek randevu bulunmamaktadır.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

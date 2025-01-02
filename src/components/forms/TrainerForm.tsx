@@ -56,15 +56,14 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
     defaultValues: {
       first_name: trainer?.first_name || "",
       last_name: trainer?.last_name || "",
-      name: trainer?.name || "",
       email: trainer?.email || "",
       phone: trainer?.phone || "",
-      categories: trainer?.categories || [],
       bio: trainer?.bio || "",
+      categories: trainer?.categories || [],
       start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
-      working_hours: {
-        start: trainer?.working_hours?.start || "09:00",
-        end: trainer?.working_hours?.end || "17:00",
+      working_hours: trainer?.working_hours || {
+        start: "09:00",
+        end: "17:00",
       },
     },
   });
@@ -75,10 +74,9 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
     setIsSubmitting(true);
     try {
       const updatedData = {
-        ...data,
-        name: `${data.first_name} ${data.last_name}`.trim(),
+        ...data
       };
-      await onSubmit(updatedData);
+       onSubmit(updatedData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -88,179 +86,181 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <Card className="p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="first_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ad</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2 overflow-y-auto " >
+        <Card className="px-4 py-2 space-y-4">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Ad</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="last_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Soyad</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Soyad</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>E-posta</FormLabel>
-                  <FormControl>
-                    <Input {...field} type="email" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">E-posta</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefon</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      onChange={(e) => {
-                        const formatted = formatPhoneNumber(e.target.value);
-                        field.onChange(formatted);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="mt-4">
-            <FormField
-              control={form.control}
-              name="categories"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Uzmanlık Alanları</FormLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((category) => (
-                      <Badge
-                        key={category}
-                        variant={
-                          selectedCategories?.includes(category)
-                            ? "default"
-                            : "outline"
-                        }
-                        className="cursor-pointer"
-                        onClick={() => {
-                          const current = field.value || [];
-                          const updated = current.includes(category)
-                            ? current.filter((c) => c !== category)
-                            : [...current, category];
-                          field.onChange(updated);
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Telefon</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          field.onChange(formatted);
                         }}
-                      >
-                        {category}
-                      </Badge>
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="mt-4">
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Biyografi</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Eğitmen hakkında kısa bir biyografi..."
-                      className="h-20"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+            <div>
+              <FormField
+                control={form.control}
+                name="categories"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Uzmanlık Alanları</FormLabel>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {categories.map((category) => (
+                        <Badge
+                          key={category}
+                          variant={
+                            selectedCategories?.includes(category)
+                              ? "default"
+                              : "outline"
+                          }
+                          className="cursor-pointer hover:opacity-80 transition-opacity text-sm py-1 px-2"
+                          onClick={() => {
+                            const current = field.value || [];
+                            const updated = current.includes(category)
+                              ? current.filter((c) => c !== category)
+                              : [...current, category];
+                            field.onChange(updated);
+                          }}
+                        >
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Başlangıç Tarihi</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <FormField
+                control={form.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Biyografi</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Eğitmen hakkında kısa bir biyografi..."
+                        className="h-20 resize-none"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="working_hours.start"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Başlangıç Saati</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-3 gap-3">
+              <FormField
+                control={form.control}
+                name="start_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Başlangıç Tarihi</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="working_hours.end"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bitiş Saati</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="working_hours.start"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Başlangıç Saati</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="working_hours.end"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Bitiş Saati</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </Card>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onCancel} className="min-w-[100px]">
             İptal
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="min-w-[100px]">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Kaydet
           </Button>
