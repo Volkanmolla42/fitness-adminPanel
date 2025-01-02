@@ -37,13 +37,13 @@ const StatsCard = ({
   icon: React.ElementType;
   iconColor?: string;
 }) => (
-  <Card className="p-6 px-8 shadow-lg hover:shadow-xl border border-gray-300 rounded-lg">
+  <Card className="p-6 px-8 hover:shadow-xl rounded-lg transition-all">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-lg font-semibold text-gray-700">{title}</p>
-        <h3 className="text-3xl font-bold mt-2">{value}</h3>
+        <p className="text-lg font-semibold text-foreground">{title}</p>
+        <h3 className="text-3xl font-bold mt-2 text-foreground">{value}</h3>
       </div>
-      <Icon className={`h-8 w-8 ${iconColor || "text-gray-500"}`} />
+      <Icon className={`h-8 w-8 ${iconColor || "text-muted-foreground"}`} />
     </div>
   </Card>
 );
@@ -204,7 +204,7 @@ const MembersPage = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ const MembersPage = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Üyeler</h1>
+        <h1 className="text-3xl font-bold text-foreground">Üyeler</h1>
         <p className="text-muted-foreground mt-2">
           Spor salonu üyelerini yönet
         </p>
@@ -269,22 +269,21 @@ const MembersPage = () => {
           {filteredMembers.map((member) => (
             <Card
               key={member.id}
-              className="p-4 cursor-pointer hover:shadow-md hover:-translate-y-1 hover:shadow-black/50 transition-all bg-white"
+              className="p-4 cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all"
               onClick={() => setSelectedMember(member)}
             >
               <div className="flex flex-col items-center text-center">
                 <Avatar className="h-16 w-16 mb-2">
                   <AvatarImage src={member.avatar_url || ""} />
-                  <AvatarFallback className="bg-primary/5">
+                  <AvatarFallback className="bg-primary/10">
                     {member.first_name[0]}
                     {member.last_name[0]}
                   </AvatarFallback>
                 </Avatar>
                 
-                <h3 className="font-medium">
+                <h3 className="font-medium text-foreground">
                   {member.first_name} {member.last_name}
                 </h3>
-                
                 
                 <Badge
                   variant={member.membership_type === "vip" ? "destructive" : "default"}
@@ -292,6 +291,7 @@ const MembersPage = () => {
                 >
                   {member.membership_type === "vip" ? "VIP Üye" : "Standart Üye"}
                 </Badge>
+                
                 <div className="flex items-center text-sm text-muted-foreground mt-1">
                   {member.phone}
                 </div>
@@ -333,7 +333,7 @@ const MembersPage = () => {
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={selectedMember.avatar_url || ""} />
-                    <AvatarFallback className="text-xl bg-primary/5">
+                    <AvatarFallback className="text-xl bg-primary/10">
                       {selectedMember.first_name[0]}
                       {selectedMember.last_name[0]}
                     </AvatarFallback>

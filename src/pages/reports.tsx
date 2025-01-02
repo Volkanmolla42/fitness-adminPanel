@@ -10,21 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import { Download } from "lucide-react";
+import { Download, Filter, Calendar, TrendingUp } from "lucide-react";
 import {
   startOfWeek,
   endOfWeek,
@@ -34,6 +20,10 @@ import {
   endOfYear,
   isWithinInterval,
   format,
+  subMonths,
+  eachDayOfInterval,
+  eachWeekOfInterval,
+  eachMonthOfInterval,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -42,24 +32,74 @@ import { supabase } from "@/lib/supabase";
 import { getAppointments, getMembers, getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DateRange } from "react-day-picker";
+import DatePickerWithRange from "@/components/ui/date-picker-with-range";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+} from "recharts";
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
-
 const ReportsPage = () => {
   const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
-    "week" | "month" | "year"
+    "week" | "month" | "year" | "custom"
   >("month");
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
+    "revenue",
+    "appointments",
+    "members",
+  ]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+
+  // Advanced Filtering State
+  const [filters, setFilters] = useState({
+    serviceType: "all",
+    membershipType: "all",
+    minRevenue: "",
+    maxRevenue: "",
+  });
 
   useEffect(() => {
     fetchData();
@@ -93,8 +133,6 @@ const ReportsPage = () => {
 
   const setupRealtimeSubscription = () => {
     const channel = supabase.channel("reports");
-
-    // Appointments subscription
     channel.on(
       "postgres_changes",
       { event: "*", schema: "public", table: "appointments" },
@@ -106,502 +144,481 @@ const ReportsPage = () => {
             prev.map((appointment) =>
               appointment.id === payload.new.id
                 ? (payload.new as Appointment)
-                : appointment,
-            ),
+                : appointment
+            )
           );
         } else if (payload.eventType === "DELETE") {
           setAppointments((prev) =>
-            prev.filter((appointment) => appointment.id !== payload.old.id),
+            prev.filter((appointment) => appointment.id !== payload.old.id)
           );
         }
-      },
-    );
-
-    channel.subscribe();
+      }
+    ).subscribe();
   };
 
-  // Tarih aralığını hesapla
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    switch (selectedDateRange) {
-      case "week":
-        return {
-          start: startOfWeek(now, { locale: tr }),
-          end: endOfWeek(now, { locale: tr }),
-        };
-      case "month":
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        };
-      case "year":
-        return {
-          start: startOfYear(now),
-          end: endOfYear(now),
-        };
+  const filteredData = useMemo(() => {
+    let dateRange;
+    if (selectedDateRange === "custom" && customDateRange) {
+      dateRange = {
+        start: customDateRange.from,
+        end: customDateRange.to,
+      };
+    } else {
+      const now = new Date();
+      dateRange = {
+        start:
+          selectedDateRange === "week"
+            ? startOfWeek(now, { locale: tr })
+            : selectedDateRange === "month"
+            ? startOfMonth(now)
+            : startOfYear(now),
+        end:
+          selectedDateRange === "week"
+            ? endOfWeek(now, { locale: tr })
+            : selectedDateRange === "month"
+            ? endOfMonth(now)
+            : endOfYear(now),
+      };
     }
-  }, [selectedDateRange]);
 
-  // Filtrelenmiş randevular
-  const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.date);
-      return isWithinInterval(appointmentDate, {
+      const withinDateRange = isWithinInterval(appointmentDate, {
         start: dateRange.start,
         end: dateRange.end,
       });
+
+      const matchesServiceType =
+        filters.serviceType === "all" ||
+        appointment.service_id.toString() === filters.serviceType;
+
+      // Get the price from the related service
+      const service = services.find(s => s.id === appointment.service_id);
+      const appointmentRevenue = service?.price || 0;
+      const matchesRevenue =
+        (!filters.minRevenue || appointmentRevenue >= Number(filters.minRevenue)) &&
+        (!filters.maxRevenue || appointmentRevenue <= Number(filters.maxRevenue));
+
+      return withinDateRange && matchesServiceType && matchesRevenue;
     });
-  }, [appointments, dateRange]);
+  }, [appointments, selectedDateRange, customDateRange, filters, services]);
 
-  // Gelir verileri
-  const revenueData = useMemo(() => {
-    const data = new Map();
-    filteredAppointments.forEach((appointment) => {
-      const service = services.find((s) => s.id === appointment.service_id);
-      if (service) {
-        const date = new Date(appointment.date);
-        const key = format(date, "MMM", { locale: tr });
-        data.set(key, (data.get(key) || 0) + service.price);
-      }
-    });
-    return Array.from(data, ([month, gelir]) => ({ month, gelir }));
-  }, [filteredAppointments, services]);
-
-  // Üyelik tipleri dağılımı
-  const membershipData = useMemo(
-    () => [
-      {
-        name: "Temel",
-        value: members.filter((m) => m.membership_type === "basic").length,
-      },
-      {
-        name: "VIP",
-        value: members.filter((m) => m.membership_type === "vip").length,
-      },
-    ],
-    [members],
-  );
-
-  // Hizmet kullanım istatistikleri
-  const serviceUsageData = useMemo(
-    () =>
-      services.map((service) => ({
-        name: service.name,
-        kullanim: filteredAppointments.filter(
-          (a) => a.service_id === service.id,
-        ).length,
-      })),
-    [filteredAppointments, services],
-  );
-
-  // Günlük randevu dağılımı
-  const appointmentsByHour = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, i) => ({
-        saat: `${i + 8}:00`,
-        randevu: filteredAppointments.filter((a) => {
-          const hour = parseInt(a.time.split(":")[0]);
-          return hour === i + 8;
-        }).length,
-      })),
-    [filteredAppointments],
-  );
-
-  // PDF rapor oluşturma ve indirme fonksiyonu
-  const handleDownloadReport = async () => {
+  const generatePDF = async () => {
     if (!reportRef.current) return;
 
     try {
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 10;
-
-      // Başlık ve tarih bilgisi
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(16);
-      pdf.text("Spor Salonu Raporu", margin, margin + 10);
-
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(
-        `Rapor Dönemi: ${format(dateRange.start, "dd.MM.yyyy")} - ${format(
-          dateRange.end,
-          "dd.MM.yyyy",
-        )}`,
-        margin,
-        margin + 20,
-      );
-
-      // Özet bilgiler
-      const totalRevenue = revenueData.reduce(
-        (sum, item) => sum + item.gelir,
-        0,
-      );
-      pdf.setFontSize(11);
-      pdf.text(
-        [
-          `Toplam Gelir: ₺${totalRevenue.toLocaleString("tr-TR")}`,
-          `Aktif Üye Sayısı: ${members.length}`,
-          `Tamamlanan Randevu: ${
-            filteredAppointments.filter((a) => a.status === "completed").length
-          }`,
-          `Doluluk Oranı: ${Math.round(
-            (filteredAppointments.length / (12 * 7)) * 100,
-          )}%`,
-        ],
-        margin,
-        margin + 35,
-      );
-
-      // Grafikleri ekle
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      });
-
+      const canvas = await html2canvas(reportRef.current);
       const imgData = canvas.toDataURL("image/png");
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, "PNG", margin, margin + 70, imgWidth, imgHeight);
-      pdf.save(`spor-salonu-rapor-${format(new Date(), "dd-MM-yyyy")}.pdf`);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`fitness-report-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+
+      toast({
+        title: "Başarılı",
+        description: "Rapor başarıyla PDF olarak indirildi.",
+      });
     } catch (error) {
-      console.error("PDF oluşturma hatası:", error);
       toast({
         title: "Hata",
-        description: "Rapor oluşturulurken bir hata oluştu.",
+        description: "PDF oluşturulurken bir hata oluştu.",
         variant: "destructive",
       });
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
+  const calculateMetrics = () => {
+    const totalRevenue = filteredData.reduce(
+      (sum, app) => {
+        const service = services.find(s => s.id === app.service_id);
+        return sum + (service?.price || 0);
+      },
+      0
     );
-  }
+    const totalAppointments = filteredData.length;
+    const uniqueMembers = new Set(filteredData.map((app) => app.member_id)).size;
+    const averageRevenuePerAppointment =
+      totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
+
+    return {
+      totalRevenue,
+      totalAppointments,
+      uniqueMembers,
+      averageRevenuePerAppointment,
+    };
+  };
+
+  const metrics = calculateMetrics();
 
   return (
-    <div className="space-y-6 px-2 md:px-4 pb-8">
-      <div className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">Raporlar</h1>
-        <p className="text-sm md:text-base text-muted-foreground">
-          Detaylı performans ve istatistik raporları
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <Select
-          value={selectedDateRange}
-          onValueChange={(value: "week" | "month" | "year") =>
-            setSelectedDateRange(value)
-          }
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Tarih aralığı seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">
-              Bu Hafta ({format(dateRange.start, "dd.MM")} -{" "}
-              {format(dateRange.end, "dd.MM")})
-            </SelectItem>
-            <SelectItem value="month">
-              Bu Ay ({format(dateRange.start, "MMMM", { locale: tr })})
-            </SelectItem>
-            <SelectItem value="year">
-              Bu Yıl ({format(dateRange.start, "yyyy")})
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="outline"
-          onClick={handleDownloadReport}
-          className="w-full sm:w-auto"
-        >
-          <Download className="mr-2 h-4 w-4" />
-          PDF İndir
-        </Button>
-      </div>
-
-      <div ref={reportRef}>
-        <ScrollArea className="w-full">
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="w-full sm:w-auto inline-flex h-auto flex-wrap justify-start p-1 gap-2">
-              <TabsTrigger value="overview" className="text-sm">
-                Genel Bakış
-              </TabsTrigger>
-              <TabsTrigger value="revenue" className="text-sm">
-                Gelir Analizi
-              </TabsTrigger>
-              <TabsTrigger value="membership" className="text-sm">
-                Üyelik İstatistikleri
-              </TabsTrigger>
-              <TabsTrigger value="services" className="text-sm">
-                Hizmet Kullanımı
-              </TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-
-            <TabsContent value="overview" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Toplam Gelir
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold">
-                      ₺
-                      {revenueData
-                        .reduce((sum, item) => sum + item.gelir, 0)
-                        .toLocaleString("tr-TR")}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Seçili dönem
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Aktif Üyeler
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold">
-                      {members.length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Toplam</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Tamamlanan Randevular
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold">
-                      {
-                        filteredAppointments.filter(
-                          (a) => a.status === "completed",
-                        ).length
-                      }
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Seçili dönem
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Doluluk Oranı
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold">
-                      {Math.round(
-                        (filteredAppointments.length / (12 * 7)) * 100,
-                      )}
-                      %
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Seçili dönem
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-                <Card className="lg:col-span-4">
-                  <CardHeader>
-                    <CardTitle className="text-base md:text-lg">
-                      Gelir Grafiği
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[200px] md:h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={revenueData}
-                        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} width={60} />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="gelir"
-                          stroke="#8884d8"
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card className="lg:col-span-3">
-                  <CardHeader>
-                    <CardTitle className="text-base md:text-lg">
-                      Üyelik Dağılımı
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[200px] md:h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart
-                        margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                      >
-                        <Pie
-                          data={membershipData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={60}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {membershipData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="revenue" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gelir Detayları</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="gelir" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="membership" className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Üyelik Tipleri Dağılımı</CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={membershipData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="value"
-                          label
-                        >
-                          {membershipData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Üye Aktivitesi</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {membershipData.map((type, index) => (
-                        <div key={type.name} className="flex items-center">
-                          <div
-                            className="w-4 h-4 rounded-full mr-2"
-                            style={{
-                              backgroundColor: COLORS[index % COLORS.length],
-                            }}
-                          />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">
-                              {type.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {type.value} üye (
-                              {Math.round((type.value / members.length) * 100)}
-                              %)
-                            </div>
-                          </div>
-                        </div>
+    <div className="container mx-auto p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Raporlar</h1>
+        <div className="flex gap-4">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Filtrele
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Rapor Filtreleri</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Hizmet Tipi</Label>
+                  <Select
+                    value={filters.serviceType}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, serviceType: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hizmet seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tümü</SelectItem>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id.toString()}>
+                          {service.name}
+                        </SelectItem>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Min. Gelir</Label>
+                    <Input
+                      type="number"
+                      value={filters.minRevenue}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          minRevenue: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Max. Gelir</Label>
+                    <Input
+                      type="number"
+                      value={filters.maxRevenue}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          maxRevenue: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-            </TabsContent>
+            </DialogContent>
+          </Dialog>
 
-            <TabsContent value="services" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Hizmet Kullanım İstatistikleri</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={serviceUsageData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="kullanim" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Günlük Randevu Dağılımı</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={appointmentsByHour}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="saat" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="randevu" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </ScrollArea>
+          <Select
+            value={selectedDateRange}
+            onValueChange={(value: "week" | "month" | "year" | "custom") =>
+              setSelectedDateRange(value)
+            }
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tarih aralığı seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Bu Hafta</SelectItem>
+              <SelectItem value="month">Bu Ay</SelectItem>
+              <SelectItem value="year">Bu Yıl</SelectItem>
+              <SelectItem value="custom">Özel Aralık</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {selectedDateRange === "custom" && (
+            <DatePickerWithRange
+              date={customDateRange}
+              setDate={setCustomDateRange}
+            />
+          )}
+
+          <Button onClick={generatePDF}>
+            <Download className="mr-2 h-4 w-4" />
+            PDF İndir
+          </Button>
+        </div>
+      </div>
+
+      <div ref={reportRef} className="space-y-6">
+        {/* Metrics Overview */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Toplam Gelir</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {metrics.totalRevenue.toLocaleString("tr-TR", {
+                  style: "currency",
+                  currency: "TRY",
+                })}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Toplam Randevu
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {metrics.totalAppointments}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Aktif Üyeler</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{metrics.uniqueMembers}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Ortalama Gelir/Randevu
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {metrics.averageRevenuePerAppointment.toLocaleString("tr-TR", {
+                  style: "currency",
+                  currency: "TRY",
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gelir Grafiği</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={filteredData.map((appointment) => {
+                    const service = services.find(
+                      (s) => s.id === appointment.service_id
+                    );
+                    return {
+                      date: format(new Date(appointment.date), "dd.MM.yyyy"),
+                      revenue: service?.price || 0,
+                    };
+                  })}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#8884d8" name="Gelir" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Randevu Trendi</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={filteredData.reduce((acc: any[], appointment) => {
+                    const date = format(new Date(appointment.date), "dd.MM.yyyy");
+                    const existingDate = acc.find((item) => item.date === date);
+                    if (existingDate) {
+                      existingDate.count += 1;
+                    } else {
+                      acc.push({ date, count: 1 });
+                    }
+                    return acc;
+                  }, [])}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#82ca9d"
+                    name="Randevu Sayısı"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Hizmet Dağılımı</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={services.map((service) => ({
+                      name: service.name,
+                      value: filteredData.filter(
+                        (app) => app.service_id === service.id
+                      ).length,
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {services.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Üye Aktivite Trendi</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart
+                  data={filteredData.reduce((acc: any[], appointment) => {
+                    const date = format(new Date(appointment.date), "dd.MM.yyyy");
+                    const member = members.find((m) => m.id === appointment.member_id);
+                    const memberName = member
+                      ? `${member.first_name} ${member.last_name}`
+                      : "N/A";
+
+                    const existingDate = acc.find((item) => item.date === date);
+                    if (existingDate) {
+                      if (!existingDate.members[memberName]) {
+                        existingDate.members[memberName] = 0;
+                      }
+                      existingDate.members[memberName] += 1;
+                      existingDate[memberName] = existingDate.members[memberName];
+                    } else {
+                      const newEntry = {
+                        date,
+                        members: { [memberName]: 1 },
+                        [memberName]: 1,
+                      };
+                      acc.push(newEntry);
+                    }
+                    return acc;
+                  }, [])}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {members
+                    .slice(0, 5)
+                    .map((member, index) => (
+                      <Area
+                        key={member.id}
+                        type="monotone"
+                        dataKey={`${member.first_name} ${member.last_name}`}
+                        stackId="1"
+                        stroke={COLORS[index % COLORS.length]}
+                        fill={COLORS[index % COLORS.length]}
+                        name={`${member.first_name} ${member.last_name}`}
+                      />
+                    ))}
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Reports Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detaylı Randevu Raporu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[400px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tarih</TableHead>
+                    <TableHead>Üye</TableHead>
+                    <TableHead>Hizmet</TableHead>
+                    <TableHead className="text-right">Gelir</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredData.map((appointment) => {
+                    const member = members.find(
+                      (m) => m.id === appointment.member_id
+                    );
+                    const service = services.find(
+                      (s) => s.id === appointment.service_id
+                    );
+
+                    return (
+                      <TableRow key={appointment.id}>
+                        <TableCell>
+                          {format(new Date(appointment.date), "dd.MM.yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {member
+                            ? `${member.first_name} ${member.last_name}`
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {service ? service.name : "N/A"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {service?.price?.toLocaleString("tr-TR", {
+                            style: "currency",
+                            currency: "TRY",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

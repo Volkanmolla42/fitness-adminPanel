@@ -16,12 +16,12 @@ const StatsCard = ({
   description = "Açıklama mevcut değil",
 }: StatsCardProps) => {
   return (
-    <Card className="bg-white">
+    <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold mt-2">{value}</h3>
+            <h3 className="text-2xl font-bold mt-2 text-foreground">{value}</h3>
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
           <div className="p-3 bg-primary/10 rounded-full">{icon}</div>

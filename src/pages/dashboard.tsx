@@ -132,7 +132,7 @@ const DashboardPage = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -140,7 +140,7 @@ const DashboardPage = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Panel</h1>
+        <h1 className="text-3xl font-bold text-foreground">Panel</h1>
         <p className="text-muted-foreground mt-2">
           Spor merkezi panelinize hoş geldiniz
         </p>

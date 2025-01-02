@@ -22,6 +22,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface SidebarProps {
   className?: string;
@@ -39,6 +40,11 @@ const navigationItems = [
     path: "/members",
   },
   {
+    title: "Randevular",
+    icon: Calendar,
+    path: "/appointments",
+  },
+  {
     title: "Hizmetler",
     icon: Dumbbell,
     path: "/services",
@@ -48,11 +54,7 @@ const navigationItems = [
     icon: UserCog,
     path: "/trainers",
   },
-  {
-    title: "Randevular",
-    icon: Calendar,
-    path: "/appointments",
-  },
+ 
   {
     title: "Raporlar",
     icon: BarChart3,
@@ -79,13 +81,13 @@ const SidebarContent = ({
   };
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col h-full bg-background text-foreground", className)}>
       {/* Logo Area */}
       <div className="flex items-center gap-2 mb-8 shrink-0">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
           <Dumbbell className="w-5 h-5 text-primary-foreground" />
         </div>
-        <span className="font-semibold text-xl">FitAdmin</span>
+        <span className="font-semibold text-xl text-foreground">FitAdmin</span>
       </div>
 
       {/* Navigation Links */}
@@ -103,24 +105,19 @@ const SidebarContent = ({
         ))}
       </nav>
 
-      {/* Bottom Actions */}
-      <div className="mt-auto pt-4 space-y-2">
-        <Separator className="mb-4" />
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          onClick={() => handleNavigation("/settings")}
-        >
-          <Settings className="mr-2 h-5 w-5" />
-          Ayarlar
-        </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-destructive"
-          onClick={() => handleNavigation("/")}
-        >
+      {/* Bottom Section */}
+      <div className="mt-auto space-y-2">
+        <Separator />
+        <div className="flex items-center justify-between px-2">
+          <Button variant="ghost" className="w-full justify-start">
+            <Settings className="mr-2 h-5 w-5" />
+            Ayarlar
+          </Button>
+          <ThemeToggle />
+        </div>
+        <Button variant="ghost" className="w-full justify-start text-destructive">
           <LogOut className="mr-2 h-5 w-5" />
-          Çıkış
+          Çıkış Yap
         </Button>
       </div>
     </div>

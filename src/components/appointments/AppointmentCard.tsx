@@ -23,7 +23,10 @@ interface AppointmentCardProps {
     firstName: string;
     lastName: string;
   };
-  service: { name: string };
+  service: { 
+    name: string;
+    duration: number;  
+  };
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
 }
@@ -58,18 +61,18 @@ const getStatusText = (status: Appointment["status"]) => {
   }
 };
 
-const getRemainingTime = (startTime: string) => {
+const getRemainingTime = (startTime: string, startDate: string, duration: number) => {
   const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-  const currentTotalMinutes = currentHour * 60 + currentMinute;
-
-  const [startHour, startMinute] = startTime.split(':').map(Number);
-  const startTotalMinutes = startHour * 60 + startMinute;
+  const [hours, minutes] = startTime.split(':').map(Number);
   
-  // Assuming 60 minutes duration
-  const endTotalMinutes = startTotalMinutes + 60;
-  const remainingMinutes = endTotalMinutes - currentTotalMinutes;
+  const appointmentStart = new Date(startDate);
+  appointmentStart.setHours(hours, minutes, 0, 0);
+  
+  const appointmentEnd = new Date(appointmentStart.getTime());
+  appointmentEnd.setMinutes(appointmentStart.getMinutes() + duration);
+  
+  const remainingMs = appointmentEnd.getTime() - now.getTime();
+  const remainingMinutes = Math.floor(remainingMs / (1000 * 60));
   
   return remainingMinutes;
 };
@@ -116,7 +119,7 @@ const AppointmentCard = ({
                   <span className="text-sm font-medium text-yellow-600 mt-1">
                     <Clock className="h-3 w-3 inline-block mr-1" />
                     {(() => {
-                      const remainingMinutes = getRemainingTime(appointment.time);
+                      const remainingMinutes = getRemainingTime(appointment.time, appointment.date, service.duration);
                       return remainingMinutes > 0 
                         ? `${remainingMinutes} dakika kaldı`
                         : 'Randevu süresi doldu';

@@ -314,6 +314,140 @@ function AppointmentsPage() {
     return () => clearInterval(interval);
   }, [appointments, trainers, members, dismissedNotifications, acknowledgedNotifications]);
 
+  // Randevu süresini dakika cinsinden hesapla
+  const getAppointmentDuration = (appointment: Appointment) => {
+    const service = services.find(s => s.id === appointment.service_id);
+    if (!service) {
+      console.warn(`Service not found for appointment ${appointment.id}, using default duration`);
+      return 1; // Varsayılan süre 1 dakika
+    }
+    return service.duration;
+  };
+
+  // Randevunun bitiş zamanını hesapla
+  const calculateEndTime = (appointment: Appointment) => {
+    const startDateTime = new Date(`${appointment.date}T${appointment.time}`);
+    const duration = getAppointmentDuration(appointment);
+    return new Date(startDateTime.getTime() + duration * 60000);
+  };
+
+  // Kalan süreyi dakika cinsinden hesapla
+  const calculateRemainingTime = (appointment: Appointment) => {
+    const now = new Date();
+    const startTime = new Date(`${appointment.date}T${appointment.time}`);
+    const duration = getAppointmentDuration(appointment);
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+    
+    // Eğer randevu henüz başlamamışsa, toplam süreyi döndür
+    if (now < startTime) {
+      return duration;
+    }
+    
+    // Eğer randevu bitmişse, 0 döndür
+    if (now >= endTime) {
+      return 0;
+    }
+    
+    // Kalan süreyi hesapla
+    const remainingMs = endTime.getTime() - now.getTime();
+    const remainingMinutes = Math.ceil(remainingMs / 60000);
+    
+    console.log('Remaining time calculation:', {
+      appointmentId: appointment.id,
+      startTime: startTime.toLocaleTimeString(),
+      endTime: endTime.toLocaleTimeString(),
+      duration,
+      remainingMinutes,
+      service: services.find(s => s.id === appointment.service_id)
+    });
+    
+    return remainingMinutes;
+  };
+
+  // Geri sayım ve otomatik durum güncellemesi için useEffect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      
+      appointments.forEach(appointment => {
+        if (appointment.status === 'scheduled') {
+          const startTime = new Date(`${appointment.date}T${appointment.time}`);
+          const timeDiff = startTime.getTime() - now.getTime();
+          const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+          const secondsDiff = Math.floor(timeDiff / 1000);
+
+          // Randevu zamanı geldiğinde
+          if (secondsDiff <= 0) {
+            updateAppointmentStatus(appointment.id, 'in-progress');
+            toast({
+              title: "Randevu Başladı",
+              description: `${getMemberName(appointment.member_id)} üyesinin randevusu başladı. (${getAppointmentDuration(appointment)} dakika)`,
+            });
+          }
+          // 5 dakika veya daha az kaldıysa
+          else if (minutesDiff <= 5) {
+            toast({
+              title: "Yaklaşan Randevu",
+              description: `${getMemberName(appointment.member_id)} üyesinin randevusuna ${minutesDiff} dakika kaldı. (${getAppointmentDuration(appointment)} dakika)`,
+              duration: 5000,
+            });
+          }
+        }
+        // Devam eden randevunun süresi dolduysa
+        else if (appointment.status === 'in-progress') {
+          const remainingMinutes = calculateRemainingTime(appointment);
+          
+          if (remainingMinutes <= 0) {
+            updateAppointmentStatus(appointment.id, 'completed');
+            toast({
+              title: "Randevu Tamamlandı",
+              description: `${getMemberName(appointment.member_id)} üyesinin randevusu otomatik olarak tamamlandı.`,
+            });
+          } else if (remainingMinutes % 15 === 0) {
+            toast({
+              title: "Devam Eden Randevu",
+              description: `${getMemberName(appointment.member_id)} üyesinin randevusunun bitmesine ${remainingMinutes} dakika kaldı.`,
+              duration: 5000,
+            });
+          }
+        }
+      });
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [appointments, services]);
+
+  // Randevu durumunu güncellemek için yardımcı fonksiyon
+  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      // State'i güncelle
+      setAppointments(prev => 
+        prev.map(apt => 
+          apt.id === appointmentId ? { ...apt, status: newStatus } : apt
+        )
+      );
+
+      toast({
+        title: "Randevu durumu güncellendi",
+        description: `Randevu durumu "${newStatus}" olarak değiştirildi.`,
+      });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Randevu durumu güncellenirken bir hata oluştu.",
+      });
+    }
+  };
+
   // Get the current week's start and end dates
   const getWeekDates = () => {
     const now = new Date();
@@ -541,6 +675,7 @@ function AppointmentsPage() {
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -575,6 +710,7 @@ function AppointmentsPage() {
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -609,6 +745,7 @@ function AppointmentsPage() {
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -643,6 +780,7 @@ function AppointmentsPage() {
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {

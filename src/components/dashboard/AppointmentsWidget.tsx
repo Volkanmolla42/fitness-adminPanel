@@ -63,10 +63,10 @@ const AppointmentsWidget = ({
     : getRelevantAppointments(appointments);
 
   return (
-    <Card className="w-full bg-white p-4 md:p-6">
+    <Card className="w-full p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+          <h2 className="text-xl md:text-2xl font-semibold text-foreground">
             Aktif randevular
           </h2>
           <Badge variant="secondary" className="flex items-center gap-1">
@@ -94,42 +94,41 @@ const AppointmentsWidget = ({
               className={cn(
                 "flex flex-col p-4 rounded-lg border transition-all",
                 appointment.status === "in-progress"
-                  ? "border-2 border-yellow-500 bg-yellow-50 scale-105 shadow-lg animate-pulse-border"
-                  : "border-gray-100 hover:bg-gray-50"
+                  ? "border-2 border-yellow-500 bg-yellow-500/10 scale-105 shadow-lg animate-pulse-border"
+                  : "border-border hover:bg-accent"
               )}
             >
               <div className="flex justify-between items-start mb-3">
-                <div className="text-lg font-semibold flex items-center gap-2 text-gray-900">
-                  <Clock className="h-4 w-4 " />
-
-                  {appointment.time.slice(0, 5)}
+                <div>
+                  <h3 className="font-medium text-foreground">
+                    {members[appointment.member_id]?.first_name}{" "}
+                    {members[appointment.member_id]?.last_name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {services[appointment.service_id]?.name}
+                  </p>
                 </div>
                 <Badge
                   variant="secondary"
-                  className={`text-xs ${getStatusColor(
-                    appointment.status
-                  )} bg-opacity-30 text-gray-600`}
+                  className={cn(
+                    "text-xs px-2 py-1",
+                    getStatusColor(appointment.status)
+                  )}
                 >
                   {getStatusText(appointment.status)}
                 </Badge>
               </div>
-
-              <div className="space-y-2">
-                <div>
-                  <p className="font-medium  text-gray-900 truncate">
-                    {`${members[appointment.member_id].first_name} ${
-                      members[appointment.member_id].last_name
-                    }`}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {services[appointment.service_id].name}
-                  </p>
+              <div className="mt-auto pt-3 flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {new Date(appointment.date).toLocaleDateString("tr-TR")}
+                  </span>
                 </div>
-                <p className="text-sm text-gray-600 truncate">
-                  {`${trainers[appointment.trainer_id].first_name} ${
-                    trainers[appointment.trainer_id].last_name
-                  }`}
-                </p>
+                <span>
+                  {trainers[appointment.trainer_id]?.first_name}{" "}
+                  {trainers[appointment.trainer_id]?.last_name}
+                </span>
               </div>
             </div>
           );
