@@ -2,7 +2,7 @@ export interface Trainer {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone: string;
   categories: string[];
   bio?: string;

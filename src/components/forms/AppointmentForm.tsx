@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import type { Database } from "@/types/supabase";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -46,6 +46,8 @@ export function AppointmentForm({
   onSubmit,
   onCancel,
 }: AppointmentFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<AppointmentInput>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
@@ -78,7 +80,17 @@ export function AppointmentForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(async (data) => {
+          setIsSubmitting(true);
+          try {
+            await onSubmit(data);
+          } finally {
+            setIsSubmitting(false);
+          }
+        })}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="member_id"
@@ -213,10 +225,12 @@ export function AppointmentForm({
         />
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             İptal
           </Button>
-          <Button type="submit">{appointment ? "Güncelle" : "Ekle"}</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "İşleniyor..." : appointment ? "Güncelle" : "Ekle"}
+          </Button>
         </DialogFooter>
       </form>
     </Form>

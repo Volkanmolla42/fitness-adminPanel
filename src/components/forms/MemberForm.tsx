@@ -37,6 +37,7 @@ interface MemberFormProps {
 export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -72,7 +73,17 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(async (data) => {
+          setIsSubmitting(true);
+          try {
+            await onSubmit(data);
+          } finally {
+            setIsSubmitting(false);
+          }
+        })}
+        className="space-y-4"
+      >
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -218,10 +229,17 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             İptal
           </Button>
-          <Button type="submit">{member ? "Güncelle" : "Ekle"}</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "İşleniyor..." : member ? "Güncelle" : "Ekle"}
+          </Button>
         </DialogFooter>
       </form>
     </Form>

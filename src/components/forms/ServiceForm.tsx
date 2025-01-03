@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { serviceSchema } from "@/lib/validations";
@@ -36,6 +36,8 @@ interface ServiceFormProps {
 }
 
 export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<ServiceInput>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
@@ -49,7 +51,17 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
   });
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form
+      onSubmit={form.handleSubmit(async (data) => {
+        setIsSubmitting(true);
+        try {
+          await onSubmit(data);
+        } finally {
+          setIsSubmitting(false);
+        }
+      })}
+      className="space-y-4"
+    >
       <div className="space-y-2">
         <label className="text-sm font-medium">Hizmet Adı</label>
         <Input {...form.register("name")} />
@@ -140,10 +152,12 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
       </div>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           İptal
         </Button>
-        <Button type="submit">{service ? "Güncelle" : "Ekle"}</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "İşleniyor..." : service ? "Güncelle" : "Ekle"}
+        </Button>
       </DialogFooter>
     </form>
   );

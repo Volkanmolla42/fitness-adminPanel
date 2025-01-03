@@ -30,7 +30,7 @@ export const memberSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email: z.string().email(validationMessages.email),
+  email: z.union([z.string().email(validationMessages.email), z.string().length(0), z.null()]).optional(),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   membership_type: z.enum(["basic", "vip"]),
   subscribed_services: z
@@ -51,7 +51,7 @@ export const trainerSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email: z.string().email(validationMessages.email),
+  email: z.union([z.string().email(validationMessages.email), z.string().length(0), z.null()]).optional(),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   bio: z.string().min(1, "Biyografi alanı zorunludur"),
   categories: z.array(z.string()).optional(),
@@ -79,11 +79,8 @@ export const serviceSchema = z.object({
     .min(1, "Katılımcı sayısı 1'den büyük olmalıdır")
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
   category: z
-    .string({
-      required_error: "Kategori seçimi zorunludur",
-      invalid_type_error: "Geçerli bir kategori seçmelisiniz",
-    })
-    .min(1, "Kategori seçimi zorunludur"),
+    .string()
+    .optional(),
 });
 
 // Appointment validation schema

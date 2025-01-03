@@ -29,7 +29,7 @@ interface TrainerFormProps {
   onCancel: () => void;
 }
 
-const formatPhoneNumber = (value: string) => {
+export const formatPhoneNumber = (value: string) => {
   const numbers = value.replace(/\D/g, "");
   if (numbers.length <= 3) return numbers;
   if (numbers.length <= 6) return numbers.slice(0, 3) + " " + numbers.slice(3);
@@ -125,9 +125,17 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-semibold">E-posta</FormLabel>
+                    <FormLabel className="text-base font-semibold after:content-['(opsiyonel)'] after:ml-1 after:text-gray-500">E-posta</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" />
+                      <Input 
+                        {...field} 
+                        type="email" 
+                        value={field.value || ''} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value || null);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
