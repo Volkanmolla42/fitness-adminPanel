@@ -114,34 +114,40 @@ export type Database = {
       };
       services: {
         Row: {
-          category: string;
-          created_at: string;
-          description: string;
-          duration: number;
           id: string;
-          max_participants: number;
+          created_at: string;
           name: string;
+          description: string;
           price: number;
+          duration: number;
+          max_participants: number;
+          category: string;
+          type: "monthly" | "session";
+          session_count: number | null;
         };
         Insert: {
-          category: string;
-          created_at?: string;
-          description: string;
-          duration: number;
           id?: string;
-          max_participants: number;
+          created_at?: string;
           name: string;
+          description: string;
           price: number;
+          duration: number;
+          max_participants: number;
+          category: string;
+          type: "monthly" | "session";
+          session_count?: number | null;
         };
         Update: {
-          category?: string;
-          created_at?: string;
-          description?: string;
-          duration?: number;
           id?: string;
-          max_participants?: number;
+          created_at?: string;
           name?: string;
+          description?: string;
           price?: number;
+          duration?: number;
+          max_participants?: number;
+          category?: string;
+          type?: "monthly" | "session";
+          session_count?: number | null;
         };
         Relationships: [];
       };

@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ServiceForm } from "@/components/forms/ServiceForm";
-import { Search, Plus, Pencil, Trash2, Timer, User2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Timer, User2, Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   getServices,
@@ -97,6 +97,14 @@ const ServicesPage = () => {
     (service) =>
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  // Servisleri tipine göre grupla
+  const monthlyServices = filteredServices.filter(
+    (service) => service.type === "monthly",
+  );
+  const sessionServices = filteredServices.filter(
+    (service) => service.type === "session",
   );
 
   const handleAdd = async (data: Omit<Service, "id" | "created_at">) => {
@@ -196,71 +204,152 @@ const ServicesPage = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((service) => (
-          <Card key={service.id} className="p-6 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold">{service.name}</h3>
-                <Badge variant="secondary" className="mt-1">
-                  {service.category}
-                </Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setEditingService(service)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem
-                        geri alınamaz.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>İptal</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(service.id)}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                        Sil
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              {service.description}
-            </p>
-
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center text-muted-foreground">
-                  <Timer className="mr-2 h-4 w-4" />
-                  {service.duration} dk
+      {/* Aylık Üyelik Hizmetleri */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Aylık Üyelik Hizmetleri</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {monthlyServices.map((service) => (
+            <Card key={service.id} className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">{service.name}</h3>
+                  <Badge variant="secondary" className="mt-1">
+                    {service.category}
+                  </Badge>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <User2 className="mr-2 h-4 w-4" />
-                  {service.max_participants} kişi
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingService(service)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem
+                          geri alınamaz.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(service.id)}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
-              <div className="text-lg font-semibold">₺{service.price}</div>
-            </div>
-          </Card>
-        ))}
+
+              <p className="text-sm text-muted-foreground">
+                {service.description}
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center text-muted-foreground">
+                    <Timer className="mr-2 h-4 w-4" />
+                    {service.duration} dk
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <User2 className="mr-2 h-4 w-4" />
+                    {service.max_participants} kişi
+                  </div>
+                </div>
+                <div className="text-lg font-semibold">₺{service.price}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Seans Bazlı Hizmetler */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Seans Bazlı Hizmetler</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sessionServices.map((service) => (
+            <Card key={service.id} className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">{service.name}</h3>
+                  <Badge variant="secondary" className="mt-1">
+                    {service.category}
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingService(service)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem
+                          geri alınamaz.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(service.id)}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Sil
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {service.description}
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center text-muted-foreground">
+                    <Timer className="mr-2 h-4 w-4" />
+                    {service.duration} dk
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <User2 className="mr-2 h-4 w-4" />
+                    {service.max_participants} kişi
+                  </div>
+                  {service.type === "session" && (
+                    <div className="flex items-center text-muted-foreground">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {service.session_count} seans
+                    </div>
+                  )}
+                </div>
+                <div className="text-lg font-semibold">₺{service.price}</div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Edit Service Dialog */}

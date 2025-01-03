@@ -6,4 +6,5 @@ export interface Service {
   duration: number;
   maxParticipants: number;
   category: string;
+  type: "monthly" | "session";
 }

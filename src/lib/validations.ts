@@ -82,6 +82,11 @@ export const serviceSchema = z.object({
   category: z
     .string()
     .optional(),
+  type: z.enum(["monthly", "session"], {
+    required_error: "Hizmet tipi seçimi zorunludur",
+    invalid_type_error: "Geçersiz hizmet tipi",
+  }),
+  session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır").optional(),
 });
 
 // Appointment validation schema

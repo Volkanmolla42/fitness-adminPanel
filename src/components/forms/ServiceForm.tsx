@@ -47,19 +47,31 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
       duration: service?.duration || 60,
       max_participants: service?.max_participants || 1,
       category: service?.category || "",
+      type: service?.type || "session",
+      session_count: service?.session_count || 1,
     },
   });
 
+  const serviceType = form.watch("type");
+
+  const handleSubmit = async (data: ServiceInput) => {
+    setIsSubmitting(true);
+    try {
+      // Eğer aylık üyelikse session_count'u kaldır
+      if (data.type === "monthly") {
+        delete data.session_count;
+      }
+      await onSubmit(data);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <form
-      onSubmit={form.handleSubmit(async (data) => {
-        setIsSubmitting(true);
-        try {
-          await onSubmit(data);
-        } finally {
-          setIsSubmitting(false);
-        }
-      })}
+      onSubmit={form.handleSubmit(handleSubmit)}
       className="space-y-4"
     >
       <div className="space-y-2">
@@ -150,6 +162,44 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           )}
         </div>
       </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Hizmet Tipi</label>
+        <Select
+          value={form.watch("type")}
+          onValueChange={(value: "session" | "monthly") =>
+            form.setValue("type", value, { shouldValidate: true })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Hizmet tipi seçin" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="monthly">Aylık Üyelik</SelectItem>
+            <SelectItem value="session">Seans Bazlı</SelectItem>
+          </SelectContent>
+        </Select>
+        {form.formState.errors.type && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.type.message}
+          </p>
+        )}
+      </div>
+
+      {serviceType === "session" && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Seans Sayısı</label>
+          <Input
+            type="number"
+            {...form.register("session_count", { valueAsNumber: true })}
+          />
+          {form.formState.errors.session_count && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.session_count.message}
+            </p>
+          )}
+        </div>
+      )}
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
