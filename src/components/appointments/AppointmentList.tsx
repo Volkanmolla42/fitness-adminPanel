@@ -6,7 +6,7 @@ interface AppointmentListProps {
   appointments: Appointment[];
   members: Record<string, { firstName: string; lastName: string }>;
   trainers: Record<string, { firstName: string; lastName: string }>;
-  services: Record<string, { name: string }>;
+  services: Record<string, { name: string; duration: number }>;
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
 }
