@@ -68,6 +68,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       subscribed_services: member?.subscribed_services || [],
       start_date: member?.start_date || new Date().toISOString().split("T")[0],
       end_date: member?.end_date || new Date().toISOString().split("T")[0],
+      notes: member?.notes || "",
     },
   });
 
@@ -227,6 +228,24 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notlar</FormLabel>
+              <FormControl>
+                <textarea
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Üye hakkında notlar..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <DialogFooter>
           <Button

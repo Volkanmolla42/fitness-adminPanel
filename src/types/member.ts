@@ -11,4 +11,5 @@ export interface Member {
   startDate: string;
   endDate: string;
   avatarUrl?: string;
+  notes?: string;
 }

@@ -39,6 +39,7 @@ export const memberSchema = z.object({
   avatar_url: z.string().optional(),
   start_date: z.string().min(1, validationMessages.required),
   end_date: z.string().min(1, validationMessages.required),
+  notes: z.string().optional(),
 });
 
 // Trainer validation schema
