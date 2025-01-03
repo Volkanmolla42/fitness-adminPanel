@@ -4,30 +4,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { serviceSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
 import type { Database } from "@/types/supabase";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type ServiceInput = Omit<Service, "id" | "created_at">;
-
-export const categories = [
-  "Fitness",
-  "Yoga",
-  "Pilates",
-  "Cardio",
-  "Crossfit",
-  "Kickbox",
-  "Yüzme",
-  "Beslenme Danışmanlığı",
-];
 
 interface ServiceFormProps {
   service?: Service;
@@ -46,21 +34,23 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
       price: service?.price || 0,
       duration: service?.duration || 60,
       max_participants: service?.max_participants || 1,
-      category: service?.category || "",
-      type: service?.type || "session",
       session_count: service?.session_count || 1,
+      isVipOnly: service?.isVipOnly || false,
     },
   });
 
-  const serviceType = form.watch("type");
+  const isVipOnly = form.watch("isVipOnly");
+
+  // VIP durumu değiştiğinde maksimum katılımcı sayısını güncelle
+  React.useEffect(() => {
+    if (isVipOnly) {
+      form.setValue("max_participants", 1);
+    }
+  }, [isVipOnly, form]);
 
   const handleSubmit = async (data: ServiceInput) => {
     setIsSubmitting(true);
     try {
-      // Eğer aylık üyelikse session_count'u kaldır
-      if (data.type === "monthly") {
-        delete data.session_count;
-      }
       await onSubmit(data);
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -72,11 +62,11 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
   return (
     <form
       onSubmit={form.handleSubmit(handleSubmit)}
-      className="space-y-4"
+      className="space-y-3"
     >
       <div className="space-y-2">
         <label className="text-sm font-medium">Hizmet Adı</label>
-        <Input {...form.register("name")} />
+        <Input {...form.register("name")} className="max-w-xl" />
         {form.formState.errors.name && (
           <p className="text-sm text-destructive">
             {form.formState.errors.name.message}
@@ -86,7 +76,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Açıklama</label>
-        <Textarea {...form.register("description")} />
+        <Textarea {...form.register("description")} className="h-20 max-w-xl" />
         {form.formState.errors.description && (
           <p className="text-sm text-destructive">
             {form.formState.errors.description.message}
@@ -94,7 +84,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Fiyat (₺)</label>
           <Input
@@ -109,7 +99,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Süre (Dakika)</label>
+          <label className="text-sm font-medium">Süre (dakika)</label>
           <Input
             type="number"
             {...form.register("duration", { valueAsNumber: true })}
@@ -120,14 +110,13 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
             </p>
           )}
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Maksimum Katılımcı</label>
           <Input
             type="number"
             {...form.register("max_participants", { valueAsNumber: true })}
+            disabled={isVipOnly}
           />
           {form.formState.errors.max_participants && (
             <p className="text-sm text-destructive">
@@ -136,57 +125,6 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Kategori</label>
-          <Select
-            value={form.watch("category")}
-            onValueChange={(value) =>
-              form.setValue("category", value, { shouldValidate: true })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Kategori seçin" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {form.formState.errors.category && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.category.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Hizmet Tipi</label>
-        <Select
-          value={form.watch("type")}
-          onValueChange={(value: "session" | "monthly") =>
-            form.setValue("type", value, { shouldValidate: true })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Hizmet tipi seçin" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="monthly">Aylık Üyelik</SelectItem>
-            <SelectItem value="session">Seans Bazlı</SelectItem>
-          </SelectContent>
-        </Select>
-        {form.formState.errors.type && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.type.message}
-          </p>
-        )}
-      </div>
-
-      {serviceType === "session" && (
         <div className="space-y-2">
           <label className="text-sm font-medium">Seans Sayısı</label>
           <Input
@@ -199,14 +137,31 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
             </p>
           )}
         </div>
-      )}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          {...form.register("isVipOnly")}
+          id="isVipOnly"
+          className="h-4 w-4"
+        />
+        <label htmlFor="isVipOnly" className="text-sm font-medium">
+          Sadece VIP Üyelere Özel
+        </label>
+      </div>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           İptal
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "İşleniyor..." : service ? "Güncelle" : "Ekle"}
+          {service ? "Güncelle" : "Oluştur"}
         </Button>
       </DialogFooter>
     </form>

@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
-import { categories } from "@/components/forms/ServiceForm";
+
+
 import type { Database } from "@/types/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -22,7 +23,16 @@ import { Loader2 } from "lucide-react";
 
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type TrainerInput = Omit<Trainer, "id" | "created_at">;
-
+export const categories = [
+  "Fitness",
+  "Yoga",
+  "Pilates",
+  "Cardio",
+  "Crossfit",
+  "Kickbox",
+  "Yüzme",
+  "Beslenme Danışmanlığı",
+];
 interface TrainerFormProps {
   trainer?: Trainer;
   onSubmit: (data: TrainerInput) => void;

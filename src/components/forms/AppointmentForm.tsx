@@ -162,7 +162,9 @@ export function AppointmentForm({
                 <SelectContent>
                   {availableServices.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
-                      {service.name}
+                      {service.name} 
+                      {service.isVipOnly ? " (VIP)" : " (Standart)"} - 
+                      {service.session_count} Seans
                     </SelectItem>
                   ))}
                 </SelectContent>

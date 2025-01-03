@@ -121,9 +121,8 @@ export type Database = {
           price: number;
           duration: number;
           max_participants: number;
-          category: string;
-          type: "monthly" | "session";
-          session_count: number | null;
+          session_count: number;
+          isVipOnly: boolean;
         };
         Insert: {
           id?: string;
@@ -133,9 +132,8 @@ export type Database = {
           price: number;
           duration: number;
           max_participants: number;
-          category: string;
-          type: "monthly" | "session";
-          session_count?: number | null;
+          session_count: number;
+          isVipOnly: boolean;
         };
         Update: {
           id?: string;
@@ -145,9 +143,8 @@ export type Database = {
           price?: number;
           duration?: number;
           max_participants?: number;
-          category?: string;
-          type?: "monthly" | "session";
-          session_count?: number | null;
+          session_count?: number;
+          isVipOnly?: boolean;
         };
         Relationships: [];
       };

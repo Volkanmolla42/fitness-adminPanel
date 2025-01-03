@@ -23,6 +23,12 @@ import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -83,9 +89,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
             setIsSubmitting(false);
           }
         })}
-        className="space-y-4"
+        className="space-y-3"
       >
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           <FormField
             control={form.control}
             name="first_name"
@@ -115,7 +121,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           <FormField
             control={form.control}
             name="email"
@@ -123,7 +129,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>E-posta</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} type="email" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -145,61 +151,105 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="membership_type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Üyelik Tipi</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Üyelik tipi seçin" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="basic">Temel</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="max-w-xl">
+          <FormField
+            control={form.control}
+            name="membership_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Üyelik Tipi</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Üyelik tipi seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="basic">Standart Üye</SelectItem>
+                    <SelectItem value="vip">VIP Üye</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="subscribed_services"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="max-w-xl">
               <FormLabel>Hizmetler</FormLabel>
-              <div className="flex flex-wrap gap-2">
-                {services.map((service) => (
-                  <Badge
-                    key={service.id}
-                    variant={
-                      field.value.includes(service.id)
-                        ? "default"
-                        : "secondary"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => {
-                      const newValue = field.value.includes(service.id)
-                        ? field.value.filter((id) => id !== service.id)
-                        : [...field.value, service.id];
-                      field.onChange(newValue);
-                    }}
-                  >
-                    {service.name}
-                  </Badge>
-                ))}
+              <div className="flex flex-wrap gap-3 p-6 border-2 rounded-xl bg-muted/30">
+                {services
+                  .sort((a, b) => {
+                    // Önce VIP durumuna göre sırala
+                    if (a.isVipOnly && !b.isVipOnly) return -1;
+                    if (!a.isVipOnly && b.isVipOnly) return 1;
+                    // VIP durumu aynıysa isme göre sırala
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((service) => (
+                    <TooltipProvider key={service.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`relative ${
+                              service.isVipOnly && form.watch("membership_type") !== "vip"
+                                ? "cursor-not-allowed"
+                                : "cursor-pointer hover:opacity-80"
+                            }`}
+                          >
+                            <Badge
+                              variant={
+                                field.value.includes(service.id)
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className={`px-4 py-2 text-sm font-medium shadow-sm transition-all duration-200 ${
+                                field.value.includes(service.id)
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "bg-secondary hover:bg-secondary/80"
+                              } ${
+                                service.isVipOnly ? "border-2 border-rose-500" : ""
+                              } ${
+                                service.isVipOnly && form.watch("membership_type") !== "vip"
+                                  ? "opacity-40"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                if (service.isVipOnly && form.watch("membership_type") !== "vip") {
+                                  return;
+                                }
+                                const newValue = field.value.includes(service.id)
+                                  ? field.value.filter((id) => id !== service.id)
+                                  : [...field.value, service.id];
+                                field.onChange(newValue);
+                              }}
+                            >
+                              {service.name}
+                              {service.isVipOnly && (
+                                <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-100 px-1.5 py-0.5 rounded-full">(VIP)</span>
+                              )}
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        {service.isVipOnly && form.watch("membership_type") !== "vip" && (
+                          <TooltipContent>
+                            <p>Bu hizmet sadece VIP üyeler için geçerlidir</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
               </div>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
           <FormField
             control={form.control}
             name="start_date"
@@ -233,31 +283,22 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           control={form.control}
           name="notes"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="max-w-xl">
               <FormLabel>Notlar</FormLabel>
               <FormControl>
-                <textarea
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Üye hakkında notlar..."
-                  {...field}
-                />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isSubmitting}
-          >
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={onCancel}>
             İptal
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "İşleniyor..." : member ? "Güncelle" : "Ekle"}
+            {isSubmitting ? "Kaydediliyor..." : member ? "Güncelle" : "Ekle"}
           </Button>
         </DialogFooter>
       </form>

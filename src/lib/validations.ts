@@ -79,14 +79,8 @@ export const serviceSchema = z.object({
     .number()
     .min(1, "Katılımcı sayısı 1'den büyük olmalıdır")
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
-  category: z
-    .string()
-    .optional(),
-  type: z.enum(["monthly", "session"], {
-    required_error: "Hizmet tipi seçimi zorunludur",
-    invalid_type_error: "Geçersiz hizmet tipi",
-  }),
-  session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır").optional(),
+  session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır"),
+  isVipOnly: z.boolean().default(false),
 });
 
 // Appointment validation schema
