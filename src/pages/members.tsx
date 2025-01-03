@@ -210,11 +210,11 @@ const MembersPage = () => {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Üyeler</h1>
-        <p className="text-muted-foreground mt-2">
-          Spor salonu üyelerini yönet
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold tracking-tight">Üyeler</h2>
+        <p className="text-muted-foreground">
+          Üyeleri görüntüle, düzenle ve yönet
         </p>
       </div>
 
@@ -234,9 +234,7 @@ const MembersPage = () => {
           iconColor="text-yellow-500"
         />
       </div>
-
-      <Card className="p-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -264,6 +262,8 @@ const MembersPage = () => {
             </DialogContent>
           </Dialog>
         </div>
+      <Card className="p-6">
+        
 
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredMembers.map((member) => (

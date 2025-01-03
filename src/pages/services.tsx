@@ -179,11 +179,11 @@ const ServicesPage = () => {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Hizmetler</h1>
-        <p className="text-muted-foreground mt-2">
-          Spor salonu hizmetlerini yönet
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold tracking-tight">Hizmetler</h2>
+        <p className="text-muted-foreground">
+          Hizmetleri görüntüle, düzenle ve yönet
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-4">
