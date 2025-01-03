@@ -43,7 +43,10 @@ function AppointmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
-  const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(new Set());
+  const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('acknowledgedNotifications');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
 
   useEffect(() => {
     fetchData();
@@ -255,15 +258,21 @@ function AppointmentsPage() {
           appointmentDate.setSeconds(0);
 
           const minutesUntil = Math.floor((appointmentDate.getTime() - now.getTime()) / (60 * 1000));
-          return minutesUntil >= 10; // 10 dakikadan az kaldıysa kaldır
+          
+          // Eğer randevu geçmişse veya onaylanmışsa bildirimi kaldır
+          if (minutesUntil < 10 || acknowledgedNotifications.has(String(appointment.id))) {
+            return false;
+          }
+          
+          return true;
         });
         return updatedNotifications;
       });
 
       // Yaklaşan randevuları kontrol et
       appointments.forEach((appointment) => {
-        // Eğer bu randevu daha önce kapatıldıysa veya görüldü olarak işaretlendiyse, atla
-        if (dismissedNotifications.has(String(appointment.id)) || acknowledgedNotifications.has(String(appointment.id))) {
+        // Eğer bu randevu daha önce onaylandıysa, atla
+        if (acknowledgedNotifications.has(String(appointment.id))) {
           return;
         }
 
@@ -313,6 +322,10 @@ function AppointmentsPage() {
 
     return () => clearInterval(interval);
   }, [appointments, trainers, members, dismissedNotifications, acknowledgedNotifications]);
+
+  useEffect(() => {
+    localStorage.setItem('acknowledgedNotifications', JSON.stringify([...acknowledgedNotifications]));
+  }, [acknowledgedNotifications]);
 
   // Randevu süresini dakika cinsinden hesapla
   const getAppointmentDuration = (appointment: Appointment) => {
@@ -507,6 +520,22 @@ function AppointmentsPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      {/* Notifications */}
+      {activeNotifications.map((notification, index) => (
+        <Notification
+          key={notification.id}
+          message={notification.message}
+          index={index}
+          onClose={() => {
+            setDismissedNotifications(prev => new Set([...prev, notification.id]));
+            setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
+          }}
+          onAcknowledge={() => {
+            setAcknowledgedNotifications(prev => new Set([...prev, notification.id]));
+            setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
+          }}
+        />
+      ))}
       <div className="flex justify-between items-center">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
