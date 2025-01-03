@@ -67,23 +67,14 @@ const AppointmentsWidget = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <h2 className="text-xl md:text-2xl font-semibold text-foreground">
-            Aktif randevular
+            Günlük randevular
           </h2>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
             <span>Canlı</span>
           </Badge>
         </div>
-        {!showAll && (
-          <Button
-            variant="ghost"
-            className="text-primary flex items-center gap-2"
-            onClick={() => navigate("/appointments")}
-          >
-            Tümünü Göster
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        )}
+        
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,6 +125,16 @@ const AppointmentsWidget = ({
           );
         })}
       </div>
+      {!showAll && (
+          <Button
+            variant="outline"
+            className="text-primary flex items-center  mt-6 mx-auto gap-2"
+            onClick={() => navigate("/appointments")}
+          >
+            Tümünü Göster
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        )}
     </Card>
   );
 };
