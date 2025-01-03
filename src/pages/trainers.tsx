@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase";
 import {
   getTrainers,
   getAppointments,
+  getServices,
   createTrainer,
   updateTrainer,
   deleteTrainer,
@@ -24,11 +25,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { Trainer, Appointment, TrainerInput } from "@/types";
 import { TrainerForm } from "@/components/forms/TrainerForm";
 import cn from "classnames";
+import { Database } from "@/types/supabase";
+type Service = Database["public"]["Tables"]["services"]["Row"];
 
 const TrainersPage = () => {
   const { toast } = useToast();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
@@ -47,9 +51,10 @@ const TrainersPage = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [trainersData, appointmentsData] = await Promise.all([
+      const [trainersData, appointmentsData, servicesData] = await Promise.all([
         getTrainers(),
         getAppointments(),
+        getServices(),
       ]);
 
       if (trainersData) {
@@ -73,11 +78,15 @@ const TrainersPage = () => {
         });
         setAppointments(validAppointments);
       }
+      if (servicesData) {
+        setServices(servicesData);
+      }
     } catch (error) {
+      console.error("Error fetching data:", error);
       toast({
-        title: "Hata",
-        description: "Eğitmenler yüklenirken bir hata oluştu.",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch data. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -164,22 +173,44 @@ const TrainersPage = () => {
   const calculateEndTime = (startTime: string, durationMinutes: number = 60) => {
     const [hours, minutes] = startTime.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes + durationMinutes;
-    const endHours = Math.floor(totalMinutes / 60);
+    const endHours = Math.floor(totalMinutes / 60) % 24; // Ensure hours don't exceed 24
     const endMinutes = totalMinutes % 60;
     return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
   };
 
+  const getRemainingMinutes = (startTime: string, durationMinutes: number = 60) => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = startTotalMinutes + durationMinutes;
+
+    let remainingMinutes;
+    if (currentTotalMinutes < startTotalMinutes) {
+      // Eğer şu anki zaman başlangıç zamanından küçükse, gün değişmiş demektir
+      remainingMinutes = endTotalMinutes - (currentTotalMinutes + 24 * 60);
+    } else {
+      remainingMinutes = endTotalMinutes - currentTotalMinutes;
+    }
+
+    return Math.max(0, remainingMinutes);
+  };
+
   const isTrainerBusy = (trainerId: string) => {
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const currentDate = now.toISOString().split('T')[0];
 
-    return appointments.some(
+    const activeAppointment = appointments.find(
       (appointment) => 
-        appointment.trainer_id === trainerId &&
-        appointment.date === currentDate &&
+        appointment.trainer_id === trainerId && 
+        appointment.date === currentDate && 
         appointment.status === "in-progress"
     );
+
+    return !!activeAppointment;
   };
 
   const getCurrentAppointment = (trainerId: string) => {
@@ -191,22 +222,6 @@ const TrainersPage = () => {
         appointment.date === currentDate &&
         appointment.status === "in-progress"
     );
-  };
-
-  const getRemainingTime = (startTime: string) => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTotalMinutes = currentHour * 60 + currentMinute;
-
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const startTotalMinutes = startHour * 60 + startMinute;
-    
-    // Assuming 60 minutes duration
-    const endTotalMinutes = startTotalMinutes + 60;
-    const remainingMinutes = endTotalMinutes - currentTotalMinutes;
-    
-    return remainingMinutes;
   };
 
   const filteredTrainers = trainers.filter((trainer) => {
@@ -301,7 +316,9 @@ const TrainersPage = () => {
                   {(() => {
                     const currentAppointment = getCurrentAppointment(trainer.id);
                     if (currentAppointment) {
-                      const remainingMinutes = getRemainingTime(currentAppointment.time);
+                      const service = services.find(service => service.id === currentAppointment.service_id);
+                      const duration = service?.duration || 60;
+                      const remainingMinutes = getRemainingMinutes(currentAppointment.time, duration);
                       return (
                         <div className="space-y-2 w-full">
                           <div className="flex items-center justify-center gap-2 text-sm">

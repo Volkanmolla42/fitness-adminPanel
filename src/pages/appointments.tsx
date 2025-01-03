@@ -20,6 +20,7 @@ import {
   getServices,
   createAppointment,
   updateAppointment,
+  deleteAppointment,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,6 +42,7 @@ function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'weekly'>('list');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
   const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(() => {
@@ -54,6 +56,14 @@ function AppointmentsPage() {
     return () => {
       supabase.channel("appointments").unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   const fetchData = async () => {
@@ -225,7 +235,19 @@ function AppointmentsPage() {
     status: Appointment["status"]
   ) => {
     try {
-      await updateAppointment(id, { status });
+      if (status === "in-progress") {
+        // Randevu başlatıldığında, başlangıç saatini güncelle
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        await updateAppointment(id, { 
+          status,
+          time: currentTime 
+        });
+      } else {
+        await updateAppointment(id, { status });
+      }
+      
       toast({
         title: "Başarılı",
         description: "Randevu durumu güncellendi.",
@@ -234,6 +256,22 @@ function AppointmentsPage() {
       toast({
         title: "Hata",
         description: "Randevu durumu güncellenirken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await deleteAppointment(id);
+      toast({
+        title: "Başarılı",
+        description: "Randevu başarıyla silindi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Randevu silinirken bir hata oluştu.",
         variant: "destructive",
       });
     }
@@ -538,7 +576,12 @@ function AppointmentsPage() {
       ))}
       <div className="flex justify-between items-center">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
+            <div className="text-lg text-muted-foreground">
+              {currentTime.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} - {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
           <p className="text-muted-foreground">
             Randevuları görüntüle, düzenle ve yönet
           </p>
@@ -716,6 +759,7 @@ function AppointmentsPage() {
                       setSelectedAppointment(appointment);
                       setIsDialogOpen(true);
                     }}
+                    onDelete={handleDeleteAppointment}
                   />
                 ))}
               </div>
@@ -751,6 +795,7 @@ function AppointmentsPage() {
                       setSelectedAppointment(appointment);
                       setIsDialogOpen(true);
                     }}
+                    onDelete={handleDeleteAppointment}
                   />
                 ))}
               </div>
@@ -786,6 +831,7 @@ function AppointmentsPage() {
                       setSelectedAppointment(appointment);
                       setIsDialogOpen(true);
                     }}
+                    onDelete={handleDeleteAppointment}
                   />
                 ))}
               </div>
@@ -821,6 +867,7 @@ function AppointmentsPage() {
                       setSelectedAppointment(appointment);
                       setIsDialogOpen(true);
                     }}
+                    onDelete={handleDeleteAppointment}
                   />
                 ))}
               </div>

@@ -9,6 +9,7 @@ interface AppointmentListProps {
   services: Record<string, { name: string; duration: number }>;
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
+  onDelete: (id: string) => void;
 }
 
 export function AppointmentList({
@@ -18,6 +19,7 @@ export function AppointmentList({
   services,
   onStatusChange,
   onEdit,
+  onDelete,
 }: AppointmentListProps) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -30,6 +32,7 @@ export function AppointmentList({
           service={services[appointment.service_id]}
           onStatusChange={onStatusChange}
           onEdit={onEdit}
+          onDelete={onDelete}
         />
       ))}
     </div>

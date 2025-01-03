@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, XCircle, Pencil, User, UserCog, Briefcase } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Pencil, User, UserCog, Briefcase, Trash2 } from "lucide-react";
 
 import { Database } from "@/types/supabase";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 interface AppointmentCardProps {
@@ -29,6 +30,7 @@ interface AppointmentCardProps {
   };
   onStatusChange: (id: string, status: Appointment["status"]) => void;
   onEdit: (appointment: Appointment) => void;
+  onDelete: (id: string) => void;
 }
 
 const getStatusColor = (status: Appointment["status"]) => {
@@ -61,20 +63,34 @@ const getStatusText = (status: Appointment["status"]) => {
   }
 };
 
-const getRemainingTime = (startTime: string, startDate: string, duration: number) => {
+const getRemainingTime = (startTime: string, startDate: string, duration: number, status: string) => {
   const now = new Date();
   const [hours, minutes] = startTime.split(':').map(Number);
   
-  const appointmentStart = new Date(startDate);
-  appointmentStart.setHours(hours, minutes, 0, 0);
-  
-  const appointmentEnd = new Date(appointmentStart.getTime());
-  appointmentEnd.setMinutes(appointmentStart.getMinutes() + duration);
-  
-  const remainingMs = appointmentEnd.getTime() - now.getTime();
-  const remainingMinutes = Math.floor(remainingMs / (1000 * 60));
-  
-  return remainingMinutes;
+  if (status === "in-progress") {
+    // Eğer randevu devam ediyorsa, servis süresinden kalan dakikayı hesapla
+    const appointmentStart = new Date(startDate);
+    appointmentStart.setHours(hours, minutes, 0, 0);
+    
+    // Eğer başlangıç saati henüz gelmediyse ama randevu başlatıldıysa,
+    // kalan süreyi direkt olarak servis süresi olarak al
+    if (now < appointmentStart) {
+      return duration;
+    }
+    
+    const elapsedMinutes = Math.floor((now.getTime() - appointmentStart.getTime()) / (1000 * 60));
+    return Math.max(0, duration - elapsedMinutes);
+  } else {
+    // Randevu henüz başlamadıysa, normal başlangıç saatine göre hesapla
+    const appointmentStart = new Date(startDate);
+    appointmentStart.setHours(hours, minutes, 0, 0);
+    
+    const appointmentEnd = new Date(appointmentStart.getTime());
+    appointmentEnd.setMinutes(appointmentStart.getMinutes() + duration);
+    
+    const remainingMs = appointmentEnd.getTime() - now.getTime();
+    return Math.floor(remainingMs / (1000 * 60));
+  }
 };
 
 const AppointmentCard = ({
@@ -84,8 +100,10 @@ const AppointmentCard = ({
   service,
   onStatusChange,
   onEdit,
+  onDelete,
 }: AppointmentCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<
     Appointment["status"] | null
   >(null);
@@ -93,6 +111,15 @@ const AppointmentCard = ({
   const handleChangeStatus = (status: Appointment["status"]) => {
     setPendingStatus(status);
     setIsModalOpen(true);
+  };
+
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    onDelete(appointment.id);
+    setIsDeleteModalOpen(false);
   };
 
   return (
@@ -118,12 +145,12 @@ const AppointmentCard = ({
                 {appointment.status === "in-progress" && (
                   <span className="text-sm font-medium text-yellow-600 mt-1">
                     <Clock className="h-3 w-3 inline-block mr-1" />
-                    {(() => {
-                      const remainingMinutes = getRemainingTime(appointment.time, appointment.date, service.duration);
-                      return remainingMinutes > 0 
-                        ? `${remainingMinutes} dakika kaldı`
-                        : 'Randevu süresi doldu';
-                    })()}
+                    {getRemainingTime(
+                      appointment.time,
+                      appointment.date,
+                      service.duration,
+                      appointment.status
+                    )} dakika kaldı
                   </span>
                 )}
               </div>
@@ -179,72 +206,150 @@ const AppointmentCard = ({
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-2 mt-2 pt-3 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(appointment)}
-              className="flex-1 p-2"
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Düzenle
-            </Button>
-
+          <div className="flex flex-col gap-2 mt-4">
             {appointment.status === "scheduled" && (
               <>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="lg"
+                  className="w-full h-8 text-md font-medium text-yellow-600 border-2 border-yellow-600 hover:bg-yellow-50"
                   onClick={() => handleChangeStatus("in-progress")}
-                  className="flex-1 p-2 text-blue-600 hover:text-blue-700"
                 >
-                  <Clock className="mr-2 h-4 w-4" />
+                  <Clock className="w-4 h-4 mr-2" />
                   Başlat
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-8 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
+                    onClick={() => onEdit(appointment)}
+                  >
+                    <Pencil className="w-5 h-5 mr-2" />
+                    Düzenle
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 text-red-600 border-2 border-red-600 hover:bg-red-50"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="w-5 h-5 mr-2" />
+                    Sil
+                  </Button>
+                </div>
+              </>
+            )}
+            {appointment.status === "in-progress" && (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full h-8 text-md font-medium text-green-600 border-2 border-green-600 hover:bg-green-50"
+                  onClick={() => handleChangeStatus("completed")}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Tamamla
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-8 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
+                    onClick={() => onEdit(appointment)}
+                  >
+                    <Pencil className="w-5 h-5 mr-2" />
+                    Düzenle
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 text-red-600 border-2 border-red-600 hover:bg-red-50"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Sil
+                  </Button>
+                </div>
+              </>
+            )}
+            {(appointment.status === "completed" || appointment.status === "cancelled") && (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  className="h-8 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
+                  onClick={() => onEdit(appointment)}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Düzenle
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
-                  onClick={() => handleChangeStatus("cancelled")}
-                  className="flex-1 text-red-600 hover:text-red-700 p-2"
+                  className="h-8 text-red-600 border-2 border-red-600 hover:bg-red-50"
+                  onClick={handleDelete}
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  İptal Et
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Sil
                 </Button>
-              </>
-            )}
-
-            {appointment.status === "in-progress" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleChangeStatus("completed")}
-                className="flex-1 text-green-600 hover:text-green-700 p-2"
-              >
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Tamamla
-              </Button>
+              </div>
             )}
           </div>
         </div>
       </Card>
 
+      {/* Status Change Confirmation Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogTitle>Eylemi Onayla</DialogTitle>
-          <DialogDescription>
-            Bu randevuyu{" "}{pendingStatus === "completed" ? "tamamlamak" : pendingStatus === "cancelled" ? "iptal etmek" : "başlatmak"}{" "}istediğinize emin misiniz?
-          </DialogDescription>
-          <Button
-            onClick={() => {
-              if (pendingStatus) {
-                onStatusChange(appointment.id, pendingStatus);
-              }
-              setIsModalOpen(false);
-            }}
-          >
-            Evet
-          </Button>
-          <Button onClick={() => setIsModalOpen(false)}>Hayır</Button>
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
+          <div className="p-6">
+            <DialogTitle className="text-center mb-2">Eylemi Onayla</DialogTitle>
+            <DialogDescription className="text-center">
+              {pendingStatus === "in-progress"
+                ? "Bu randevuyu başlatmak istediğinize emin misiniz?"
+                : pendingStatus === "completed"
+                ? "Bu randevuyu tamamlamak istediğinize emin misiniz?"
+                : "Bu işlemi yapmak istediğinize emin misiniz?"}
+            </DialogDescription>
+          </div>
+          <div className="flex flex-col gap-2 p-4 bg-gray-50/90">
+            <Button
+              className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
+              onClick={() => {
+                onStatusChange(appointment.id, pendingStatus!);
+                setIsModalOpen(false);
+              }}
+            >
+              {pendingStatus === "in-progress" ? "Başlat" : "Tamamla"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full border-2"
+              onClick={() => setIsModalOpen(false)}
+            >
+              İptal Et
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
+          <div className="p-6">
+            <DialogTitle className="text-center mb-2">Eylemi Onayla</DialogTitle>
+            <DialogDescription className="text-center">
+              Bu randevuyu silmek istediğinize emin misiniz?
+            </DialogDescription>
+          </div>
+          <div className="flex flex-col gap-2 p-4 bg-gray-50/90">
+            <Button
+              className="w-full bg-red-600 text-white hover:bg-red-700"
+              onClick={confirmDelete}
+            >
+              Sil
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full border-2"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              İptal Et
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
