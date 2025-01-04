@@ -30,7 +30,7 @@ export const memberSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email: z.union([z.string().email(validationMessages.email), z.string().length(0), z.null()]).optional(),
+  email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   membership_type: z.enum(["basic", "vip"]),
   subscribed_services: z
@@ -52,15 +52,16 @@ export const trainerSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email: z.union([z.string().email(validationMessages.email), z.string().length(0), z.null()]).optional(),
+  name: z.string().optional(),
+  email: z.string().email(validationMessages.email),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
-  bio: z.string().min(1, "Biyografi alanı zorunludur"),
-  categories: z.array(z.string()).optional(),
-  start_date: z.string(),
+  bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
+  categories: z.array(z.string()),
+  start_date: z.string().min(1, validationMessages.required),
   working_hours: z.object({
-    start: z.string(),
-    end: z.string()
-  }).optional()
+    start: z.string().min(1, "Başlangıç saati zorunludur"),
+    end: z.string().min(1, "Bitiş saati zorunludur"),
+  }),
 });
 
 // Service validation schema
@@ -79,7 +80,7 @@ export const serviceSchema = z.object({
     .number()
     .min(1, "Katılımcı sayısı 1'den büyük olmalıdır")
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
-  session_count: z.number().min(1, "Ders sayısı en az 1 olmalıdır"),
+  session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır"),
   isVipOnly: z.boolean().default(false),
 });
 
@@ -109,3 +110,19 @@ export const appointmentFormSchema = z
       path: ["time"],
     },
   );
+
+// Multi-session appointment validation schema
+export const multiSessionAppointmentSchema = z.object({
+  member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
+  trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
+  service_id: z.string().min(1, { message: "Hizmet seçimi zorunludur" }),
+  sessions: z
+    .array(
+      z.object({
+        date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
+        time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
+      }),
+    )
+    .min(1, { message: "En az bir seans tarihi belirlenmelidir" }),
+  notes: z.string().optional(),
+});
