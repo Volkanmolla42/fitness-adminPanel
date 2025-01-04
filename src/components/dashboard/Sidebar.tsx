@@ -85,7 +85,7 @@ const SidebarContent = ({
       {/* Logo Area */}
       <div className="flex flex-col items-center gap-4 my-2  shrink-0">
         <div className="size-1/4 rounded-lg flex items-center justify-center">
-          <img src="public/lotus.png" alt="" />
+          <img src="/lotus.png" alt="" />
         </div>
         <span className="font-semibold text-xl text-foreground">LOCA FIT STUDIO</span>
       </div>
