@@ -25,7 +25,9 @@ import {
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { Notification } from "@/components/ui/notification";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
+type FilterType = "all" | "daily" | "weekly" | "monthly";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -45,6 +47,7 @@ function AppointmentsPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('acknowledgedNotifications');
     return saved ? new Set(JSON.parse(saved)) : new Set();
@@ -146,17 +149,40 @@ function AppointmentsPage() {
     [services]
   );
 
-  // Filter appointments based on search query
   const filteredAppointments = useMemo(() => {
+    const now = new Date();
+      
     return appointments.filter((appointment) => {
+      // Önce zaman filtresini uygula
+      const appointmentDate = new Date(appointment.date);
+      let isInTimeRange = false;
+  
+      switch (activeFilter) {
+        case "all":
+          isInTimeRange = true;
+          break;
+        case "daily":
+          isInTimeRange = appointmentDate >= startOfDay(now) && appointmentDate <= endOfDay(now);
+          break;
+        case "weekly":
+          isInTimeRange = appointmentDate >= startOfWeek(now) && appointmentDate <= endOfWeek(now);
+          break;
+        case "monthly":
+          isInTimeRange = appointmentDate >= startOfMonth(now) && appointmentDate <= endOfMonth(now);
+          break;
+      }
+  
+      if (!isInTimeRange) return false;
+  
+      // Sonra arama sorgusunu uygula
       if (!searchQuery.trim()) return true;
-
+  
       const member = membersRecord[appointment.member_id];
       const trainer = trainersRecord[appointment.trainer_id];
       const service = servicesRecord[appointment.service_id];
-
+  
       if (!member || !trainer || !service) return false;
-
+  
       const searchTerms = searchQuery.toLowerCase().split(" ");
       const searchString = `
         ${member.first_name}
@@ -168,17 +194,14 @@ function AppointmentsPage() {
         ${appointment.time}
         ${appointment.notes || ""}
       `.toLowerCase();
-
+  
       return searchTerms.every((term) => searchString.includes(term));
+    }).sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
     });
-  }, [
-    appointments,
-    searchQuery,
-    membersRecord,
-    trainersRecord,
-    servicesRecord,
-  ]);
-
+  }, [appointments, searchQuery, membersRecord, trainersRecord, servicesRecord, activeFilter]);
   // Group appointments by status
   const groupedAppointments = useMemo(() => {
     return filteredAppointments.reduce((groups, appointment) => {
@@ -582,7 +605,14 @@ function AppointmentsPage() {
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
             <div className="text-lg text-muted-foreground">
-              {currentTime.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} - {currentTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+              {currentTime.toLocaleDateString('tr-TR', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long', 
+              })} - {currentTime.toLocaleTimeString('tr-TR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
             </div>
           </div>
           <p className="text-muted-foreground">
@@ -640,13 +670,58 @@ function AppointmentsPage() {
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <AppointmentFilters
+      
+      <div className="flex justify-between items-center">
+  <div className="flex space-x-4 border-b">
+    <button
+      className={`px-4 py-2 ${
+        activeFilter === "all"
+          ? "border-b-2 border-blue-500 text-blue-500"
+          : "text-gray-500"
+      }`}
+      onClick={() => setActiveFilter("all")}
+    >
+      Tüm Randevular
+    </button>
+    <button
+      className={`px-4 py-2 ${
+        activeFilter === "daily"
+          ? "border-b-2 border-blue-500 text-blue-500"
+          : "text-gray-500"
+      }`}
+      onClick={() => setActiveFilter("daily")}
+    >
+      Günlük Randevular
+    </button>
+    <button
+      className={`px-4 py-2 ${
+        activeFilter === "weekly"
+          ? "border-b-2 border-blue-500 text-blue-500"
+          : "text-gray-500"
+      }`}
+      onClick={() => setActiveFilter("weekly")}
+    >
+      Haftalık Randevular
+    </button>
+    <button
+      className={`px-4 py-2 ${
+        activeFilter === "monthly"
+          ? "border-b-2 border-blue-500 text-blue-500"
+          : "text-gray-500"
+      }`}
+      onClick={() => setActiveFilter("monthly")}
+    >
+      Aylık Randevular
+    </button>
+  </div>
+  <AppointmentFilters
           searchQuery={searchQuery}
           onSearchChange={(value) => setSearchQuery(value)}
           onFilterClick={() => {}}
         />
-      </div>
+</div>
+        
+     
 
       {viewMode === 'weekly' ? (
         <div className="bg-white rounded-lg shadow">

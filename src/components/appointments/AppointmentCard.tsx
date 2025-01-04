@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, Pencil, User, UserCog, Briefcase, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 
 import { Database } from "@/types/supabase";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -121,6 +123,8 @@ const AppointmentCard = ({
     setIsDeleteModalOpen(false);
   };
 
+  const weekDay = format(new Date(appointment.date), "EEEE", { locale: tr });
+
   return (
     <>
       <Card className="p-4 w-full hover:shadow-lg transition-shadow duration-200">
@@ -136,10 +140,7 @@ const AppointmentCard = ({
                   {appointment.time.slice(0, 5)}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {new Date(appointment.date).toLocaleDateString('tr-TR', {
-                    day: 'numeric',
-                    month: 'long'
-                  })}
+                {format(new Date(appointment.date), "d MMMM", { locale: tr })} - {weekDay}
                 </span>
                 {appointment.status === "in-progress" && (
                   <span className="text-sm font-medium text-yellow-600 mt-1">
