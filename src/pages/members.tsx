@@ -239,11 +239,7 @@ const MembersPage = () => {
 
         {selectedMember && (
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {selectedMember.first_name} {selectedMember.last_name}
-              </DialogTitle>
-            </DialogHeader>
+            
             <MemberDetail
               member={selectedMember}
               services={services}
