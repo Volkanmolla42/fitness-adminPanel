@@ -69,7 +69,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       phone: member?.phone || "",
       avatar_url:
         member?.avatar_url ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`,
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}&options[style]=female`,
       membership_type: member?.membership_type || "basic",
       subscribed_services: member?.subscribed_services || [],
       start_date: member?.start_date || new Date().toISOString().split("T")[0],
@@ -181,66 +181,77 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           render={({ field }) => (
             <FormItem className="max-w-xl">
               <FormLabel>Hizmetler</FormLabel>
-              <div className="flex flex-wrap gap-3 p-6 border-2 rounded-xl bg-muted/30">
-                {services
-                  .sort((a, b) => {
-                    // Önce VIP durumuna göre sırala
-                    if (a.isVipOnly && !b.isVipOnly) return -1;
-                    if (!a.isVipOnly && b.isVipOnly) return 1;
-                    // VIP durumu aynıysa isme göre sırala
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((service) => (
-                    <TooltipProvider key={service.id}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={`relative ${
-                              service.isVipOnly && form.watch("membership_type") !== "vip"
-                                ? "cursor-not-allowed"
-                                : "cursor-pointer hover:opacity-80"
-                            }`}
-                          >
-                            <Badge
-                              variant={
-                                field.value.includes(service.id)
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className={`px-4 py-2 text-sm font-medium shadow-sm transition-all duration-200 ${
-                                field.value.includes(service.id)
-                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                  : "bg-secondary hover:bg-secondary/80"
-                              } ${
-                                service.isVipOnly ? "border-2 border-rose-500" : ""
-                              } ${
-                                service.isVipOnly && form.watch("membership_type") !== "vip"
-                                  ? "opacity-40"
-                                  : ""
-                              }`}
-                              onClick={() => {
-                                if (service.isVipOnly && form.watch("membership_type") !== "vip") {
-                                  return;
-                                }
-                                const newValue = field.value.includes(service.id)
-                                  ? field.value.filter((id) => id !== service.id)
-                                  : [...field.value, service.id];
-                                field.onChange(newValue);
-                              }}
-                            >
-                              {service.name}
-                              
-                            </Badge>
+              <Select
+                onValueChange={(value) => {
+                  const currentServices = field.value || [];
+                  const newValue = currentServices.includes(value)
+                    ? currentServices.filter((id) => id !== value)
+                    : [...currentServices, value];
+                  field.onChange(newValue);
+                }}
+                value={field.value?.[field.value.length - 1] || ""}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Hizmet seçin">
+                      {field.value?.length > 0 ? `${field.value.length} hizmet seçildi` : "Hizmet seçin"}
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {services
+                    .sort((a, b) => {
+                      if (a.isVipOnly && !b.isVipOnly) return -1;
+                      if (!a.isVipOnly && b.isVipOnly) return 1;
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((service) => {
+                      const isSelected = field.value?.includes(service.id);
+                      const isDisabled = service.isVipOnly && form.watch("membership_type") !== "vip";
+                      
+                      return (
+                        <SelectItem
+                          key={service.id}
+                          value={service.id}
+                          disabled={isDisabled}
+                          className={`${isSelected ? 'bg-primary/10' : ''} ${
+                            service.isVipOnly ? 'border-l-2 border-rose-500' : ''
+                          } ${isDisabled ? 'opacity-50' : ''}`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{service.name}</span>
+                            {service.isVipOnly && (
+                              <Badge variant="destructive" className="ml-2">VIP</Badge>
+                            )}
                           </div>
-                        </TooltipTrigger>
-                        {service.isVipOnly && form.watch("membership_type") !== "vip" && (
-                          <TooltipContent>
-                            <p>Bu hizmet sadece VIP üyeler için geçerlidir</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {field.value?.map((serviceId) => {
+                  const service = services.find((s) => s.id === serviceId);
+                  if (!service) return null;
+                  return (
+                    <Badge
+                      key={serviceId}
+                      variant="secondary"
+                      className="px-2 py-1"
+                    >
+                      {service.name}
+                      <button
+                        type="button"
+                        className="ml-2 hover:text-destructive"
+                        onClick={() => {
+                          field.onChange(field.value.filter((id) => id !== serviceId));
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  );
+                })}
               </div>
               <FormMessage />
             </FormItem>

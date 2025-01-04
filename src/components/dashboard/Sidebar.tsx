@@ -54,7 +54,7 @@ const navigationItems = [
     icon: UserCog,
     path: "/trainers",
   },
- 
+
   {
     title: "Raporlar",
     icon: BarChart3,
@@ -83,11 +83,11 @@ const SidebarContent = ({
   return (
     <div className={cn("flex flex-col h-full bg-background text-foreground", className)}>
       {/* Logo Area */}
-      <div className="flex items-center gap-2 mb-8 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <Dumbbell className="w-5 h-5 text-primary-foreground" />
+      <div className="flex flex-col items-center gap-4 my-2  shrink-0">
+        <div className="size-1/4 rounded-lg flex items-center justify-center">
+          <img src="public/lotus.png" alt="" />
         </div>
-        <span className="font-semibold text-xl text-foreground">FitAdmin</span>
+        <span className="font-semibold text-xl text-foreground">LOCA FIT STUDIO</span>
       </div>
 
       {/* Navigation Links */}

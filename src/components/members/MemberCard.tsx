@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Crown } from "lucide-react";
+import { Crown, Mail, Phone } from "lucide-react";
 import type { Database } from "@/types/supabase";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -46,8 +46,17 @@ export const MemberCard = ({ member, services, onClick }: MemberCardProps) => {
           <h3 className="font-semibold">
             {member.first_name} {member.last_name}
           </h3>
-          <p className="text-sm text-muted-foreground">{member.email}</p>
-          <p className="text-sm text-muted-foreground">{member.phone}</p>
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Phone className="h-3.5 w-3.5" />
+            <span>{member.phone}</span>
+          </div>
+          {member.email && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Mail className="h-3.5 w-3.5" />
+              <span>{member.email}</span>
+            </div>
+          )}
+         
         </div>
         
         <div className="w-full mt-3">

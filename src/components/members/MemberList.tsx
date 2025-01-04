@@ -23,18 +23,27 @@ export const MemberList = ({
   onSearch,
   onMemberClick,
 }: MemberListProps) => {
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch =
-      member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.includes(searchTerm);
+  const filteredMembers = members
+    .filter((member) => {
+      const matchesSearch =
+        member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.phone.includes(searchTerm);
 
-    const matchesFilter =
-      membershipFilter === "all" || member.membership_type === membershipFilter;
+      const matchesFilter =
+        membershipFilter === "all" || member.membership_type === membershipFilter;
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      // VIP üyeleri önce göster
+      if (a.membership_type === "vip" && b.membership_type !== "vip") return -1;
+      if (a.membership_type !== "vip" && b.membership_type === "vip") return 1;
+      
+      // Aynı üyelik tipindeyse isme göre sırala
+      return a.first_name.localeCompare(b.first_name);
+    });
 
   return (
     <div className="space-y-4">
