@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import AppointmentsWidget from "@/components/dashboard/AppointmentsWidget";
 import { supabase } from "@/lib/supabase";
@@ -7,112 +8,103 @@ import {
   getMembers,
   getServices,
   getTrainers,
-} from "@/lib/queries"; // Add getTrainers
+} from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
+// Type Definitions
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
-type Trainer = Database["public"]["Tables"]["trainers"]["Row"]; // Define Trainer type
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
 const DashboardPage = () => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]); // Add trainers state
+  const queryClient = useQueryClient();
+
+  // Utility function for error handling
+  const handleError = (title: string, description: string) => {
+    toast({ title, description, variant: "destructive" });
+  };
+
+  // Fetch data with react-query
+  const { data: appointments = [], isLoading: isLoadingAppointments, error: appointmentsError } = useQuery({
+    queryKey: ["appointments"],
+    queryFn: getAppointments
+  });
 
   useEffect(() => {
-    fetchData();
-    setupRealtimeSubscription();
-    return () => {
-      supabase.channel("dashboard").unsubscribe();
-    };
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [
-        appointmentsData,
-        membersData,
-        servicesData,
-        trainersData, // Fetch trainers
-      ] = await Promise.all([
-        getAppointments(),
-        getMembers(),
-        getServices(),
-        getTrainers(), // Add trainers fetch
-      ]);
-
-      setAppointments(appointmentsData);
-      setMembers(membersData);
-      setServices(servicesData);
-      setTrainers(trainersData); // Set trainers data
-    } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Veriler yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    if (appointmentsError) {
+      handleError("Hata", "Randevular yüklenirken bir hata oluştu.");
     }
-  };
+  }, [appointmentsError]);
 
-  const setupRealtimeSubscription = () => {
+  const { data: members = [], isLoading: isLoadingMembers, error: membersError } = useQuery({
+    queryKey: ["members"],
+    queryFn: getMembers
+  });
+
+  useEffect(() => {
+    if (membersError) {
+      handleError("Hata", "Üyeler yüklenirken bir hata oluştu.");
+    }
+  }, [membersError]);
+
+  const { data: services = [], isLoading: isLoadingServices, error: servicesError } = useQuery({
+    queryKey: ["services"],
+    queryFn: getServices
+  });
+
+  useEffect(() => {
+    if (servicesError) {
+      handleError("Hata", "Hizmetler yüklenirken bir hata oluştu.");
+    }
+  }, [servicesError]);
+
+  const { data: trainers = [], isLoading: isLoadingTrainers, error: trainersError } = useQuery({
+    queryKey: ["trainers"],
+    queryFn: getTrainers
+  });
+
+  useEffect(() => {
+    if (trainersError) {
+      handleError("Hata", "Eğitmenler yüklenirken bir hata oluştu.");
+    }
+  }, [trainersError]);
+
+  // Realtime updates with Supabase
+  useEffect(() => {
     const channel = supabase.channel("dashboard");
 
-    // Appointments subscription
-    channel.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "appointments" },
-      (payload) => {
-        if (payload.eventType === "INSERT") {
-          setAppointments((prev) => [payload.new as Appointment, ...prev]);
-        } else if (payload.eventType === "UPDATE") {
-          setAppointments((prev) =>
-            prev.map((appointment) =>
-              appointment.id === payload.new.id
-                ? (payload.new as Appointment)
-                : appointment
-            )
-          );
-        } else if (payload.eventType === "DELETE") {
-          setAppointments((prev) =>
-            prev.filter((appointment) => appointment.id !== payload.old.id)
-          );
-        }
-      }
-    );
+    channel
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "appointments" },
+        () => queryClient.invalidateQueries({ queryKey: ["appointments"] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "members" },
+        () => queryClient.invalidateQueries({ queryKey: ["members"] })
+      )
+      .subscribe();
 
-    // Members subscription
-    channel.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "members" },
-      (payload) => {
-        if (payload.eventType === "INSERT") {
-          setMembers((prev) => [payload.new as Member, ...prev]);
-        } else if (payload.eventType === "DELETE") {
-          setMembers((prev) =>
-            prev.filter((member) => member.id !== payload.old.id)
-          );
-        }
-      }
-    );
-
-    channel.subscribe();
-  };
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [queryClient]);
 
   // Calculate stats
-  const stats = {
-    activeMembers: members.length,
-    todayAppointments: appointments.filter(
-      (app) => app.date === new Date().toISOString().split("T")[0]
-    ).length,
-    monthlyRevenue: appointments
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+
+    const activeMembers = members.length;
+    const todayAppointments = appointments.filter(
+      (app) => app.date === today
+    ).length;
+    const monthlyRevenue = appointments
       .filter((app) => {
         const appointmentDate = new Date(app.date);
         const now = new Date();
@@ -125,18 +117,53 @@ const DashboardPage = () => {
       .reduce((sum, app) => {
         const service = services.find((s) => s.id === app.service_id);
         return sum + (service?.price || 0);
-      }, 0),
-    growthRate: 12.5, // Bu değeri önceki aya göre hesaplayabiliriz
-  };
+      }, 0);
+    const growthRate = 12.5; // Placeholder, replace with actual calculation logic
 
+    return { activeMembers, todayAppointments, monthlyRevenue, growthRate };
+  }, [appointments, members, services]);
+
+  // Stats for grid
+  const statsForGrid = useMemo(() => [
+    {
+      title: "Aktif Üyeler",
+      value: stats.activeMembers.toString(),
+      icon: <Users className="h-6 w-6 text-primary" />,
+      description: "Toplam aktif spor salonu üyeleri",
+    },
+    {
+      title: "Günün Randevuları",
+      value: stats.todayAppointments.toString(),
+      icon: <Calendar className="h-6 w-6 text-primary" />,
+      description: "Bugün için planlanan",
+    },
+    {
+      title: "Aylık Gelir",
+      value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
+      icon: <DollarSign className="h-6 w-6 text-primary" />,
+      description: "Bu ayki gelir",
+    },
+    {
+      title: "Büyüme Oranı",
+      value: `%${stats.growthRate}`,
+      icon: <TrendingUp className="h-6 w-6 text-primary" />,
+      description: "Geçen aya göre",
+    },
+  ], [stats]);
+
+  const isLoading = isLoadingAppointments || isLoadingMembers || isLoadingServices || isLoadingTrainers;
+
+  // Loading State
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="container mx-auto p-4 space-y-4">
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
 
+  // Render Dashboard
   return (
     <div className="space-y-8">
       <div>
@@ -146,43 +173,15 @@ const DashboardPage = () => {
         </p>
       </div>
 
-      <StatsGrid
-        stats={[
-          {
-            title: "Aktif Üyeler",
-            value: stats.activeMembers.toString(),
-            icon: <Users />,
-            description: "Toplam aktif spor salonu üyeleri",
-          },
-          {
-            title: "Günün Randevuları",
-            value: stats.todayAppointments.toString(),
-            icon: <Calendar />,
-            description: "Bugün için planlanan",
-          },
-          {
-            title: "Aylık Gelir",
-            value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
-            icon: <DollarSign />,
-            description: "Bu ayki gelir",
-          },
-          {
-            title: "Büyüme Oranı",
-            value: `%${stats.growthRate}`,
-            icon: <TrendingUp />,
-            description: "Geçen aya göre",
-          },
-        ]}
-      />
+      <StatsGrid stats={statsForGrid} />
+
       <AppointmentsWidget
-        appointments={
-          appointments.map((appointment) => ({
-            ...appointment,
-            memberId: appointment.member_id,
-            trainerId: appointment.trainer_id,
-            serviceId: appointment.service_id,
-          })) as Appointment[]
-        }
+        appointments={appointments.map((appointment) => ({
+          ...appointment,
+          memberId: appointment.member_id,
+          trainerId: appointment.trainer_id,
+          serviceId: appointment.service_id,
+        })) as Appointment[]}
         members={members.reduce((acc, member) => {
           acc[member.id] = {
             first_name: member.first_name,

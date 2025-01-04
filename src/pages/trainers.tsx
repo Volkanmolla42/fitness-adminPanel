@@ -200,17 +200,16 @@ const TrainersPage = () => {
   };
 
   const isTrainerBusy = (trainerId: string) => {
-    const now = new Date();
-    const currentDate = now.toISOString().split('T')[0];
+    // Find the trainer
+    const trainer = trainers.find(t => t.id === trainerId);
+    if (!trainer) return false;
 
-    const activeAppointment = appointments.find(
+    // Check both hasOngoingAppointment status and active appointments
+    return trainer.hasOngoingAppointment || appointments.some(
       (appointment) => 
         appointment.trainer_id === trainerId && 
-        appointment.date === currentDate && 
         appointment.status === "in-progress"
     );
-
-    return !!activeAppointment;
   };
 
   const getCurrentAppointment = (trainerId: string) => {

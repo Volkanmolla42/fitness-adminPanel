@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 
-
 import type { Database } from "@/types/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -83,10 +82,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
   const handleSubmit = async (data: TrainerInput) => {
     setIsSubmitting(true);
     try {
-      const updatedData = {
-        ...data
-      };
-       onSubmit(updatedData);
+      await onSubmit(data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -275,12 +271,28 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
         </Card>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onCancel} className="min-w-[100px]">
+          <Button 
+            variant="outline" 
+            onClick={onCancel} 
+            type="button"
+            disabled={isSubmitting} 
+            className="min-w-[100px]"
+          >
             İptal
           </Button>
-          <Button type="submit" disabled={isSubmitting} className="min-w-[100px]">
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Kaydet
+          <Button 
+            type="submit" 
+            disabled={isSubmitting} 
+            className="min-w-[100px]"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Kaydediliyor...
+              </>
+            ) : (
+              'Kaydet'
+            )}
           </Button>
         </DialogFooter>
       </form>
