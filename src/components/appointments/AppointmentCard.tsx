@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle2, XCircle, Pencil, User, UserCog, Briefcase, Trash2 } from "lucide-react";
+import { Clock, CheckCircle2, Pencil, User, UserCog, Briefcase, Trash2 } from "lucide-react";
 
 import { Database } from "@/types/supabase";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 
 interface AppointmentCardProps {

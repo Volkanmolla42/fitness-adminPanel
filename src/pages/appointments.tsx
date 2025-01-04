@@ -236,18 +236,20 @@ function AppointmentsPage() {
   ) => {
     try {
       if (status === "in-progress") {
-        // Randevu başlatıldığında, başlangıç saatini güncelle
+        // Randevu başlatıldığında, başlangıç tarih ve saatini güncelle
         const now = new Date();
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        await updateAppointment(id, { 
+        const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  
+        await updateAppointment(id, {
           status,
-          time: currentTime 
+          date: currentDate,
+          time: currentTime,
         });
       } else {
         await updateAppointment(id, { status });
       }
-      
+  
       toast({
         title: "Başarılı",
         description: "Randevu durumu güncellendi.",
@@ -260,6 +262,7 @@ function AppointmentsPage() {
       });
     }
   };
+  
 
   const handleDeleteAppointment = async (id: string) => {
     try {
