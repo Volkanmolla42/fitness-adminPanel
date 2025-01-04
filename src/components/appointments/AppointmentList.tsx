@@ -23,7 +23,13 @@ export function AppointmentList({
 }: AppointmentListProps) {
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {appointments.map((appointment) => (
+      {appointments
+        .sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        })
+        .map((appointment) => (
         <AppointmentCard
           key={appointment.id}
           appointment={appointment}
