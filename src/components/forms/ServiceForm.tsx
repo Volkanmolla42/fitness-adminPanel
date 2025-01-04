@@ -51,7 +51,14 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
   const handleSubmit = async (data: ServiceInput) => {
     setIsSubmitting(true);
     try {
-      await onSubmit(data);
+      // Clean the existing name by removing session count and VIP/Standart suffix
+      let cleanName = data.name.replace(/ \(\d+ Seans\)( - (VIP|Standart))?$/, '');
+      
+      const modifiedData = {
+        ...data,
+        name: `${cleanName} (${data.session_count} Seans)${data.isVipOnly ? ' - VIP' : ' - Standart'}`
+      };
+      await onSubmit(modifiedData);
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
