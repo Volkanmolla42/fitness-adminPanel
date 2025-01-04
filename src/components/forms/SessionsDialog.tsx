@@ -89,8 +89,8 @@ export function SessionsDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+        <ScrollArea className="h-[60vh]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
             {Array.from({ length: sessionCount }).map((_, index) => {
               const isComplete = sessions[index]?.date && sessions[index]?.time;
 
