@@ -164,7 +164,7 @@ export function AppointmentForm({
                     <SelectItem key={service.id} value={service.id}>
                       {service.name} 
                       {service.isVipOnly ? " (VIP)" : " (Standart)"} - 
-                      {service.session_count} Seans
+                      {service.session_count} Ders
                     </SelectItem>
                   ))}
                 </SelectContent>

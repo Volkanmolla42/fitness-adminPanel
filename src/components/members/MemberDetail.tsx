@@ -70,16 +70,7 @@ export const MemberDetail = ({
               return (
                 <Badge key={serviceId} variant="outline" className="px-3 py-1 flex items-center gap-2">
                   <span>{service?.name || "Yükleniyor..."}</span>
-                  {service && (
-                    <>
-                      <span className="text-xs text-muted-foreground">
-                        ({service.session_count} Seans)
-                      </span>
-                      {service.isVipOnly && (
-                        <Crown className="w-3 h-3 text-red-500" />
-                      )}
-                    </>
-                  )}
+                  
                 </Badge>
               );
             })}

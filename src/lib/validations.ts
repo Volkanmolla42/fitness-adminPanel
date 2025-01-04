@@ -79,7 +79,7 @@ export const serviceSchema = z.object({
     .number()
     .min(1, "Katılımcı sayısı 1'den büyük olmalıdır")
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
-  session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır"),
+  session_count: z.number().min(1, "Ders sayısı en az 1 olmalıdır"),
   isVipOnly: z.boolean().default(false),
 });
 

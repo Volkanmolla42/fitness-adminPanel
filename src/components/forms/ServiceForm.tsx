@@ -52,11 +52,11 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
     setIsSubmitting(true);
     try {
       // Clean the existing name by removing session count and VIP/Standart suffix
-      let cleanName = data.name.replace(/ \(\d+ Seans\)( - (VIP|Standart))?$/, '');
+      let cleanName = data.name.replace(/ \(\d+ Ders\)( - (VIP|Standart))?$/, '');
       
       const modifiedData = {
         ...data,
-        name: `${cleanName} (${data.session_count} Seans)${data.isVipOnly ? ' - VIP' : ' - Standart'}`
+        name: `${cleanName} (${data.session_count} Ders)${data.isVipOnly ? ' - VIP' : ' - Standart'}`
       };
       await onSubmit(modifiedData);
     } catch (error) {
@@ -133,7 +133,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Seans Sayısı</label>
+          <label className="text-sm font-medium">Ders Sayısı</label>
           <Input
             type="number"
             {...form.register("session_count", { valueAsNumber: true })}

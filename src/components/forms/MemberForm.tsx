@@ -229,9 +229,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                               }}
                             >
                               {service.name}
-                              {service.isVipOnly && (
-                                <span className="ml-2 text-xs font-bold text-rose-500 bg-rose-100 px-1.5 py-0.5 rounded-full">(VIP)</span>
-                              )}
+                              
                             </Badge>
                           </div>
                         </TooltipTrigger>
