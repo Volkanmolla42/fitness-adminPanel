@@ -24,14 +24,15 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
       <div className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
+            
               <h3 className="text-xl tracking-tight font-semibold text-gray-900">{service.name}</h3>
-              {service.isVipOnly && (
-                <Badge variant="destructive" className="opacity-90 px-2.5 text-[11px] font-medium uppercase tracking-wider">
+              
+           
+            {service.isVipOnly && (
+                <Badge variant="destructive" className="opacity-90 absolute top-3 right-3 text-[11px] font-medium uppercase tracking-wider">
                   VIP
                 </Badge>
               )}
-            </div>
             <p className="text-sm leading-relaxed text-gray-500 pr-4">{service.description}</p>
           </div>
         </div>
@@ -53,7 +54,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
         </div>
 
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
+        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
           <Button
             variant="ghost"
             size="sm"
