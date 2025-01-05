@@ -92,9 +92,9 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2 overflow-y-auto " >
-        <Card className="px-4 py-2 space-y-4">
-          <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2  overflow-y-auto " >
+        <Card className="px-4 space-y-2">
+          <div className="space-y-2">
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
@@ -125,7 +125,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <FormField
                 control={form.control}
                 name="email"
@@ -215,7 +215,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                       <Textarea
                         {...field}
                         placeholder="Eğitmen hakkında kısa bir biyografi..."
-                        className="h-20 resize-none"
+                        className="h-10 resize-none"
                       />
                     </FormControl>
                     <FormMessage />
@@ -224,7 +224,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <FormField
                 control={form.control}
                 name="start_date"
@@ -244,7 +244,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                 name="working_hours.start"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-semibold">Başlangıç Saati</FormLabel>
+                    <FormLabel className="text-base font-semibold">Mesai Başlangıç</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -258,7 +258,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                 name="working_hours.end"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-semibold">Bitiş Saati</FormLabel>
+                    <FormLabel className="text-base font-semibold">Mesai bitiş </FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>

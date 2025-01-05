@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatPhoneNumber } from "./TrainerForm";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -129,7 +130,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>E-posta</FormLabel>
                 <FormControl>
-                  <Input {...field} type="email" />
+                  <Input {...field} type="email"  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -143,7 +144,10 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem>
                 <FormLabel>Telefon</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} onChange={(e) => {
+                          const formatted = formatPhoneNumber(e.target.value);
+                          field.onChange(formatted);
+                        }} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
