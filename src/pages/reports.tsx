@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,10 +19,6 @@ import {
   endOfYear,
   isWithinInterval,
   format,
-  subMonths,
-  eachDayOfInterval,
-  eachWeekOfInterval,
-  eachMonthOfInterval,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -51,23 +46,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from "recharts";
+
+import { ServiceUsageStats } from "@/components/reports/ServiceUsageStats";
+import { AppointmentDistribution } from "@/components/reports/AppointmentDistribution";
+import { MembershipDistribution } from "@/components/reports/MembershipDistribution";
+import { RevenueChart } from "@/components/reports/RevenueChart";
+import { TrendAnalysis } from "@/components/reports/TrendAnalysis";
+import { PackageStats } from "@/components/reports/PackageStats";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -81,14 +66,12 @@ const ReportsPage = () => {
   const [selectedDateRange, setSelectedDateRange] = useState<
     "week" | "month" | "year" | "custom"
   >("month");
-  const [customDateRange, setCustomDateRange] = useState<DateRange>({ from: undefined, to: undefined });
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>([
-    "revenue",
-    "appointments",
-    "members",
-  ]);
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
 
-  const [isLoading, setIsLoading] = useState(true);
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -126,9 +109,7 @@ const ReportsPage = () => {
         description: "Veriler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
+    } 
   };
 
   const setupRealtimeSubscription = () => {
@@ -203,6 +184,63 @@ const ReportsPage = () => {
     });
   }, [appointments, selectedDateRange, customDateRange, filters, services]);
 
+  const calculateMetrics = () => {
+    // Seçili tarih aralığındaki üyeleri filtrele
+    const filteredMembers = members.filter((member) => {
+      const memberStartDate = new Date(member.start_date);
+      let dateRange;
+      if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+        dateRange = {
+          start: customDateRange.from,
+          end: customDateRange.to,
+        };
+      } else {
+        const now = new Date();
+        dateRange = {
+          start:
+            selectedDateRange === "week"
+              ? startOfWeek(now, { locale: tr })
+              : selectedDateRange === "month"
+              ? startOfMonth(now)
+              : startOfYear(now),
+          end:
+            selectedDateRange === "week"
+              ? endOfWeek(now, { locale: tr })
+              : selectedDateRange === "month"
+              ? endOfMonth(now)
+              : endOfYear(now),
+        };
+      }
+      return isWithinInterval(memberStartDate, dateRange);
+    });
+
+    // Paket satın alımlarını hesapla
+    let totalRevenue = 0;
+    let totalPackages = 0;
+    const uniqueMemberIds = new Set<string>();
+
+    filteredMembers.forEach((member) => {
+      member.subscribed_services.forEach((serviceId) => {
+        const service = services.find((s) => s.id === serviceId);
+        if (service) {
+          totalRevenue += service.price;
+          totalPackages += 1;
+          uniqueMemberIds.add(member.id);
+        }
+      });
+    });
+
+    const uniqueMembers = uniqueMemberIds.size;
+    const averageRevenuePerPackage = totalPackages > 0 ? totalRevenue / totalPackages : 0;
+
+    return {
+      totalRevenue,
+      totalPackages,
+      uniqueMembers,
+      averageRevenuePerPackage,
+    };
+  };
+
   const generatePDF = async () => {
     if (!reportRef.current) return;
 
@@ -229,28 +267,53 @@ const ReportsPage = () => {
     }
   };
 
-  const calculateMetrics = () => {
-    const totalRevenue = filteredData.reduce(
-      (sum, app) => {
-        const service = services.find(s => s.id === app.service_id);
-        return sum + (service?.price || 0);
-      },
-      0
-    );
-    const totalAppointments = filteredData.length;
-    const uniqueMembers = new Set(filteredData.map((app) => app.member_id)).size;
-    const averageRevenuePerAppointment =
-      totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
-
-    return {
-      totalRevenue,
-      totalAppointments,
-      uniqueMembers,
-      averageRevenuePerAppointment,
-    };
-  };
-
   const metrics = calculateMetrics();
+
+  // Prepare data for ServiceUsageStats
+  const serviceUsageData = useMemo(() => {
+    return services.map(service => ({
+      name: service.name,
+      kullanim: filteredData.filter(app => app.service_id === service.id).length
+    }));
+  }, [services, filteredData]);
+
+  // Prepare data for AppointmentDistribution
+  const appointmentDistributionData = useMemo(() => {
+    const hourlyDistribution = filteredData.reduce((acc: { [key: string]: number }, appointment) => {
+      const hour = new Date(appointment.date).getHours();
+      const hourStr = `${hour}:00`;
+      acc[hourStr] = (acc[hourStr] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(hourlyDistribution).map(([saat, randevu]) => ({
+      saat,
+      randevu
+    })).sort((a, b) => parseInt(a.saat) - parseInt(b.saat));
+  }, [filteredData]);
+
+  // Prepare data for MembershipDistribution
+  const membershipDistributionData = useMemo(() => {
+    return services.map(service => ({
+      name: service.name,
+      value: filteredData.filter(app => app.service_id === service.id).length
+    }));
+  }, [services, filteredData]);
+
+  // Prepare data for RevenueChart
+  const revenueChartData = useMemo(() => {
+    const monthlyRevenue = filteredData.reduce((acc: { [key: string]: number }, appointment) => {
+      const month = format(new Date(appointment.date), "MMMM", { locale: tr });
+      const service = services.find(s => s.id === appointment.service_id);
+      acc[month] = (acc[month] || 0) + (service?.price || 0);
+      return acc;
+    }, {});
+
+    return Object.entries(monthlyRevenue).map(([month, gelir]) => ({
+      month,
+      gelir
+    }));
+  }, [filteredData, services]);
 
   return (
     <div className="container mx-auto p-6">
@@ -373,13 +436,13 @@ const ReportsPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Randevu
+              Toplam Satılan Paket
               </CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.totalAppointments}
+                {metrics.totalPackages}
               </div>
             </CardContent>
           </Card>
@@ -395,13 +458,13 @@ const ReportsPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Ortalama Gelir/Randevu
+                Ortalama Gelir/Paket
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {metrics.averageRevenuePerAppointment.toLocaleString("tr-TR", {
+                {metrics.averageRevenuePerPackage.toLocaleString("tr-TR", {
                   style: "currency",
                   currency: "TRY",
                 })}
@@ -410,215 +473,26 @@ const ReportsPage = () => {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gelir Grafiği</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={filteredData.map((appointment) => {
-                    const service = services.find(
-                      (s) => s.id === appointment.service_id
-                    );
-                    return {
-                      date: format(new Date(appointment.date), "dd.MM.yyyy"),
-                      revenue: service?.price || 0,
-                    };
-                  })}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="revenue" fill="#8884d8" name="Gelir" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Trend Analysis */}
+        <TrendAnalysis 
+          appointments={appointments}
+          members={members}
+          selectedDateRange={selectedDateRange === "custom" ? "month" : selectedDateRange}
+        />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Randevu Trendi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={filteredData.reduce((acc: any[], appointment) => {
-                    const date = format(new Date(appointment.date), "dd.MM.yyyy");
-                    const existingDate = acc.find((item) => item.date === date);
-                    if (existingDate) {
-                      existingDate.count += 1;
-                    } else {
-                      acc.push({ date, count: 1 });
-                    }
-                    return acc;
-                  }, [])}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#82ca9d"
-                    name="Randevu Sayısı"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Paket Dağılımı</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={services.map((service) => ({
-                      name: service.name,
-                      value: filteredData.filter(
-                        (app) => app.service_id === service.id
-                      ).length,
-                    }))}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {services.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Üye Aktivite Trendi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart
-                  data={filteredData.reduce((acc: any[], appointment) => {
-                    const date = format(new Date(appointment.date), "dd.MM.yyyy");
-                    const member = members.find((m) => m.id === appointment.member_id);
-                    const memberName = member
-                      ? `${member.first_name} ${member.last_name}`
-                      : "N/A";
-
-                    const existingDate = acc.find((item) => item.date === date);
-                    if (existingDate) {
-                      if (!existingDate.members[memberName]) {
-                        existingDate.members[memberName] = 0;
-                      }
-                      existingDate.members[memberName] += 1;
-                      existingDate[memberName] = existingDate.members[memberName];
-                    } else {
-                      const newEntry = {
-                        date,
-                        members: { [memberName]: 1 },
-                        [memberName]: 1,
-                      };
-                      acc.push(newEntry);
-                    }
-                    return acc;
-                  }, [])}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  {members
-                    .slice(0, 5)
-                    .map((member, index) => (
-                      <Area
-                        key={member.id}
-                        type="monotone"
-                        dataKey={`${member.first_name} ${member.last_name}`}
-                        stackId="1"
-                        stroke={COLORS[index % COLORS.length]}
-                        fill={COLORS[index % COLORS.length]}
-                        name={`${member.first_name} ${member.last_name}`}
-                      />
-                    ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Charts Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ServiceUsageStats data={serviceUsageData} />
+          <AppointmentDistribution appointments={filteredData} />
+          <PackageStats 
+            members={members}
+            services={services}
+            selectedDateRange={selectedDateRange}
+            customDateRange={customDateRange?.from && customDateRange?.to ? { from: customDateRange.from, to: customDateRange.to } : undefined}
+          />
+          <MembershipDistribution data={membershipDistributionData} />
+          <RevenueChart data={revenueChartData} />
         </div>
-
-        {/* Detailed Reports Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Detaylı Randevu Raporu</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tarih</TableHead>
-                    <TableHead>Üye</TableHead>
-                    <TableHead>Paket</TableHead>
-                    <TableHead className="text-right">Gelir</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredData.map((appointment) => {
-                    const member = members.find(
-                      (m) => m.id === appointment.member_id
-                    );
-                    const service = services.find(
-                      (s) => s.id === appointment.service_id
-                    );
-
-                    return (
-                      <TableRow key={appointment.id}>
-                        <TableCell>
-                          {format(new Date(appointment.date), "dd.MM.yyyy")}
-                        </TableCell>
-                        <TableCell>
-                          {member
-                            ? `${member.first_name} ${member.last_name}`
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {service ? service.name : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {service?.price?.toLocaleString("tr-TR", {
-                            style: "currency",
-                            currency: "TRY",
-                          })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

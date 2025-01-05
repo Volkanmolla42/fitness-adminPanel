@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -9,14 +9,33 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Database } from "@/types/supabase";
+
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 interface AppointmentDistributionProps {
-  data: Array<{ saat: string; randevu: number }>;
+  appointments: Appointment[];
 }
 
 export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = ({
-  data,
+  appointments,
 }) => {
+  const data = useMemo(() => {
+    const hourlyDistribution = appointments.reduce((acc: { [key: string]: number }, appointment) => {
+      const hour = new Date(appointment.date).getHours();
+      const hourStr = `${hour}:00`;
+      acc[hourStr] = (acc[hourStr] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(hourlyDistribution)
+      .map(([saat, randevu]) => ({
+        saat,
+        randevu
+      }))
+      .sort((a, b) => parseInt(a.saat) - parseInt(b.saat));
+  }, [appointments]);
+
   return (
     <Card>
       <CardHeader>

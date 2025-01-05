@@ -40,6 +40,12 @@ export const MemberDetail = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isVip = member.membership_type === "vip";
 
+  // Calculate total package amount
+  const totalPackageAmount = member.subscribed_services.reduce((total, serviceId) => {
+    const service = services[serviceId];
+    return total + (service?.price || 0);
+  }, 0);
+
   const handleDelete = async () => {
     if (member.id) {
       await onDelete(member.id);
@@ -95,10 +101,16 @@ export const MemberDetail = ({
 
       {/* Services */}
       <div className="bg-muted/30 rounded-lg p-4 mb-6">
-        <h3 className="font-medium mb-3 flex items-center gap-2">
-          <ListChecks className="w-4 h-4" />
-          Aldığı Paketler
-        </h3>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-medium flex items-center gap-2">
+            <ListChecks className="w-4 h-4" />
+            Aldığı Paketler
+          </h3>
+          <div className="text-sm">
+            <span className="text-muted-foreground mr-2">Toplam:</span>
+            <span className="font-medium">{totalPackageAmount.toLocaleString('tr-TR')} ₺</span>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-2">
           {member.subscribed_services.map((serviceId) => {
             const service = services[serviceId];
@@ -109,6 +121,9 @@ export const MemberDetail = ({
                 className="px-3 py-1 flex items-center gap-2"
               >
                 <span>{service?.name || "Yükleniyor..."}</span>
+                <span className="text-muted-foreground">
+                  {service?.price?.toLocaleString('tr-TR')} ₺
+                </span>
               </Badge>
             );
           })}
