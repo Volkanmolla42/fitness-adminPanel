@@ -481,17 +481,26 @@ const ReportsPage = () => {
         />
 
         {/* Charts Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <ServiceUsageStats data={serviceUsageData} />
-          <AppointmentDistribution appointments={filteredData} />
+        <div className="grid gap-4">
+          {/* Paket ve Randevu İstatistikleri */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <ServiceUsageStats data={serviceUsageData} />
+            <MembershipDistribution data={membershipDistributionData} />
+          </div>
+
+          {/* Randevu ve Gelir Analizi */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <AppointmentDistribution appointments={appointments} />
+            <RevenueChart data={revenueChartData} />
+          </div>
+
+          {/* Paket İstatistikleri */}
           <PackageStats 
             members={members}
             services={services}
             selectedDateRange={selectedDateRange}
             customDateRange={customDateRange?.from && customDateRange?.to ? { from: customDateRange.from, to: customDateRange.to } : undefined}
           />
-          <MembershipDistribution data={membershipDistributionData} />
-          <RevenueChart data={revenueChartData} />
         </div>
       </div>
     </div>
