@@ -823,6 +823,7 @@ function AppointmentsPage() {
                     member={{
                       firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
                       lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
                     }}
                     trainer={{
                       firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
@@ -859,6 +860,7 @@ function AppointmentsPage() {
                     member={{
                       firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
                       lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
                     }}
                     trainer={{
                       firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
@@ -895,10 +897,12 @@ function AppointmentsPage() {
                     member={{
                       firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
                       lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
                     }}
                     trainer={{
                       firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
                       lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                     
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
@@ -931,10 +935,12 @@ function AppointmentsPage() {
                     member={{
                       firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
                       lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
                     }}
                     trainer={{
                       firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
                       lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                     
                     }}
                     service={{
                       name: services.find((s) => s.id === appointment.service_id)?.name || "",
