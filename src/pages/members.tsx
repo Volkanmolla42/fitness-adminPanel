@@ -182,6 +182,7 @@ const MembersPage = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteMember(id);
+      setSelectedMember(null); // Close the member detail dialog
       toast({
         title: "Başarılı",
         description: "Üye başarıyla silindi.",
