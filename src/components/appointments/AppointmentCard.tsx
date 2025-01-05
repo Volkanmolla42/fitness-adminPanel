@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,12 +82,18 @@ const getStatusText = (status: string) => {
 const getRemainingTime = (startTime: string, startDate: string, duration: number, status: string) => {
   const now = new Date();
   const [hours, minutes] = startTime.split(':').map(Number);
+  const appointmentStart = new Date(startDate);
+  appointmentStart.setHours(hours, minutes, 0, 0);
+  
+  // Calculate minutes until appointment starts
+  const minutesUntilStart = Math.floor((appointmentStart.getTime() - now.getTime()) / (1000 * 60));
+  
+  if (status === "scheduled") {
+    return minutesUntilStart;
+  }
   
   if (status === "in-progress") {
-    const appointmentStart = new Date(startDate);
-    appointmentStart.setHours(hours, minutes, 0, 0);
-    
-    if (now < appointmentStart) {
+    if (minutesUntilStart > 0) {
       return duration;
     }
     
@@ -95,13 +101,7 @@ const getRemainingTime = (startTime: string, startDate: string, duration: number
     return Math.max(0, duration - elapsedMinutes);
   }
   
-  const appointmentStart = new Date(startDate);
-  appointmentStart.setHours(hours, minutes, 0, 0);
-  const appointmentEnd = new Date(appointmentStart.getTime());
-  appointmentEnd.setMinutes(appointmentStart.getMinutes() + duration);
-  
-  const remainingMs = appointmentEnd.getTime() - now.getTime();
-  return Math.floor(remainingMs / (1000 * 60));
+  return 0;
 };
 
 const AppointmentCard = ({
@@ -117,6 +117,23 @@ const AppointmentCard = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
 
   const handleChangeStatus = (status: string) => {
     setPendingStatus(status);
@@ -131,11 +148,12 @@ const AppointmentCard = ({
     appointment.status
   );
 
-  const isUpcoming = appointment.status === "scheduled" && remainingTime <= 30;
+  const isUpcoming = appointment.status === "scheduled" && remainingTime > 0 && remainingTime <= 30;
+  const isAboutToStart = appointment.status === "scheduled" && remainingTime > 0 && remainingTime <= 1;
 
   return (
     <>
-      <Card className="h-max transform transition-all duration-200 hover:shadow-lg">
+      <Card className="h-max transform transition-all duration-200 hover:shadow-lg" ref={cardRef}>
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <div className="p-4 relative">
             {/* Header */}
@@ -147,12 +165,22 @@ const AppointmentCard = ({
                 <div className="bg-blue-50 p-2 rounded-lg">
                   <Calendar className="h-5 w-5 text-blue-600" />
                 </div>
-                <div>
-                  <div className="flex items-baseline space-x-2">
-                    <span className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center space-x-3">
+                  
+                  <div className="flex items-center">
+                    <span className={` text-2xl font-bold ${(isUpcoming || isAboutToStart) ? 'text-orange-500 font-medium' : ''}`}>
                       {appointment.time.slice(0, 5)}
                     </span>
-                    
+                    {isAboutToStart && appointment.status === "scheduled" && (
+                      <div className="flex items-center ml-2 text-orange-600">
+                        <span className="text-sm font-medium">Başlamak Üzere</span>
+                      </div>
+                    )}
+                    {isUpcoming && !isAboutToStart && appointment.status === "scheduled" && (
+                      <div className="flex items-center ml-2 text-orange-600">
+                        <span className="text-sm font-medium">Yaklaşıyor</span>
+                      </div>
+                    )}
                   </div>
                   <span className="text-sm text-gray-600">
                     {format(new Date(appointment.date), "d MMMM", { locale: tr })} - {weekDay}
@@ -208,12 +236,7 @@ const AppointmentCard = ({
                 </div>
               )}
               
-              {isUpcoming && appointment.status === "scheduled" && (
-                <div className="flex items-center space-x-1 text-orange-600">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Yaklaşıyor</span>
-                </div>
-              )}
+              
             </div>
           </div>
 
@@ -440,4 +463,3 @@ const AppointmentCard = ({
     };
     
     export default AppointmentCard;
-    
