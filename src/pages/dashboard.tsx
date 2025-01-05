@@ -106,13 +106,21 @@ const DashboardPage = () => {
       return appDate === today && app.status === "scheduled";
     }).length;
   
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Get previous month and year
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    // Calculate current month's revenue
     const monthlyRevenue = appointments
       .filter((app) => {
         const appointmentDate = new Date(app.date);
-        const now = new Date();
         return (
-          appointmentDate.getMonth() === now.getMonth() &&
-          appointmentDate.getFullYear() === now.getFullYear() &&
+          appointmentDate.getMonth() === currentMonth &&
+          appointmentDate.getFullYear() === currentYear &&
           app.status === "completed"
         );
       })
@@ -120,10 +128,49 @@ const DashboardPage = () => {
         const service = services.find((s) => s.id === app.service_id);
         return sum + (service?.price || 0);
       }, 0);
-  
-    const growthRate = 12.5; // Placeholder, replace with actual calculation logic
-  
-    return { activeMembers, todayAppointments, monthlyRevenue, growthRate };
+
+    // Calculate previous month's revenue
+    const previousMonthRevenue = appointments
+      .filter((app) => {
+        const appointmentDate = new Date(app.date);
+        return (
+          appointmentDate.getMonth() === previousMonth &&
+          appointmentDate.getFullYear() === previousYear &&
+          app.status === "completed"
+        );
+      })
+      .reduce((sum, app) => {
+        const service = services.find((s) => s.id === app.service_id);
+        return sum + (service?.price || 0);
+      }, 0);
+
+    // Calculate revenue growth rate
+    const revenueGrowthRate = previousMonthRevenue === 0
+      ? monthlyRevenue > 0 ? 100 : 0 // If no revenue last month, growth is 100% if we have revenue this month
+      : ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue * 100).toFixed(1);
+
+    // Calculate member growth rate
+    const currentMonthMembers = members.filter(member => {
+      const joinDate = new Date(member.start_date);
+      return joinDate.getMonth() === currentMonth && joinDate.getFullYear() === currentYear;
+    }).length;
+
+    const previousMonthMembers = members.filter(member => {
+      const joinDate = new Date(member.start_date);
+      return joinDate.getMonth() === previousMonth && joinDate.getFullYear() === previousYear;
+    }).length;
+
+    const memberGrowthRate = previousMonthMembers === 0
+      ? currentMonthMembers * 100
+      : ((currentMonthMembers - previousMonthMembers) / previousMonthMembers * 100).toFixed(1);
+
+    return { 
+      activeMembers, 
+      todayAppointments, 
+      monthlyRevenue, 
+      revenueGrowthRate,
+      memberGrowthRate 
+    };
   }, [appointments, members, services]);
   
   // Stats for grid
@@ -132,7 +179,7 @@ const DashboardPage = () => {
       title: "Aktif Üyeler",
       value: stats.activeMembers.toString(),
       icon: <Users className="h-6 w-6 text-primary" />,
-      description: "Toplam aktif spor salonu üyeleri",
+      description: `Büyüme: %${stats.memberGrowthRate}`,
     },
     {
       title: "Günün Randevuları",
@@ -144,13 +191,13 @@ const DashboardPage = () => {
       title: "Aylık Gelir",
       value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
       icon: <DollarSign className="h-6 w-6 text-primary" />,
-      description: "Bu ayki gelir",
+      description: `Büyüme: %${stats.revenueGrowthRate}`,
     },
     {
-      title: "Büyüme Oranı",
-      value: `%${stats.growthRate}`,
+      title: "Toplam Randevu",
+      value: appointments.length.toString(),
       icon: <TrendingUp className="h-6 w-6 text-primary" />,
-      description: "Geçen aya göre",
+      description: "Tüm zamanlar",
     },
   ], [stats]);
 
