@@ -23,12 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import { formatPhoneNumber } from "./TrainerForm";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -43,7 +38,6 @@ interface MemberFormProps {
 
 export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
   const [services, setServices] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -53,8 +47,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
         setServices(servicesData || []);
       } catch (error) {
         console.error("Error fetching services:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -74,7 +66,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       membership_type: member?.membership_type || "basic",
       subscribed_services: member?.subscribed_services || [],
       start_date: member?.start_date || new Date().toISOString().split("T")[0],
-      end_date: member?.end_date || new Date().toISOString().split("T")[0],
       notes: member?.notes || "",
     },
   });
@@ -269,20 +260,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Başlangıç Tarihi</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="end_date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bitiş Tarihi</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>

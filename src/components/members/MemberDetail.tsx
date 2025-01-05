@@ -88,8 +88,7 @@ export const MemberDetail = ({
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4" />
           <span>
-            {new Date(member.start_date).toLocaleDateString("tr-TR")} -{" "}
-            {new Date(member.end_date).toLocaleDateString("tr-TR")}
+            Başlangıç: {new Date(member.start_date).toLocaleDateString("tr-TR")}
           </span>
         </div>
       </div>

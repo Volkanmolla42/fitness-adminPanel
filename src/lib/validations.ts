@@ -38,7 +38,6 @@ export const memberSchema = z.object({
     .min(1, "En az bir paket seçilmelidir"),
   avatar_url: z.string().optional(),
   start_date: z.string().min(1, validationMessages.required),
-  end_date: z.string().min(1, validationMessages.required),
   notes: z.string().optional(),
 });
 
