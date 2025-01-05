@@ -135,7 +135,7 @@ const AppointmentCard = ({
 
   return (
     <>
-      <Card className="w-full break-inside-avoid transform transition-all duration-200 hover:shadow-lg">
+      <Card className="h-max transform transition-all duration-200 hover:shadow-lg">
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <div className="p-4 relative">
             {/* Header */}

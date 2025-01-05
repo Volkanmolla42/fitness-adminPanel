@@ -197,9 +197,10 @@ function AppointmentsPage() {
   
       return searchTerms.every((term) => searchString.includes(term));
     }).sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateA.getTime() - dateB.getTime();
+      const now = new Date().getTime();
+      const dateA = new Date(`${a.date} ${a.time}`).getTime();
+      const dateB = new Date(`${b.date} ${b.time}`).getTime();
+      return Math.abs(dateA - now) - Math.abs(dateB - now);
     });
   }, [appointments, searchQuery, membersRecord, trainersRecord, servicesRecord, activeFilter]);
   // Group appointments by status
@@ -590,10 +591,6 @@ function AppointmentsPage() {
           key={notification.id}
           message={notification.message}
           index={index}
-          onClose={() => {
-            setDismissedNotifications(prev => new Set([...prev, notification.id]));
-            setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
-          }}
           onAcknowledge={() => {
             setAcknowledgedNotifications(prev => new Set([...prev, notification.id]));
             setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
@@ -815,7 +812,7 @@ function AppointmentsPage() {
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
                 Devam Eden Randevular
               </h3>
-              <div className="columns-xs space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {groupedAppointments['in-progress'].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
@@ -852,7 +849,7 @@ function AppointmentsPage() {
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
                 Planlanmış Randevular
               </h3>
-              <div className="columns-xs space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {groupedAppointments['scheduled'].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
@@ -889,7 +886,7 @@ function AppointmentsPage() {
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
                 Tamamlanan Randevular
               </h3>
-              <div className="columns-xs space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {groupedAppointments['completed'].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
@@ -927,7 +924,7 @@ function AppointmentsPage() {
                 <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
                 İptal Edilen Randevular
               </h3>
-              <div className="columns-xs space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {groupedAppointments['cancelled'].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
