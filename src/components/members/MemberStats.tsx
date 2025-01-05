@@ -6,6 +6,7 @@ interface StatsCardProps {
   value: number;
   icon: React.ElementType;
   iconColor?: string;
+  onClick?: () => void;
 }
 
 const StatsCard = ({
@@ -13,8 +14,12 @@ const StatsCard = ({
   value,
   icon: Icon,
   iconColor,
+  onClick,
 }: StatsCardProps) => (
-  <Card className="p-6 px-8 hover:shadow-xl rounded-lg transition-all">
+  <Card 
+    className="p-6 px-8 hover:shadow-xl rounded-lg transition-all cursor-pointer" 
+    onClick={onClick}
+  >
     <div className="flex items-center justify-between">
       <div>
         <p className="text-lg font-semibold text-foreground">{title}</p>
@@ -31,23 +36,31 @@ interface MemberStatsProps {
     basic: number;
     vip: number;
   };
+  onFilterChange: (type: "all" | "basic" | "vip") => void;
 }
 
-export const MemberStats = ({ stats }: MemberStatsProps) => {
+export const MemberStats = ({ stats, onFilterChange }: MemberStatsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <StatsCard title="Toplam Üye" value={stats.total} icon={Users} />
+      <StatsCard 
+        title="Toplam Üye" 
+        value={stats.total} 
+        icon={Users} 
+        onClick={() => onFilterChange("all")}
+      />
       <StatsCard
         title="Standart Üyeler"
         value={stats.basic}
         icon={Users}
         iconColor="text-blue-500"
+        onClick={() => onFilterChange("basic")}
       />
       <StatsCard
         title="VIP Üyeler"
         value={stats.vip}
         icon={Crown}
         iconColor="text-yellow-500"
+        onClick={() => onFilterChange("vip")}
       />
     </div>
   );

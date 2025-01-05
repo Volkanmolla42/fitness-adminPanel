@@ -225,7 +225,7 @@ const MembersPage = () => {
         </Dialog>
       </div>
 
-      <MemberStats stats={stats} />
+      <MemberStats stats={stats} onFilterChange={setMembershipFilter} />
 
       <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
         <MemberList
