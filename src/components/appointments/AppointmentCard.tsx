@@ -135,11 +135,11 @@ const AppointmentCard = ({
 
   return (
     <>
-      <Card className="w-full transform transition-all duration-200 hover:shadow-lg">
+      <Card className="w-full break-inside-avoid transform transition-all duration-200 hover:shadow-lg">
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <div className="p-4">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-50 p-2 rounded-lg">
                   <Calendar className="h-5 w-5 text-blue-600" />
@@ -220,7 +220,7 @@ const AppointmentCard = ({
 
           {/* Expanded Content */}
           <CollapsibleContent>
-            <div className="px-4 pb-4 space-y-4">
+            <div className="px-4 pb-4 space-y-2">
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <div className="bg-purple-50 p-2 rounded-lg">
