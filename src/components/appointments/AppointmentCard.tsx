@@ -137,9 +137,12 @@ const AppointmentCard = ({
     <>
       <Card className="w-full break-inside-avoid transform transition-all duration-200 hover:shadow-lg">
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-          <div className="p-4">
+          <div className="p-4 relative">
             {/* Header */}
-            <div className="flex items-center justify-between mb-2">
+            <Badge className={`${getStatusColor(appointment.status)} px-2 py-1  absolute top-4 right-4`}>
+              {getStatusText(appointment.status)}
+            </Badge>
+            <div className="flex  items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-50 p-2 rounded-lg">
                   <Calendar className="h-5 w-5 text-blue-600" />
@@ -149,19 +152,15 @@ const AppointmentCard = ({
                     <span className="text-2xl font-bold text-blue-600">
                       {appointment.time.slice(0, 5)}
                     </span>
-                    <Badge
-                      className={`${getStatusColor(appointment.status)} px-2 py-1`}
-                    >
-                      {getStatusText(appointment.status)}
-                    </Badge>
+                    
                   </div>
                   <span className="text-sm text-gray-600">
                     {format(new Date(appointment.date), "d MMMM", { locale: tr })} - {weekDay}
                   </span>
                 </div>
               </div>
-              
-              <CollapsibleTrigger asChild>
+
+              <CollapsibleTrigger asChild className="border absolute bottom-2 right-2">
                 <Button
                   variant="ghost"
                   size="sm"
