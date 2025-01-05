@@ -36,12 +36,12 @@ export const ServiceDialogs: React.FC<ServiceDialogsProps> = ({
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogTrigger asChild>
           <Button>
-            <Plus className="mr-2 h-4 w-4" /> Yeni Hizmet Ekle
+            <Plus className="mr-2 h-4 w-4" /> Yeni Paket Ekle
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Yeni Hizmet Ekle</DialogTitle>
+            <DialogTitle>Yeni Paket Ekle</DialogTitle>
           </DialogHeader>
           <ServiceForm onSubmit={onAdd} onCancel={() => setShowAddDialog(false)} />
         </DialogContent>
@@ -50,7 +50,7 @@ export const ServiceDialogs: React.FC<ServiceDialogsProps> = ({
       <Dialog open={!!editingService} onOpenChange={() => setEditingService(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Hizmeti Düzenle</DialogTitle>
+            <DialogTitle>Paketi Düzenle</DialogTitle>
           </DialogHeader>
           {editingService && (
             <ServiceForm

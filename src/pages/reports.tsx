@@ -270,7 +270,7 @@ const ReportsPage = () => {
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label>Hizmet Tipi</Label>
+                  <Label>Paket Tipi</Label>
                   <Select
                     value={filters.serviceType}
                     onValueChange={(value) =>
@@ -278,7 +278,7 @@ const ReportsPage = () => {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Hizmet seçin" />
+                      <SelectValue placeholder="Paket seçin" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Tümü</SelectItem>
@@ -478,7 +478,7 @@ const ReportsPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Hizmet Dağılımı</CardTitle>
+              <CardTitle>Paket Dağılımı</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -578,7 +578,7 @@ const ReportsPage = () => {
                   <TableRow>
                     <TableHead>Tarih</TableHead>
                     <TableHead>Üye</TableHead>
-                    <TableHead>Hizmet</TableHead>
+                    <TableHead>Paket</TableHead>
                     <TableHead className="text-right">Gelir</TableHead>
                   </TableRow>
                 </TableHeader>

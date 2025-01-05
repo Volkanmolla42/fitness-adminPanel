@@ -75,7 +75,7 @@ const MembersPage = () => {
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Hizmetler yüklenirken bir hata oluştu.",
+        description: "Paketler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
     }

@@ -39,7 +39,7 @@ const ServicesPage = () => {
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Hizmetler yüklenirken bir hata oluştu.",
+        description: "Paketler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
     } finally {
@@ -101,12 +101,12 @@ const ServicesPage = () => {
       setShowAddDialog(false);
       toast({
         title: "Başarılı",
-        description: "Yeni hizmet başarıyla eklendi.",
+        description: "Yeni paket başarıyla eklendi.",
       });
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Hizmet eklenirken bir hata oluştu.",
+        description: "Paket eklenirken bir hata oluştu.",
         variant: "destructive",
       });
     }
@@ -120,12 +120,12 @@ const ServicesPage = () => {
       setEditingService(null);
       toast({
         title: "Başarılı",
-        description: "Hizmet başarıyla güncellendi.",
+        description: "Paket başarıyla güncellendi.",
       });
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Hizmet güncellenirken bir hata oluştu.",
+        description: "Paket güncellenirken bir hata oluştu.",
         variant: "destructive",
       });
     }
@@ -136,12 +136,12 @@ const ServicesPage = () => {
       await deleteService(id);
       toast({
         title: "Başarılı",
-        description: "Hizmet başarıyla silindi.",
+        description: "Paket başarıyla silindi.",
       });
     } catch (error) {
       toast({
         title: "Hata",
-        description: "Hizmet silinirken bir hata oluştu.",
+        description: "Paket silinirken bir hata oluştu.",
         variant: "destructive",
       });
     }

@@ -98,7 +98,7 @@ export const MemberDetail = ({
       <div className="bg-muted/30 rounded-lg p-4 mb-6">
         <h3 className="font-medium mb-3 flex items-center gap-2">
           <ListChecks className="w-4 h-4" />
-          Aldığı Hizmetler
+          Aldığı Paketler
         </h3>
         <div className="flex flex-wrap gap-2">
           {member.subscribed_services.map((serviceId) => {

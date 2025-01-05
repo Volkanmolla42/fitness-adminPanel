@@ -188,7 +188,7 @@ export function AppointmentForm({
           name="service_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Hizmet</FormLabel>
+              <FormLabel>Paket</FormLabel>
               <Select
                 onValueChange={handleServiceChange}
                 value={field.value}
@@ -199,7 +199,7 @@ export function AppointmentForm({
                     <SelectValue
                       placeholder={
                         form.watch("member_id")
-                          ? "Hizmet seçin"
+                          ? "Paket seçin"
                           : "Önce üye seçin"
                       }
                     />
@@ -224,7 +224,7 @@ export function AppointmentForm({
 
         {selectedService?.session_count > 1 && (
           <FormDescription className="text-sm text-muted-foreground mt-2">
-            Bu hizmet {selectedService.session_count} seanslıktır.
+            Bu paket {selectedService.session_count} seanslıktır.
             {sessions.length > 0
               ? "Seansları düzenlemek için tıklayın."
               : "Lütfen seans tarihlerini belirleyin."}

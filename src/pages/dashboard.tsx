@@ -16,9 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Type Definitions
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
-type Member = Database["public"]["Tables"]["members"]["Row"];
-type Service = Database["public"]["Tables"]["services"]["Row"];
-type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+
 
 const DashboardPage = () => {
   const { toast } = useToast();
@@ -59,7 +57,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (servicesError) {
-      handleError("Hata", "Hizmetler yüklenirken bir hata oluştu.");
+      handleError("Hata", "Paketler yüklenirken bir hata oluştu.");
     }
   }, [servicesError]);
 
@@ -98,12 +96,16 @@ const DashboardPage = () => {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD formatı
+  
     const activeMembers = members.length;
-    const todayAppointments = appointments.filter(
-      (app) => app.date === today
-    ).length;
+  
+    const todayAppointments = appointments.filter((app) => {
+      // app.date'i aynı formata dönüştür
+      const appDate = new Date(app.date).toISOString().split("T")[0];
+      return appDate === today && app.status === "scheduled";
+    }).length;
+  
     const monthlyRevenue = appointments
       .filter((app) => {
         const appointmentDate = new Date(app.date);
@@ -118,11 +120,12 @@ const DashboardPage = () => {
         const service = services.find((s) => s.id === app.service_id);
         return sum + (service?.price || 0);
       }, 0);
+  
     const growthRate = 12.5; // Placeholder, replace with actual calculation logic
-
+  
     return { activeMembers, todayAppointments, monthlyRevenue, growthRate };
   }, [appointments, members, services]);
-
+  
   // Stats for grid
   const statsForGrid = useMemo(() => [
     {

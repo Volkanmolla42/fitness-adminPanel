@@ -75,9 +75,9 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Hizmeti Sil</AlertDialogTitle>
+                <AlertDialogTitle>Paketi Sil</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Bu hizmeti silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                  Bu paketi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

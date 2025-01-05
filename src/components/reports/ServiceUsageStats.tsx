@@ -18,7 +18,7 @@ export const ServiceUsageStats: React.FC<ServiceUsageStatsProps> = ({ data }) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hizmet Kullanımı</CardTitle>
+        <CardTitle>Paket Kullanımı</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">

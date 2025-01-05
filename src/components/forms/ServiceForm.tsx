@@ -72,7 +72,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
       className="space-y-3"
     >
       <div className="space-y-2">
-        <label className="text-sm font-medium">Hizmet Adı</label>
+        <label className="text-sm font-medium">Paket Adı</label>
         <Input {...form.register("name")} className="max-w-xl" />
         {form.formState.errors.name && (
           <p className="text-sm text-destructive">

@@ -21,7 +21,7 @@ export const ServiceSearch: React.FC<ServiceSearchProps> = ({
       <div className="relative flex-1">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Hizmet adı veya üyelik tipi ile ara..."
+          placeholder="Paket adı veya üyelik tipi ile ara..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-8"

@@ -35,7 +35,7 @@ export const memberSchema = z.object({
   membership_type: z.enum(["basic", "vip"]),
   subscribed_services: z
     .array(z.string())
-    .min(1, "En az bir hizmet seçilmelidir"),
+    .min(1, "En az bir paket seçilmelidir"),
   avatar_url: z.string().optional(),
   start_date: z.string().min(1, validationMessages.required),
   end_date: z.string().min(1, validationMessages.required),
@@ -66,7 +66,7 @@ export const trainerSchema = z.object({
 
 // Service validation schema
 export const serviceSchema = z.object({
-  name: z.string().min(2, validationMessages.minLength("Hizmet adı", 2)),
+  name: z.string().min(2, validationMessages.minLength("Paket adı", 2)),
   description: z.string().min(10, "Açıklama en az 10 karakter olmalıdır"),
   price: z
     .number()
@@ -89,7 +89,7 @@ export const appointmentFormSchema = z
   .object({
     member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
     trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
-    service_id: z.string().min(1, { message: "Hizmet seçimi zorunludur" }),
+    service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
     date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
     time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
     notes: z.string().optional(),
@@ -115,7 +115,7 @@ export const appointmentFormSchema = z
 export const multiSessionAppointmentSchema = z.object({
   member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
   trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
-  service_id: z.string().min(1, { message: "Hizmet seçimi zorunludur" }),
+  service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
   sessions: z
     .array(
       z.object({

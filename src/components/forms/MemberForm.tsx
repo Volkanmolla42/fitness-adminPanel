@@ -180,7 +180,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           name="subscribed_services"
           render={({ field }) => (
             <FormItem className="max-w-xl">
-              <FormLabel>Hizmetler</FormLabel>
+              <FormLabel>Paketler</FormLabel>
               <Select
                 onValueChange={(value) => {
                   const currentServices = field.value || [];
@@ -193,8 +193,8 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Hizmet seçin">
-                      {field.value?.length > 0 ? `${field.value.length} hizmet seçildi` : "Hizmet seçin"}
+                    <SelectValue placeholder="Paket seçin">
+                      {field.value?.length > 0 ? `${field.value.length} paket seçildi` : "Paket seçin"}
                     </SelectValue>
                   </SelectTrigger>
                 </FormControl>

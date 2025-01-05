@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Users,
-  Dumbbell,
   Calendar,
   BarChart3,
   Settings,
@@ -10,6 +9,7 @@ import {
   LayoutDashboard,
   UserCog,
   Menu,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,8 +45,8 @@ const navigationItems = [
     path: "/appointments",
   },
   {
-    title: "Hizmetler",
-    icon: Dumbbell,
+    title: "Paketler",
+    icon: Package,
     path: "/services",
   },
   {

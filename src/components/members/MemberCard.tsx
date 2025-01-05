@@ -60,7 +60,7 @@ export const MemberCard = ({ member, services, onClick }: MemberCardProps) => {
         </div>
         
         <div className="w-full mt-3">
-          <p className="text-xs text-muted-foreground mb-1">Aldığı Hizmetler</p>
+          <p className="text-xs text-muted-foreground mb-1">Aldığı Paketler</p>
           <div className="flex flex-wrap justify-center gap-1">
             {member.subscribed_services.map((serviceId) => {
               const service = services[serviceId];
