@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
@@ -14,7 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useNavigate } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -23,6 +22,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useAuth } from "@/contexts/auth-context";
 
 interface SidebarProps {
   className?: string;
@@ -74,6 +74,7 @@ const SidebarContent = ({
   const location = useLocation();
   const currentPath = location.pathname;
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -83,7 +84,7 @@ const SidebarContent = ({
   return (
     <div className={cn("flex flex-col h-full bg-background text-foreground", className)}>
       {/* Logo Area */}
-      <div className="flex flex-col items-center gap-4 my-2  shrink-0">
+      <div className="flex flex-col items-center gap-4 my-2 shrink-0">
         <div className="size-1/4 rounded-lg flex items-center justify-center">
           <img src="/lotus.png" alt="" />
         </div>
@@ -99,26 +100,22 @@ const SidebarContent = ({
             className="w-full justify-start"
             onClick={() => handleNavigation(item.path)}
           >
-            <item.icon className="mr-2 h-5 w-5" />
+            <item.icon className="mr-2 h-4 w-4" />
             {item.title}
           </Button>
         ))}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="mt-auto space-y-2">
+      {/* Bottom Section with Theme Toggle and Logout */}
+      <div className="mt-auto p-4 space-y-4">
         <Separator />
-        <div className="flex items-center justify-between px-2">
-          <Button variant="ghost" className="w-full justify-start">
-            <Settings className="mr-2 h-5 w-5" />
-            Ayarlar
-          </Button>
+        <div className="flex items-center justify-between">
           <ThemeToggle />
+          <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-red-600">
+            <LogOut className="mr-2 h-4 w-4" />
+            Çıkış Yap
+          </Button>
         </div>
-        <Button variant="ghost" className="w-full justify-start text-destructive">
-          <LogOut className="mr-2 h-5 w-5" />
-          Çıkış Yap
-        </Button>
       </div>
     </div>
   );

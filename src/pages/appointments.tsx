@@ -25,7 +25,7 @@ import {
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { Notification } from "@/components/ui/notification";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import {startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
 type FilterType = "all" | "daily" | "weekly" | "monthly";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -46,13 +46,23 @@ function AppointmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
-  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('acknowledgedNotifications');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
-
+  const getFilteredCount = (filter: FilterType) => {
+    const now = new Date();
+    return appointments.filter((appointment) => {
+      const appointmentDate = new Date(appointment.date);
+      switch (filter) {
+        case "all": return true;
+        case "daily": return appointmentDate >= startOfDay(now) && appointmentDate <= endOfDay(now);
+        case "weekly": return appointmentDate >= startOfWeek(now) && appointmentDate <= endOfWeek(now);
+        case "monthly": return appointmentDate >= startOfMonth(now) && appointmentDate <= endOfMonth(now);
+      }
+    }).length;
+  };
   useEffect(() => {
     fetchData();
     setupRealtimeSubscription();
@@ -386,13 +396,13 @@ function AppointmentsPage() {
     const interval = setInterval(checkUpcomingAppointments, 60000);
 
     return () => clearInterval(interval);
-  }, [appointments, trainers, members, dismissedNotifications, acknowledgedNotifications]);
+  }, [appointments, trainers, members, acknowledgedNotifications]);
 
   useEffect(() => {
     localStorage.setItem('acknowledgedNotifications', JSON.stringify([...acknowledgedNotifications]));
   }, [acknowledgedNotifications]);
 
-  // Randevu süresini dakika cinsinden hesapla
+  // Randevu Süresini Dakika Cinsinden Hesapla
   const getAppointmentDuration = (appointment: Appointment) => {
     const service = services.find(s => s.id === appointment.service_id);
     if (!service) {
@@ -678,7 +688,7 @@ function AppointmentsPage() {
       }`}
       onClick={() => setActiveFilter("all")}
     >
-      Tüm Randevular
+      Tüm Randevular ({getFilteredCount("all")})
     </button>
     <button
       className={`px-4 py-2 ${
@@ -688,7 +698,7 @@ function AppointmentsPage() {
       }`}
       onClick={() => setActiveFilter("daily")}
     >
-      Günlük Randevular
+      Günlük Randevular ({getFilteredCount("daily")})
     </button>
     <button
       className={`px-4 py-2 ${
@@ -698,7 +708,7 @@ function AppointmentsPage() {
       }`}
       onClick={() => setActiveFilter("weekly")}
     >
-      Haftalık Randevular
+      Haftalık Randevular ({getFilteredCount("weekly")})
     </button>
     <button
       className={`px-4 py-2 ${
@@ -708,13 +718,13 @@ function AppointmentsPage() {
       }`}
       onClick={() => setActiveFilter("monthly")}
     >
-      Aylık Randevular
+      Aylık Randevular ({getFilteredCount("monthly")})
     </button>
   </div>
   <AppointmentFilters
           searchQuery={searchQuery}
           onSearchChange={(value) => setSearchQuery(value)}
-          onFilterClick={() => {}}
+          
         />
 </div>
         
