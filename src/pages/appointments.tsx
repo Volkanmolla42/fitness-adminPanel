@@ -610,7 +610,7 @@ function AppointmentsPage() {
       <div className="flex justify-between items-center">
         <div className="space-y-1">
           <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold tracking-tight">Randevular</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Randevular</h2>
             <div className="text-lg text-muted-foreground">
               {currentTime.toLocaleDateString('tr-TR', { 
                 weekday: 'long', 

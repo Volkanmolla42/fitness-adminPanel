@@ -32,7 +32,7 @@ const navigationItems = [
   {
     title: "Ana Sayfa",
     icon: LayoutDashboard,
-    path: "/",
+    path: "/dashboard",
   },
   {
     title: "Üyeler",
