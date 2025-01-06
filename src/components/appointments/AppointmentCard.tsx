@@ -182,7 +182,7 @@ const AppointmentCard = ({
                       </div>
                     )}
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text italic text-gray-600">
                     {format(new Date(appointment.date), "d MMMM", { locale: tr })} - {weekDay}
                   </span>
                 </div>
@@ -222,7 +222,7 @@ const AppointmentCard = ({
                     <span> üye adı bulunamadı </span>
                   )}
                 </div>
-                <div className="flex gap-2 items-center  p-2 rounded-lg">
+                <div className="flex gap-2 items-center text-xs  p-2 rounded-lg">
                     <Package className="h-4 w-4 text-orange-600" />
                     <span> {service.name}</span>
                   </div>
