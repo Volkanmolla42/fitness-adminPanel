@@ -817,7 +817,7 @@ function AppointmentsPage() {
         <div className="space-y-6">
           {/* Devam Eden Randevular */}
           {groupedAppointments['in-progress']?.length > 0 && (
-            <div className="bg-yellow-50/50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-yellow-50/60 border border-yellow-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-yellow-800 flex items-center">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
                 Devam Eden Randevular
@@ -891,7 +891,7 @@ function AppointmentsPage() {
 
           {/* Tamamlanan Randevular */}
           {groupedAppointments['completed']?.length > 0 && (
-            <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
+            <div className="bg-green-500/20 border border-green-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
                 Tamamlanan Randevular
