@@ -28,17 +28,20 @@ interface MemberDetailProps {
   onDelete: (id: string) => Promise<void>;
 }
 
-export const MemberDetail = ({ 
-  member, 
-  services, 
+export const MemberDetail = ({
+  member,
+  services,
   trainers,
-  appointments, 
-  onEdit, 
-  onDelete 
+  appointments,
+  onEdit,
+  onDelete
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isVip = member.membership_type === "vip";
+
+  // Filter appointments for this member
+  const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
 
   // Calculate total package amount
   const totalPackageAmount = member.subscribed_services.reduce((total, serviceId) => {
@@ -115,9 +118,9 @@ export const MemberDetail = ({
           {member.subscribed_services.map((serviceId) => {
             const service = services[serviceId];
             return (
-              <Badge 
-                key={serviceId} 
-                variant="outline" 
+              <Badge
+                key={serviceId}
+                variant="outline"
                 className="px-3 py-1 flex items-center gap-2"
               >
                 <span>{service?.name || "Yükleniyor..."}</span>
@@ -182,7 +185,7 @@ export const MemberDetail = ({
         <AppointmentHistory
           open={showAppointments}
           onOpenChange={setShowAppointments}
-          appointments={appointments}
+          appointments={memberAppointments}
           trainers={trainers}
           services={services}
         />

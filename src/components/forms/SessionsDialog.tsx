@@ -13,6 +13,8 @@ import { format, addDays } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface Session {
   date: string;
@@ -193,42 +195,60 @@ export function SessionsDialog({
                   </div>
 
                   <div className="mt-2 space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm font-medium">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <CalendarDays className="w-4 h-4" />
                         <span>Tarih</span>
                       </div>
-                      <Input
-                        type="date"
-                        value={session.date || ""}
-                        min={new Date().toISOString().split("T")[0]}
-                        onChange={(e) =>
-                          handleSessionChange(index, "date", e.target.value)
-                        }
+                      <DatePicker
+                        selected={session.date ? new Date(`${session.date}T${session.time || '00:00'}`) : null}
+                        onChange={(date: Date) => {
+                          if (date) {
+                            handleSessionChange(
+                              index,
+                              "date",
+                              format(date, "yyyy-MM-dd")
+                            );
+                          }
+                        }}
+                        dateFormat="d MMMM, EEEE"
+                        locale={tr}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm font-medium">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="w-4 h-4" />
                         <span>Saat</span>
                       </div>
-                      <Input
-                        type="time"
-                        value={session.time || ""}
-                        onChange={(e) =>
-                          handleSessionChange(index, "time", e.target.value)
-                        }
+                      <DatePicker
+                        selected={session.time ? new Date(`${session.date || '2000-01-01'}T${session.time}`) : null}
+                        onChange={(date: Date) => {
+                          if (date) {
+                            handleSessionChange(
+                              index,
+                              "time",
+                              format(date, "HH:mm")
+                            );
+                          }
+                        }}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Saat"
+                        dateFormat="HH:mm"
+                        locale={tr}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </div>
 
                     {isSessionComplete ? (
                       <div className="flex items-center gap-2 text-primary font-medium">
-                        <CheckCircle2 className="w-4 h-4" />
                         <span>
                           {format(
                             new Date(`${session.date}T${session.time}`),
-                            "d MMMM yyyy, EEEE HH:mm",
+                            "d MMMM, EEEE HH:mm",
                             { locale: tr },
                           )}
                         </span>
