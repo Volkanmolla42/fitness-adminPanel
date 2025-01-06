@@ -76,8 +76,8 @@ export function AppointmentForm({
     form.setValue("service_id", serviceId);
 
     if (service && service.session_count > 1) {
-      // Initialize sessions array with empty dates
-      setSessions(Array(service.session_count).fill({ date: "", time: "" }));
+      // Initialize sessions array with a single session
+      setSessions([{ date: "", time: "" }]);
       setShowSessionsDialog(true);
     } else {
       setSessions([]);
@@ -85,12 +85,12 @@ export function AppointmentForm({
   };
 
   const handleSessionsConfirm = () => {
-    if (sessions.length > 0) {
+    if (sessions.length > 0 && sessions.every((s) => s.date && s.time)) {
       // Set the first session's date and time to the main form
       form.setValue("date", sessions[0].date);
       form.setValue("time", sessions[0].time);
+      setShowSessionsDialog(false);
     }
-    setShowSessionsDialog(false);
   };
 
   // Get the selected member's subscribed services

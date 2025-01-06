@@ -46,23 +46,75 @@ export function SessionsDialog({
     onSessionsChange(newSessions);
   };
 
-  const isComplete =
-    sessions.length === sessionCount &&
-    sessions.every((session) => session.date && session.time);
+  const isComplete = sessions.every((session) => session.date && session.time);
+  const completedSessions = sessions.filter((s) => s.date && s.time).length;
 
   const handleAutoFill = () => {
-    const firstSession = sessions[0];
-    if (!firstSession?.date || !firstSession?.time) return;
+    // Seçilmiş seansları bul
+    const selectedSessions = sessions.filter(session => session.date && session.time);
+    if (selectedSessions.length === 0) return;
 
-    const newSessions = sessions.map((session, index) => {
-      if (index === 0) return session;
-      const date = format(
-        addDays(new Date(firstSession.date), index * 7),
-        "yyyy-MM-dd",
-      );
-      return { date, time: firstSession.time };
+    // Seçilmiş günleri ve saatleri topla
+    const selectedDays = selectedSessions.map(session => {
+      const date = new Date(session.date);
+      return {
+        dayOfWeek: date.getDay(),
+        time: session.time,
+        date: new Date(session.date) // Orijinal tarihi de saklayalım
+      };
     });
+
+    // Seçilmemiş seansları bul
+    const unselectedIndices = sessions
+      .map((session, index) => (!session.date || !session.time ? index : -1))
+      .filter(index => index !== -1);
+
+    // Yeni seansları oluştur
+    const newSessions = [...sessions];
+    let lastDate = new Date(Math.max(...selectedDays.map(d => d.date.getTime())));
+
+    unselectedIndices.forEach((index) => {
+      let targetDayIndex = index % selectedDays.length;
+      let targetDay = selectedDays[targetDayIndex];
+      
+      // Bir sonraki uygun tarihi bul
+      let nextDate = new Date(lastDate);
+      nextDate.setDate(nextDate.getDate() + 1); // En az bir gün sonrası olsun
+
+      // Hedef güne ulaşana kadar ilerle
+      while (nextDate.getDay() !== targetDay.dayOfWeek) {
+        nextDate.setDate(nextDate.getDate() + 1);
+      }
+
+      // Yeni seansı ayarla
+      newSessions[index] = {
+        date: format(nextDate, 'yyyy-MM-dd'),
+        time: targetDay.time
+      };
+
+      lastDate = nextDate;
+    });
+
     onSessionsChange(newSessions);
+  };
+
+  const handleClearSessions = () => {
+    const newSessions = sessions.map(() => ({ date: "", time: "" }));
+    onSessionsChange(newSessions);
+  };
+
+  const handleAddSession = () => {
+    if (sessions.length < sessionCount) {
+      onSessionsChange([...sessions, { date: "", time: "" }]);
+    }
+  };
+
+  const handleRemoveSession = () => {
+    if (sessions.length > 1) {
+      const newSessions = [...sessions];
+      newSessions.pop();
+      onSessionsChange(newSessions);
+    }
   };
 
   return (
@@ -73,35 +125,68 @@ export function SessionsDialog({
             <div>
               <DialogTitle>Seans Tarihleri</DialogTitle>
               <DialogDescription className="mt-1.5">
-                Lütfen {sessionCount} seans için tarih ve saat belirleyin
+                {completedSessions} / {sessions.length} seans planlandı
               </DialogDescription>
             </div>
-            {sessions[0]?.date && sessions[0]?.time && (
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleAutoFill}
                 className="shrink-0"
+                disabled={!sessions[0]?.date || !sessions[0]?.time}
               >
                 Haftalık Otomatik Doldur
               </Button>
-            )}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveSession}
+                  className="shrink-0 px-2"
+                  disabled={sessions.length <= 1}
+                >
+                  -
+                </Button>
+                <div className="w-24 text-center text-sm">
+                  Seans: {sessions.length} / {sessionCount}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddSession}
+                  className="shrink-0 px-2"
+                  disabled={sessions.length >= sessionCount}
+                >
+                  +
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearSessions}
+                className="shrink-0"
+                disabled={completedSessions === 0}
+              >
+                Seansları Temizle
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
         <ScrollArea className="h-[60vh]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
-            {Array.from({ length: sessionCount }).map((_, index) => {
-              const isComplete = sessions[index]?.date && sessions[index]?.time;
+            {sessions.map((session, index) => {
+              const isSessionComplete = session.date && session.time;
 
               return (
                 <div
                   key={index}
-                  className={`p-4 border rounded-lg relative transition-all ${isComplete ? "bg-primary/5 border-primary/20" : "bg-muted/30"}`}
+                  className={`p-4 border rounded-lg relative transition-all ${isSessionComplete ? "bg-primary/5 border-primary/20" : "bg-muted/30"}`}
                 >
                   <div className="absolute -top-2 -left-2 w-6 h-6">
                     <div
-                      className={`absolute inset-0 rounded-full ${isComplete ? "bg-primary" : "bg-muted-foreground"} text-primary-foreground flex items-center justify-center text-sm font-medium`}
+                      className={`absolute inset-0 rounded-full ${isSessionComplete ? "bg-primary" : "bg-muted-foreground"} text-primary-foreground flex items-center justify-center text-sm font-medium`}
                     >
                       {index + 1}
                     </div>
@@ -115,7 +200,7 @@ export function SessionsDialog({
                       </div>
                       <Input
                         type="date"
-                        value={sessions[index]?.date || ""}
+                        value={session.date || ""}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(e) =>
                           handleSessionChange(index, "date", e.target.value)
@@ -130,21 +215,19 @@ export function SessionsDialog({
                       </div>
                       <Input
                         type="time"
-                        value={sessions[index]?.time || ""}
+                        value={session.time || ""}
                         onChange={(e) =>
                           handleSessionChange(index, "time", e.target.value)
                         }
                       />
                     </div>
 
-                    {isComplete ? (
-                      <div className="flex items-center gap-2 text-sm text-primary">
+                    {isSessionComplete ? (
+                      <div className="flex items-center gap-2 text-primary font-medium">
                         <CheckCircle2 className="w-4 h-4" />
                         <span>
                           {format(
-                            new Date(
-                              `${sessions[index].date}T${sessions[index].time}`,
-                            ),
+                            new Date(`${session.date}T${session.time}`),
                             "d MMMM yyyy, EEEE HH:mm",
                             { locale: tr },
                           )}
@@ -174,8 +257,7 @@ export function SessionsDialog({
               ) : (
                 <>
                   <AlertCircle className="w-3.5 h-3.5 mr-1" />
-                  {sessions.filter((s) => s.date && s.time).length} /{" "}
-                  {sessionCount} seans planlandı
+                  {completedSessions} / {sessionCount} seans planlandı
                 </>
               )}
             </Badge>
