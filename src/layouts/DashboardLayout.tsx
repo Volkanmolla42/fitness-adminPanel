@@ -11,7 +11,7 @@ export function DashboardLayout({}: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
-        <main className="flex-1 p-4 md:p-8 overflow-auto">
+        <main className="flex-1 mt-6 md:mt-0 p-4 md:p-8 overflow-auto">
           <Outlet />
         </main>
      

@@ -62,7 +62,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       phone: member?.phone || "",
       avatar_url:
         member?.avatar_url ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}&options[style]=female`,
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(2)}&options[style]=female&options[top]=longHair&options[accessories]=none`,
       membership_type: member?.membership_type || "basic",
       subscribed_services: member?.subscribed_services || [],
       start_date: member?.start_date || new Date().toISOString().split("T")[0],

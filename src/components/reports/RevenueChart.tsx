@@ -26,8 +26,25 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
+              <YAxis 
+                tickFormatter={(value) => 
+                  new Intl.NumberFormat('tr-TR', {
+                    style: 'currency',
+                    currency: 'TRY',
+                    maximumFractionDigits: 0
+                  }).format(value)
+                }
+              />
+              <Tooltip 
+                formatter={(value: number) => 
+                  new Intl.NumberFormat('tr-TR', {
+                    style: 'currency',
+                    currency: 'TRY',
+                    maximumFractionDigits: 0
+                  }).format(value)
+                }
+                labelFormatter={(label) => `${label} Ayı`}
+              />
               <Line
                 type="monotone"
                 dataKey="gelir"

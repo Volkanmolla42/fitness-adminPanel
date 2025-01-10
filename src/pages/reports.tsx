@@ -302,119 +302,130 @@ const ReportsPage = () => {
 
   // Prepare data for RevenueChart
   const revenueChartData = useMemo(() => {
-    const monthlyRevenue = filteredData.reduce((acc: { [key: string]: number }, appointment) => {
-      const month = format(new Date(appointment.date), "MMMM", { locale: tr });
-      const service = services.find(s => s.id === appointment.service_id);
-      acc[month] = (acc[month] || 0) + (service?.price || 0);
+    const monthlyRevenue = members.reduce((acc: { [key: string]: number }, member) => {
+      const memberStartMonth = format(new Date(member.start_date), "MMMM", { locale: tr });
+      
+      // O ay içinde satın alınan paketlerin fiyatlarını topla
+      member.subscribed_services.forEach(serviceId => {
+        const service = services.find(s => s.id === serviceId);
+        if (service) {
+          acc[memberStartMonth] = (acc[memberStartMonth] || 0) + service.price;
+        }
+      });
+      
       return acc;
     }, {});
 
     return Object.entries(monthlyRevenue).map(([month, gelir]) => ({
       month,
-      gelir
+      gelir: Math.round(gelir)
     }));
-  }, [filteredData, services]);
+  }, [members, services]);
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Raporlar</h1>
-        <div className="flex gap-4">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtrele
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Rapor Filtreleri</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Paket Tipi</Label>
-                  <Select
-                    value={filters.serviceType}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, serviceType: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Paket seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tümü</SelectItem>
-                      {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id.toString()}>
-                          {service.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>Min. Gelir</Label>
-                    <Input
-                      type="number"
-                      value={filters.minRevenue}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          minRevenue: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Max. Gelir</Label>
-                    <Input
-                      type="number"
-                      value={filters.maxRevenue}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          maxRevenue: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Select
-            value={selectedDateRange}
-            onValueChange={(value: "week" | "month" | "year" | "custom") =>
-              setSelectedDateRange(value)
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tarih aralığı seçin" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">Bu Hafta</SelectItem>
-              <SelectItem value="month">Bu Ay</SelectItem>
-              <SelectItem value="year">Bu Yıl</SelectItem>
-              <SelectItem value="custom">Özel Aralık</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedDateRange === "custom" && (
-            <DatePickerWithRange
-              date={customDateRange}
-              setDate={setCustomDateRange}
-            />
-          )}
-
-          <Button onClick={generatePDF}>
-            <Download className="mr-2 h-4 w-4" />
-            PDF İndir
-          </Button>
+   <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
+  <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
+  <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full md:w-auto">
+          <Filter className="mr-2 h-4 w-4" />
+          Filtrele
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rapor Filtreleri</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Paket Tipi</Label>
+            <Select
+              value={filters.serviceType}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, serviceType: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Paket seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tümü</SelectItem>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id.toString()}>
+                    {service.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Min. Gelir</Label>
+              <Input
+                type="number"
+                value={filters.minRevenue}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    minRevenue: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Max. Gelir</Label>
+              <Input
+                type="number"
+                value={filters.maxRevenue}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    maxRevenue: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </DialogContent>
+    </Dialog>
+
+    <Select
+      value={selectedDateRange}
+      onValueChange={(value: "week" | "month" | "year" | "custom") =>
+        setSelectedDateRange(value)
+      }
+    >
+      <SelectTrigger className="w-full md:w-[180px]">
+        <SelectValue placeholder="Tarih aralığı seçin" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="week">Bu Hafta</SelectItem>
+        <SelectItem value="month">Bu Ay</SelectItem>
+        <SelectItem value="year">Bu Yıl</SelectItem>
+        <SelectItem value="custom">Özel Aralık</SelectItem>
+      </SelectContent>
+    </Select>
+
+    {selectedDateRange === "custom" && (
+      <DatePickerWithRange
+        date={customDateRange}
+        setDate={setCustomDateRange}
+      />
+    )}
+
+    <Button
+      onClick={generatePDF}
+      className="w-full md:w-auto"
+    >
+      <Download className="mr-2 h-4 w-4" />
+      PDF İndir
+    </Button>
+  </div>
+</div>
+
 
       <div ref={reportRef} className="space-y-6">
         {/* Metrics Overview */}

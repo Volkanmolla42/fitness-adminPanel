@@ -237,7 +237,7 @@ const TrainersPage = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row gap-4 md:justify-between md:items-center">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight">Eğitmenler</h2>
           <p className="text-muted-foreground">

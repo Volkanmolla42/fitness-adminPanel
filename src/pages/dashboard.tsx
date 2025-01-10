@@ -97,15 +97,15 @@ const DashboardPage = () => {
   // Calculate stats
   const stats = useMemo(() => {
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD formatı
-  
+
     const activeMembers = members.length;
-  
+
     const todayAppointments = appointments.filter((app) => {
       // app.date'i aynı formata dönüştür
       const appDate = new Date(app.date).toISOString().split("T")[0];
       return appDate === today && app.status === "scheduled";
     }).length;
-  
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -115,33 +115,35 @@ const DashboardPage = () => {
     const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
     // Calculate current month's revenue
-    const monthlyRevenue = appointments
-      .filter((app) => {
-        const appointmentDate = new Date(app.date);
+    const monthlyRevenue = members
+      .filter((member) => {
+        const memberStartDate = new Date(member.start_date);
         return (
-          appointmentDate.getMonth() === currentMonth &&
-          appointmentDate.getFullYear() === currentYear &&
-          app.status === "completed"
+          memberStartDate.getMonth() === currentMonth &&
+          memberStartDate.getFullYear() === currentYear
         );
       })
-      .reduce((sum, app) => {
-        const service = services.find((s) => s.id === app.service_id);
-        return sum + (service?.price || 0);
+      .reduce((sum, member) => {
+        return sum + member.subscribed_services.reduce((serviceSum, serviceId) => {
+          const service = services.find((s) => s.id === serviceId);
+          return serviceSum + (service?.price || 0);
+        }, 0);
       }, 0);
 
     // Calculate previous month's revenue
-    const previousMonthRevenue = appointments
-      .filter((app) => {
-        const appointmentDate = new Date(app.date);
+    const previousMonthRevenue = members
+      .filter((member) => {
+        const memberStartDate = new Date(member.start_date);
         return (
-          appointmentDate.getMonth() === previousMonth &&
-          appointmentDate.getFullYear() === previousYear &&
-          app.status === "completed"
+          memberStartDate.getMonth() === previousMonth &&
+          memberStartDate.getFullYear() === previousYear
         );
       })
-      .reduce((sum, app) => {
-        const service = services.find((s) => s.id === app.service_id);
-        return sum + (service?.price || 0);
+      .reduce((sum, member) => {
+        return sum + member.subscribed_services.reduce((serviceSum, serviceId) => {
+          const service = services.find((s) => s.id === serviceId);
+          return serviceSum + (service?.price || 0);
+        }, 0);
       }, 0);
 
     // Calculate revenue growth rate
