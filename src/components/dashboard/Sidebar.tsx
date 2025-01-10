@@ -139,7 +139,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden fixed top-4 left-4"
+            className="md:hidden fixed top-4 bg-gray-200 left-4 z-50"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
