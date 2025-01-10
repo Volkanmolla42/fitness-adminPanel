@@ -323,7 +323,7 @@ const ReportsPage = () => {
   }, [members, services]);
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mt-4 p-0 mx-auto">
    <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
   <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
   <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">

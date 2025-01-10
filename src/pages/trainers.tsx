@@ -236,7 +236,7 @@ const TrainersPage = () => {
   const availableTrainers = filteredTrainers.filter((trainer) => !isTrainerBusy(trainer.id));
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mt-4 p-0 mx-auto py-6 space-y-6">
       <div className="flex flex-col md:flex-row gap-4 md:justify-between md:items-center">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight">Eğitmenler</h2>

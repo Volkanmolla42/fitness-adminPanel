@@ -217,7 +217,7 @@ const DashboardPage = () => {
 
   // Render Dashboard
   return (
-    <div className="space-y-8 container p-0">
+    <div className="space-y-8 container mt-4 p-0">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Panel</h1>
         <p className="text-muted-foreground mt-2">

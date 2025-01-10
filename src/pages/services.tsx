@@ -156,7 +156,7 @@ const ServicesPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mt-4 p-0 mx-auto py-6 space-y-6">
       <ServiceHeader />
       
       <div className="flex flex-col sm:flex-row justify-between gap-4">
