@@ -8,7 +8,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
 import AppointmentCard from "@/components/appointments/AppointmentCard";
@@ -25,7 +32,14 @@ import {
 import type { Database } from "@/types/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { Notification } from "@/components/ui/notification";
-import {startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
 
 type FilterType = "all" | "daily" | "weekly" | "monthly";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -41,14 +55,19 @@ function AppointmentsPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'weekly'>('list');
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "weekly">("list");
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeNotifications, setActiveNotifications] = useState<Array<{ id: string; message: string }>>([]);
+  const [activeNotifications, setActiveNotifications] = useState<
+    Array<{ id: string; message: string }>
+  >([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-  const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('acknowledgedNotifications');
+  const [acknowledgedNotifications, setAcknowledgedNotifications] = useState<
+    Set<string>
+  >(() => {
+    const saved = localStorage.getItem("acknowledgedNotifications");
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const getFilteredCount = (filter: FilterType) => {
@@ -56,10 +75,23 @@ function AppointmentsPage() {
     return appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.date);
       switch (filter) {
-        case "all": return true;
-        case "daily": return appointmentDate >= startOfDay(now) && appointmentDate <= endOfDay(now);
-        case "weekly": return appointmentDate >= startOfWeek(now) && appointmentDate <= endOfWeek(now);
-        case "monthly": return appointmentDate >= startOfMonth(now) && appointmentDate <= endOfMonth(now);
+        case "all":
+          return true;
+        case "daily":
+          return (
+            appointmentDate >= startOfDay(now) &&
+            appointmentDate <= endOfDay(now)
+          );
+        case "weekly":
+          return (
+            appointmentDate >= startOfWeek(now) &&
+            appointmentDate <= endOfWeek(now)
+          );
+        case "monthly":
+          return (
+            appointmentDate >= startOfMonth(now) &&
+            appointmentDate <= endOfMonth(now)
+          );
       }
     }).length;
   };
@@ -161,40 +193,47 @@ function AppointmentsPage() {
 
   const filteredAppointments = useMemo(() => {
     const now = new Date();
-      
-    return appointments.filter((appointment) => {
-      // Önce zaman filtresini uygula
-      const appointmentDate = new Date(appointment.date);
-      let isInTimeRange = false;
-  
-      switch (activeFilter) {
-        case "all":
-          isInTimeRange = true;
-          break;
-        case "daily":
-          isInTimeRange = appointmentDate >= startOfDay(now) && appointmentDate <= endOfDay(now);
-          break;
-        case "weekly":
-          isInTimeRange = appointmentDate >= startOfWeek(now) && appointmentDate <= endOfWeek(now);
-          break;
-        case "monthly":
-          isInTimeRange = appointmentDate >= startOfMonth(now) && appointmentDate <= endOfMonth(now);
-          break;
-      }
-  
-      if (!isInTimeRange) return false;
-  
-      // Sonra arama sorgusunu uygula
-      if (!searchQuery.trim()) return true;
-  
-      const member = membersRecord[appointment.member_id];
-      const trainer = trainersRecord[appointment.trainer_id];
-      const service = servicesRecord[appointment.service_id];
-  
-      if (!member || !trainer || !service) return false;
-  
-      const searchTerms = searchQuery.toLowerCase().split(" ");
-      const searchString = `
+
+    return appointments
+      .filter((appointment) => {
+        // Önce zaman filtresini uygula
+        const appointmentDate = new Date(appointment.date);
+        let isInTimeRange = false;
+
+        switch (activeFilter) {
+          case "all":
+            isInTimeRange = true;
+            break;
+          case "daily":
+            isInTimeRange =
+              appointmentDate >= startOfDay(now) &&
+              appointmentDate <= endOfDay(now);
+            break;
+          case "weekly":
+            isInTimeRange =
+              appointmentDate >= startOfWeek(now) &&
+              appointmentDate <= endOfWeek(now);
+            break;
+          case "monthly":
+            isInTimeRange =
+              appointmentDate >= startOfMonth(now) &&
+              appointmentDate <= endOfMonth(now);
+            break;
+        }
+
+        if (!isInTimeRange) return false;
+
+        // Sonra arama sorgusunu uygula
+        if (!searchQuery.trim()) return true;
+
+        const member = membersRecord[appointment.member_id];
+        const trainer = trainersRecord[appointment.trainer_id];
+        const service = servicesRecord[appointment.service_id];
+
+        if (!member || !trainer || !service) return false;
+
+        const searchTerms = searchQuery.toLowerCase().split(" ");
+        const searchString = `
         ${member.first_name}
         ${member.last_name}
         ${trainer.first_name}
@@ -204,15 +243,23 @@ function AppointmentsPage() {
         ${appointment.time}
         ${appointment.notes || ""}
       `.toLowerCase();
-  
-      return searchTerms.every((term) => searchString.includes(term));
-    }).sort((a, b) => {
-      const now = new Date().getTime();
-      const dateA = new Date(`${a.date} ${a.time}`).getTime();
-      const dateB = new Date(`${b.date} ${b.time}`).getTime();
-      return Math.abs(dateA - now) - Math.abs(dateB - now);
-    });
-  }, [appointments, searchQuery, membersRecord, trainersRecord, servicesRecord, activeFilter]);
+
+        return searchTerms.every((term) => searchString.includes(term));
+      })
+      .sort((a, b) => {
+        const now = new Date().getTime();
+        const dateA = new Date(`${a.date} ${a.time}`).getTime();
+        const dateB = new Date(`${b.date} ${b.time}`).getTime();
+        return Math.abs(dateA - now) - Math.abs(dateB - now);
+      });
+  }, [
+    appointments,
+    searchQuery,
+    membersRecord,
+    trainersRecord,
+    servicesRecord,
+    activeFilter,
+  ]);
   // Group appointments by status
   const groupedAppointments = useMemo(() => {
     return filteredAppointments.reduce((groups, appointment) => {
@@ -272,9 +319,14 @@ function AppointmentsPage() {
       if (status === "in-progress") {
         // Randevu başlatıldığında, başlangıç tarih ve saatini güncelle
         const now = new Date();
-        const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  
+        const currentDate = `${now.getFullYear()}-${String(
+          now.getMonth() + 1
+        ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const currentTime = `${String(now.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(now.getMinutes()).padStart(2, "0")}`;
+
         await updateAppointment(id, {
           status,
           date: currentDate,
@@ -283,7 +335,7 @@ function AppointmentsPage() {
       } else {
         await updateAppointment(id, { status });
       }
-  
+
       toast({
         title: "Başarılı",
         description: "Randevu durumu güncellendi.",
@@ -296,7 +348,6 @@ function AppointmentsPage() {
       });
     }
   };
-  
 
   const handleDeleteAppointment = async (id: string) => {
     try {
@@ -319,26 +370,35 @@ function AppointmentsPage() {
       const now = new Date();
       console.log("Checking appointments at:", now);
       console.log("Total appointments:", appointments.length);
-      
+
       // Mevcut bildirimleri kontrol et ve gerekirse kaldır
-      setActiveNotifications(prev => {
-        const updatedNotifications = prev.filter(notification => {
-          const appointment = appointments.find(a => String(a.id) === String(notification.id));
+      setActiveNotifications((prev) => {
+        const updatedNotifications = prev.filter((notification) => {
+          const appointment = appointments.find(
+            (a) => String(a.id) === String(notification.id)
+          );
           if (!appointment) return false;
 
-          const [hours, minutes] = appointment.time.split(':').map(num => parseInt(num, 10));
+          const [hours, minutes] = appointment.time
+            .split(":")
+            .map((num) => parseInt(num, 10));
           const appointmentDate = new Date(appointment.date);
           appointmentDate.setHours(hours);
           appointmentDate.setMinutes(minutes);
           appointmentDate.setSeconds(0);
 
-          const minutesUntil = Math.floor((appointmentDate.getTime() - now.getTime()) / (60 * 1000));
-          
+          const minutesUntil = Math.floor(
+            (appointmentDate.getTime() - now.getTime()) / (60 * 1000)
+          );
+
           // Eğer randevu geçmişse veya onaylanmışsa bildirimi kaldır
-          if (minutesUntil < 10 || acknowledgedNotifications.has(String(appointment.id))) {
+          if (
+            minutesUntil < 10 ||
+            acknowledgedNotifications.has(String(appointment.id))
+          ) {
             return false;
           }
-          
+
           return true;
         });
         return updatedNotifications;
@@ -352,35 +412,51 @@ function AppointmentsPage() {
         }
 
         // Eğer bu randevu için zaten aktif bir bildirim varsa, atla
-        if (activeNotifications.some(n => n.id === String(appointment.id))) {
+        if (activeNotifications.some((n) => n.id === String(appointment.id))) {
           return;
         }
 
         if (!appointment?.date || !appointment?.time) {
-          console.log("Skipping appointment with no date or time:", appointment);
+          console.log(
+            "Skipping appointment with no date or time:",
+            appointment
+          );
           return;
         }
 
         try {
-          const [hours, minutes] = appointment.time.split(':').map(num => parseInt(num, 10));
+          const [hours, minutes] = appointment.time
+            .split(":")
+            .map((num) => parseInt(num, 10));
           const appointmentDate = new Date(appointment.date);
           appointmentDate.setHours(hours);
           appointmentDate.setMinutes(minutes);
           appointmentDate.setSeconds(0);
 
-          const minutesUntil = Math.floor((appointmentDate.getTime() - now.getTime()) / (60 * 1000));
-          
+          const minutesUntil = Math.floor(
+            (appointmentDate.getTime() - now.getTime()) / (60 * 1000)
+          );
+
           // 10-20 dakika aralığındaysa bildirim göster
           if (minutesUntil >= 10 && minutesUntil <= 20) {
-            const trainer = trainers.find((t) => t.id === appointment.trainer_id);
+            const trainer = trainers.find(
+              (t) => t.id === appointment.trainer_id
+            );
             const member = members.find((m) => m.id === appointment.member_id);
             if (trainer && member) {
               const newNotification = {
                 id: String(appointment.id),
-                message: `${minutesUntil} dakika sonra <strong>${trainer.first_name} ${trainer.last_name}</strong> ile ${member.first_name} ${member.last_name} üyenin randevusu var. (${appointmentDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })})`
+                message: `${minutesUntil} dakika sonra <strong>${
+                  trainer.first_name
+                } ${trainer.last_name}</strong> ile ${member.first_name} ${
+                  member.last_name
+                } üyenin randevusu var. (${appointmentDate.toLocaleTimeString(
+                  "tr-TR",
+                  { hour: "2-digit", minute: "2-digit" }
+                )})`,
               };
-              
-              setActiveNotifications(prev => [...prev, newNotification]);
+
+              setActiveNotifications((prev) => [...prev, newNotification]);
             }
           }
         } catch (error) {
@@ -399,14 +475,19 @@ function AppointmentsPage() {
   }, [appointments, trainers, members, acknowledgedNotifications]);
 
   useEffect(() => {
-    localStorage.setItem('acknowledgedNotifications', JSON.stringify([...acknowledgedNotifications]));
+    localStorage.setItem(
+      "acknowledgedNotifications",
+      JSON.stringify([...acknowledgedNotifications])
+    );
   }, [acknowledgedNotifications]);
 
   // Randevu Süresini Dakika Cinsinden Hesapla
   const getAppointmentDuration = (appointment: Appointment) => {
-    const service = services.find(s => s.id === appointment.service_id);
+    const service = services.find((s) => s.id === appointment.service_id);
     if (!service) {
-      console.warn(`Service not found for appointment ${appointment.id}, using default duration`);
+      console.warn(
+        `Service not found for appointment ${appointment.id}, using default duration`
+      );
       return 1; // Varsayılan süre 1 dakika
     }
     return service.duration;
@@ -425,30 +506,30 @@ function AppointmentsPage() {
     const startTime = new Date(`${appointment.date}T${appointment.time}`);
     const duration = getAppointmentDuration(appointment);
     const endTime = new Date(startTime.getTime() + duration * 60000);
-    
+
     // Eğer randevu henüz başlamamışsa, toplam süreyi döndür
     if (now < startTime) {
       return duration;
     }
-    
+
     // Eğer randevu bitmişse, 0 döndür
     if (now >= endTime) {
       return 0;
     }
-    
+
     // Kalan süreyi hesapla
     const remainingMs = endTime.getTime() - now.getTime();
     const remainingMinutes = Math.ceil(remainingMs / 60000);
-    
-    console.log('Remaining time calculation:', {
+
+    console.log("Remaining time calculation:", {
       appointmentId: appointment.id,
       startTime: startTime.toLocaleTimeString(),
       endTime: endTime.toLocaleTimeString(),
       duration,
       remainingMinutes,
-      service: services.find(s => s.id === appointment.service_id)
+      service: services.find((s) => s.id === appointment.service_id),
     });
-    
+
     return remainingMinutes;
   };
 
@@ -456,9 +537,9 @@ function AppointmentsPage() {
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
-      
-      appointments.forEach(appointment => {
-        if (appointment.status === 'scheduled') {
+
+      appointments.forEach((appointment) => {
+        if (appointment.status === "scheduled") {
           const startTime = new Date(`${appointment.date}T${appointment.time}`);
           const timeDiff = startTime.getTime() - now.getTime();
           const minutesDiff = Math.floor(timeDiff / (1000 * 60));
@@ -466,35 +547,47 @@ function AppointmentsPage() {
 
           // Randevu zamanı geldiğinde
           if (secondsDiff <= 0) {
-            updateAppointmentStatus(appointment.id, 'in-progress');
+            updateAppointmentStatus(appointment.id, "in-progress");
             toast({
               title: "Randevu Başladı",
-              description: `${getMemberName(appointment.member_id)} üyesinin randevusu başladı. (${getAppointmentDuration(appointment)} dakika)`,
+              description: `${getMemberName(
+                appointment.member_id
+              )} üyesinin randevusu başladı. (${getAppointmentDuration(
+                appointment
+              )} dakika)`,
             });
           }
           // 5 dakika veya daha az kaldıysa
           else if (minutesDiff <= 5) {
             toast({
               title: "Yaklaşan Randevu",
-              description: `${getMemberName(appointment.member_id)} üyesinin randevusuna ${minutesDiff} dakika kaldı. (${getAppointmentDuration(appointment)} dakika)`,
+              description: `${getMemberName(
+                appointment.member_id
+              )} üyesinin randevusuna ${minutesDiff} dakika kaldı. (${getAppointmentDuration(
+                appointment
+              )} dakika)`,
               duration: 5000,
             });
           }
         }
         // Devam eden randevunun süresi dolduysa
-        else if (appointment.status === 'in-progress') {
+        else if (appointment.status === "in-progress") {
           const remainingMinutes = calculateRemainingTime(appointment);
-          
+
           if (remainingMinutes <= 0) {
-            updateAppointmentStatus(appointment.id, 'completed');
+            updateAppointmentStatus(appointment.id, "completed");
             toast({
               title: "Randevu Tamamlandı",
-              description: `${getMemberName(appointment.member_id)} üyesinin randevusu otomatik olarak tamamlandı.`,
+              description: `${getMemberName(
+                appointment.member_id
+              )} üyesinin randevusu otomatik olarak tamamlandı.`,
             });
           } else if (remainingMinutes % 15 === 0) {
             toast({
               title: "Devam Eden Randevu",
-              description: `${getMemberName(appointment.member_id)} üyesinin randevusunun bitmesine ${remainingMinutes} dakika kaldı.`,
+              description: `${getMemberName(
+                appointment.member_id
+              )} üyesinin randevusunun bitmesine ${remainingMinutes} dakika kaldı.`,
               duration: 5000,
             });
           }
@@ -506,18 +599,21 @@ function AppointmentsPage() {
   }, [appointments, services]);
 
   // Randevu durumunu güncellemek için yardımcı fonksiyon
-  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
+  const updateAppointmentStatus = async (
+    appointmentId: string,
+    newStatus: string
+  ) => {
     try {
       const { error } = await supabase
-        .from('appointments')
+        .from("appointments")
         .update({ status: newStatus })
-        .eq('id', appointmentId);
+        .eq("id", appointmentId);
 
       if (error) throw error;
 
       // State'i güncelle
-      setAppointments(prev => 
-        prev.map(apt => 
+      setAppointments((prev) =>
+        prev.map((apt) =>
           apt.id === appointmentId ? { ...apt, status: newStatus } : apt
         )
       );
@@ -527,7 +623,7 @@ function AppointmentsPage() {
         description: `Randevu durumu "${newStatus}" olarak değiştirildi.`,
       });
     } catch (error) {
-      console.error('Error updating appointment status:', error);
+      console.error("Error updating appointment status:", error);
       toast({
         variant: "destructive",
         title: "Hata",
@@ -555,8 +651,8 @@ function AppointmentsPage() {
 
   // Get appointments for a specific date
   const getAppointmentsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return appointments.filter(apt => apt.date === dateStr);
+    const dateStr = date.toISOString().split("T")[0];
+    return appointments.filter((apt) => apt.date === dateStr);
   };
 
   // Format time for display
@@ -566,22 +662,22 @@ function AppointmentsPage() {
 
   // Get member and trainer names
   const getMemberName = (memberId: string) => {
-    const member = members.find(m => m.id === memberId);
-    return member ? `${member.first_name} ${member.last_name}` : '';
+    const member = members.find((m) => m.id === memberId);
+    return member ? `${member.first_name} ${member.last_name}` : "";
   };
 
   const getTrainerName = (trainerId: string) => {
-    const trainer = trainers.find(t => t.id === trainerId);
-    return trainer ? `${trainer.first_name} ${trainer.last_name}` : '';
+    const trainer = trainers.find((t) => t.id === trainerId);
+    return trainer ? `${trainer.first_name} ${trainer.last_name}` : "";
   };
 
   const getServiceName = (serviceId: string) => {
-    const service = services.find(s => s.id === serviceId);
-    return service ? service.name : '';
+    const service = services.find((s) => s.id === serviceId);
+    return service ? service.name : "";
   };
 
   const getDayAbbreviation = (date: Date) => {
-    const days = ['Pzr', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+    const days = ["Pzr", "Pzt", "Sal", "Çrş", "Prş", "Cum", "Cts"];
     return days[date.getDay()];
   };
 
@@ -594,7 +690,7 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container p-0 mt-4 md:mt-0 py-6 space-y-6">
       {/* Notifications */}
       {activeNotifications.map((notification, index) => (
         <Notification
@@ -602,88 +698,99 @@ function AppointmentsPage() {
           message={notification.message}
           index={index}
           onAcknowledge={() => {
-            setAcknowledgedNotifications(prev => new Set([...prev, notification.id]));
-            setActiveNotifications(prev => prev.filter(n => n.id !== notification.id));
+            setAcknowledgedNotifications(
+              (prev) => new Set([...prev, notification.id])
+            );
+            setActiveNotifications((prev) =>
+              prev.filter((n) => n.id !== notification.id)
+            );
           }}
         />
       ))}
-      <div className="flex justify-between items-center">
-        <div className="space-y-1">
-          <div className="flex items-center gap-4">
-            <h2 className="text-3xl font-bold tracking-tight">Randevular</h2>
-            <div className="text-lg text-muted-foreground">
-              {currentTime.toLocaleDateString('tr-TR', { 
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long', 
-              })} - {currentTime.toLocaleTimeString('tr-TR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </div>
-          </div>
+      <div className="flex flex-col md:flex-row justify-between ">
+        <div>
+          <h2 className="text-3xl mb-1 font-bold tracking-tight">Randevular</h2>
           <p className="text-muted-foreground">
             Randevuları görüntüle, düzenle ve yönet
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant={viewMode === 'weekly' ? 'default' : 'outline'} 
-            onClick={() => setViewMode(viewMode === 'weekly' ? 'list' : 'weekly')}
-          >
-            {viewMode === 'weekly' ? (
-              <>
-                <LayoutList className="mr-2 h-4 w-4" />
-                Günlük Görünüm
-              </>
-            ) : (
-              <>
-                <CalendarDays className="mr-2 h-4 w-4" />
-                Haftalık Görünüm
-              </>
-            )}
-          </Button>
 
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        <div className="mt-4">
+          <div className="flex items-center flex-wrap gap-4">
+            <div className="text-lg text-muted-foreground">
+              {currentTime.toLocaleDateString("tr-TR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}{" "}
+              -{" "}
+              {currentTime.toLocaleTimeString("tr-TR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          variant={viewMode === "weekly" ? "default" : "outline"}
+          onClick={() => setViewMode(viewMode === "weekly" ? "list" : "weekly")}
+        >
+          {viewMode === "weekly" ? (
+            <>
+              <LayoutList className="mr-2 h-4 w-4" />
+              Günlük Görünüm
+            </>
+          ) : (
+            <>
+              <CalendarDays className="mr-2 h-4 w-4" />
+              Haftalık Görünüm
+            </>
+          )}
+        </Button>
+
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) {
               setSelectedAppointment(null);
             }
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
-                </DialogTitle>
-              </DialogHeader>
-              <AppointmentForm
-                members={members}
-                trainers={trainers}
-                services={services}
-                appointment={selectedAppointment}
-                onSubmit={handleFormSubmit}
-                onCancel={() => {
-                  setIsDialogOpen(false);
-                  setSelectedAppointment(null);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Yeni Randevu
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
+              </DialogTitle>
+            </DialogHeader>
+            <AppointmentForm
+              members={members}
+              trainers={trainers}
+              services={services}
+              appointment={selectedAppointment}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setIsDialogOpen(false);
+                setSelectedAppointment(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      
-      <div className="flex justify-between items-center">
-  <div className="flex space-x-4 border-b">
+     <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+  <div className="flex flex-col md:flex-row md:space-x-2 border-b md:border-none w-full md:w-auto">
     <button
       className={`px-4 py-2 ${
         activeFilter === "all"
-          ? "border-b-2 border-blue-500 text-blue-500"
+          ? "border-b-2 border-blue-500 text-blue-500 "
           : "text-gray-500"
       }`}
       onClick={() => setActiveFilter("all")}
@@ -693,7 +800,7 @@ function AppointmentsPage() {
     <button
       className={`px-4 py-2 ${
         activeFilter === "daily"
-          ? "border-b-2 border-blue-500 text-blue-500"
+          ? "border-b-2 border-blue-500 text-blue-500 "
           : "text-gray-500"
       }`}
       onClick={() => setActiveFilter("daily")}
@@ -721,16 +828,16 @@ function AppointmentsPage() {
       Aylık Randevular ({getFilteredCount("monthly")})
     </button>
   </div>
-  <AppointmentFilters
-          searchQuery={searchQuery}
-          onSearchChange={(value) => setSearchQuery(value)}
-          
-        />
+  <div className="w-full md:w-auto">
+    <AppointmentFilters
+      searchQuery={searchQuery}
+      onSearchChange={(value) => setSearchQuery(value)}
+    />
+  </div>
 </div>
-        
-     
 
-      {viewMode === 'weekly' ? (
+
+      {viewMode === "weekly" ? (
         <div className="bg-white rounded-lg shadow">
           <div className="overflow-x-auto">
             <Table>
@@ -738,19 +845,23 @@ function AppointmentsPage() {
                 <TableRow>
                   <TableHead className="w-[80px] bg-muted/50">Saat</TableHead>
                   {getWeekDates().map((date) => (
-                    <TableHead 
-                      key={date.toISOString()} 
+                    <TableHead
+                      key={date.toISOString()}
                       className={`
                         min-w-[100px] bg-muted/50
-                        ${date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0] && 
-                        "bg-primary/10"
-                      }`}
+                        ${
+                          date.toISOString().split("T")[0] ===
+                            new Date().toISOString().split("T")[0] &&
+                          "bg-primary/10"
+                        }`}
                     >
-                      <div className="font-bold">{getDayAbbreviation(date)}</div>
+                      <div className="font-bold">
+                        {getDayAbbreviation(date)}
+                      </div>
                       <div>
-                        {date.toLocaleDateString('tr-TR', { 
-                          day: 'numeric',
-                          month: 'short'
+                        {date.toLocaleDateString("tr-TR", {
+                          day: "numeric",
+                          month: "short",
                         })}
                       </div>
                     </TableHead>
@@ -761,26 +872,29 @@ function AppointmentsPage() {
                 {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => (
                   <TableRow key={hour}>
                     <TableCell className="font-medium text-sm p-1 bg-muted/50">
-                      {`${hour.toString().padStart(2, '0')}:00`}
+                      {`${hour.toString().padStart(2, "0")}:00`}
                     </TableCell>
                     {getWeekDates().map((date) => {
-                      const dayAppointments = getAppointmentsForDate(date)
-                        .filter(apt => {
-                          const aptHour = parseInt(apt.time.split(':')[0]);
-                          return aptHour === hour;
-                        });
+                      const dayAppointments = getAppointmentsForDate(
+                        date
+                      ).filter((apt) => {
+                        const aptHour = parseInt(apt.time.split(":")[0]);
+                        return aptHour === hour;
+                      });
 
                       return (
-                        <TableCell 
-                          key={date.toISOString()} 
+                        <TableCell
+                          key={date.toISOString()}
                           className={`
                             p-0.5 h-[70px] align-top
-                            ${date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0] && 
-                            "bg-primary/5"
-                          }`}
+                            ${
+                              date.toISOString().split("T")[0] ===
+                                new Date().toISOString().split("T")[0] &&
+                              "bg-primary/5"
+                            }`}
                         >
                           {dayAppointments.map((apt) => (
-                            <div 
+                            <div
                               key={apt.id}
                               onClick={() => {
                                 setSelectedAppointment(apt);
@@ -788,11 +902,15 @@ function AppointmentsPage() {
                               }}
                               className={`
                                 p-0.5 rounded text-[10px] mb-0.5 cursor-pointer hover:opacity-80 transition-opacity
-                                ${apt.status === 'completed' ? 'bg-green-100 hover:bg-green-200' :
-                                apt.status === 'in-progress' ? 'bg-yellow-100 hover:bg-yellow-200' :
-                                apt.status === 'cancelled' ? 'bg-red-100 hover:bg-red-200' :
-                                'bg-blue-100 hover:bg-blue-200'
-                              }`}
+                                ${
+                                  apt.status === "completed"
+                                    ? "bg-green-100 hover:bg-green-200"
+                                    : apt.status === "in-progress"
+                                    ? "bg-yellow-100 hover:bg-yellow-200"
+                                    : apt.status === "cancelled"
+                                    ? "bg-red-100 hover:bg-red-200"
+                                    : "bg-blue-100 hover:bg-blue-200"
+                                }`}
                             >
                               <div className="font-medium flex justify-between items-center">
                                 <span>{formatTime(apt.time)}</span>
@@ -800,8 +918,12 @@ function AppointmentsPage() {
                                   {getDayAbbreviation(new Date(apt.date))}
                                 </span>
                               </div>
-                              <div className="truncate">{getMemberName(apt.member_id)}</div>
-                              <div className="text-muted-foreground truncate">{getServiceName(apt.service_id)}</div>
+                              <div className="truncate">
+                                {getMemberName(apt.member_id)}
+                              </div>
+                              <div className="text-muted-foreground truncate">
+                                {getServiceName(apt.service_id)}
+                              </div>
                             </div>
                           ))}
                         </TableCell>
@@ -816,29 +938,43 @@ function AppointmentsPage() {
       ) : (
         <div className="space-y-6">
           {/* Devam Eden Randevular */}
-          {groupedAppointments['in-progress']?.length > 0 && (
+          {groupedAppointments["in-progress"]?.length > 0 && (
             <div className="bg-yellow-50/60 border border-yellow-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-yellow-800 flex items-center">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
                 Devam Eden Randevular
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {groupedAppointments['in-progress'].map((appointment) => (
+                {groupedAppointments["in-progress"].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
                     appointment={appointment}
                     member={{
-                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
-                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
-                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
+                      firstName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.first_name || "",
+                      lastName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.last_name || "",
+                      avatar:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.avatar_url || "",
                     }}
                     trainer={{
-                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
-                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                      firstName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.first_name || "",
+                      lastName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.last_name || "",
                     }}
                     service={{
-                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
-                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                      name:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.name || "",
+                      duration:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -853,29 +989,43 @@ function AppointmentsPage() {
           )}
 
           {/* Planlanmış Randevular */}
-          {groupedAppointments['scheduled']?.length > 0 && (
+          {groupedAppointments["scheduled"]?.length > 0 && (
             <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
                 Planlanmış Randevular
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {groupedAppointments['scheduled'].map((appointment) => (
+                {groupedAppointments["scheduled"].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
                     appointment={appointment}
                     member={{
-                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
-                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
-                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
+                      firstName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.first_name || "",
+                      lastName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.last_name || "",
+                      avatar:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.avatar_url || "",
                     }}
                     trainer={{
-                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
-                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                      firstName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.first_name || "",
+                      lastName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.last_name || "",
                     }}
                     service={{
-                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
-                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                      name:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.name || "",
+                      duration:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -890,30 +1040,43 @@ function AppointmentsPage() {
           )}
 
           {/* Tamamlanan Randevular */}
-          {groupedAppointments['completed']?.length > 0 && (
+          {groupedAppointments["completed"]?.length > 0 && (
             <div className="bg-green-500/20 border border-green-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-green-800 flex items-center">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
                 Tamamlanan Randevular
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {groupedAppointments['completed'].map((appointment) => (
+                {groupedAppointments["completed"].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
                     appointment={appointment}
                     member={{
-                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
-                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
-                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
+                      firstName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.first_name || "",
+                      lastName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.last_name || "",
+                      avatar:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.avatar_url || "",
                     }}
                     trainer={{
-                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
-                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
-                     
+                      firstName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.first_name || "",
+                      lastName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.last_name || "",
                     }}
                     service={{
-                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
-                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                      name:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.name || "",
+                      duration:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -928,30 +1091,43 @@ function AppointmentsPage() {
           )}
 
           {/* İptal Edilen Randevular */}
-          {groupedAppointments['cancelled']?.length > 0 && (
+          {groupedAppointments["cancelled"]?.length > 0 && (
             <div className="bg-red-50/50 border border-red-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4 text-red-800 flex items-center">
                 <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
                 İptal Edilen Randevular
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {groupedAppointments['cancelled'].map((appointment) => (
+                {groupedAppointments["cancelled"].map((appointment) => (
                   <AppointmentCard
                     key={appointment.id}
                     appointment={appointment}
                     member={{
-                      firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
-                      lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
-                      avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
+                      firstName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.first_name || "",
+                      lastName:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.last_name || "",
+                      avatar:
+                        members.find((m) => m.id === appointment.member_id)
+                          ?.avatar_url || "",
                     }}
                     trainer={{
-                      firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
-                      lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
-                     
+                      firstName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.first_name || "",
+                      lastName:
+                        trainers.find((t) => t.id === appointment.trainer_id)
+                          ?.last_name || "",
                     }}
                     service={{
-                      name: services.find((s) => s.id === appointment.service_id)?.name || "",
-                      duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                      name:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.name || "",
+                      duration:
+                        services.find((s) => s.id === appointment.service_id)
+                          ?.duration || 0,
                     }}
                     onStatusChange={handleStatusChange}
                     onEdit={(appointment) => {
@@ -968,7 +1144,9 @@ function AppointmentsPage() {
           {/* Randevu Yoksa */}
           {Object.keys(groupedAppointments).length === 0 && (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Görüntülenecek randevu bulunmamaktadır.</p>
+              <p className="text-muted-foreground">
+                Görüntülenecek randevu bulunmamaktadır.
+              </p>
             </div>
           )}
         </div>
