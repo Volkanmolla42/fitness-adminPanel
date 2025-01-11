@@ -92,6 +92,7 @@ export const appointmentFormSchema = z
     date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
     time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
     notes: z.string().optional(),
+    status: z.enum(["scheduled", "in-progress", "completed", "cancelled"]).default("scheduled"),
   })
   .refine(
     (data) => {

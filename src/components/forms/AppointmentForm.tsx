@@ -29,7 +29,7 @@ type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
-type AppointmentInput = Omit<Appointment, "id" | "created_at" | "status">;
+type AppointmentInput = Omit<Appointment, "id" | "created_at">;
 
 interface Session {
   date: string;
@@ -67,6 +67,7 @@ export function AppointmentForm({
       date: appointment?.date || new Date().toISOString().split("T")[0],
       time: appointment?.time || "",
       notes: appointment?.notes || "",
+      status: appointment?.status || "scheduled",
     },
   });
 
@@ -286,16 +287,38 @@ export function AppointmentForm({
             <FormItem>
               <FormLabel>Notlar</FormLabel>
               <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="Randevu ile ilgili notlar..."
-                  className="resize-none"
-                />
+                <Textarea {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {appointment && (
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Durum</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Durum seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="scheduled">Planlandı</SelectItem>
+                    <SelectItem value="in-progress">Devam Ediyor</SelectItem>
+                    <SelectItem value="completed">Tamamlandı</SelectItem>
+                    <SelectItem value="cancelled">İptal Edildi</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <DialogFooter>
           <Button
