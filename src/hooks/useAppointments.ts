@@ -190,19 +190,28 @@ export const useAppointments = () => {
       );
     }
 
+    // Sort all appointments by date and time
+    filtered.sort((a, b) => {
+      const dateTimeA = new Date(`${a.date}T${a.time}`);
+      const dateTimeB = new Date(`${b.date}T${b.time}`);
+      return dateTimeA.getTime() - dateTimeB.getTime();
+    });
+
     return filtered;
   }, [appointments, searchQuery, activeFilter, selectedTrainerId, members, trainers, services]);
 
   // Grouped appointments
   const groupedAppointments = useMemo(() => {
-    return filteredAppointments.reduce((groups, appointment) => {
+    const groups = filteredAppointments.reduce((acc, appointment) => {
       const status = appointment.status;
-      if (!groups[status]) {
-        groups[status] = [];
+      if (!acc[status]) {
+        acc[status] = [];
       }
-      groups[status].push(appointment);
-      return groups;
+      acc[status].push(appointment);
+      return acc;
     }, {} as Record<string, Appointment[]>);
+
+    return groups;
   }, [filteredAppointments]);
 
   // Appointment status management
