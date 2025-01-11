@@ -1,10 +1,9 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {useLocation, useNavigate } from "react-router-dom";
 import {
   Users,
   Calendar,
   BarChart3,
-  Settings,
   LogOut,
   LayoutDashboard,
   UserCog,
@@ -92,7 +91,7 @@ const SidebarContent = ({
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-background text-foreground overflow-hidden", className)}>
+    <div className={cn("flex flex-col h-svh bg-background text-foreground overflow-hidden", className)}>
       {/* Logo Area */}
       <div className={cn("flex flex-col items-center mt-6 mb-8 shrink-0 transition-all duration-300 ease-in-out", {
         "gap-2": isCollapsed,
@@ -110,7 +109,7 @@ const SidebarContent = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="space-y-1 flex-grow px-2">
+      <nav className="space-y-1  flex-grow px-2">
         <TooltipProvider delayDuration={0}>
           {navigationItems.map((item) => (
             <Tooltip key={item.path}>
@@ -118,16 +117,14 @@ const SidebarContent = ({
                 <Button
                   variant={currentPath === item.path ? "default" : "ghost"}
                   className={cn("w-full transition-all duration-300 ease-in-out", {
-                    "justify-start": !isCollapsed,
+                    "justify-start px-3": !isCollapsed,
                     "justify-center p-2": isCollapsed,
-                    "bg-primary/10": currentPath === item.path && isCollapsed
                   })}
                   onClick={() => handleNavigation(item.path)}
                 >
                   <item.icon className={cn("h-5 w-5 transition-all duration-300 ease-in-out", {
                     "mr-2": !isCollapsed,
-                    "text-white": currentPath === item.path && !isCollapsed,
-                    "text-primary": currentPath === item.path && isCollapsed
+                    "text-white": currentPath === item.path,
                   })} />
                   <span className={cn("transition-all duration-300 ease-in-out", {
                     "opacity-0 scale-95 w-0": isCollapsed,
@@ -203,25 +200,9 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
           className
         )}
       >
-        <div className="w-full relative">
-          <div className={cn(
-            "absolute inset-0 transition-all duration-300 ease-in-out",
-            {
-              "translate-x-0 opacity-100": !isCollapsed,
-              "-translate-x-full opacity-0": isCollapsed,
-            }
-          )}>
-            <SidebarContent isCollapsed={false} />
-          </div>
-          
-          <div className={cn(
-            "absolute inset-0 transition-all duration-300 ease-in-out",
-            {
-              "translate-x-0 opacity-100": isCollapsed,
-              "translate-x-full opacity-0": !isCollapsed,
-            }
-          )}>
-            <SidebarContent isCollapsed={true} />
+        <div className="w-full relative overflow-hidden">
+          <div className="w-full transition-all duration-300 ease-in-out">
+            <SidebarContent isCollapsed={isCollapsed} />
           </div>
         </div>
 
