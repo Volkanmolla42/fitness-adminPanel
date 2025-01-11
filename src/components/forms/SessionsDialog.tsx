@@ -7,7 +7,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, addDays } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -121,21 +120,21 @@ export function SessionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[95vw] max-w-2xl p-4 md:p-6">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <DialogTitle>Seans Tarihleri</DialogTitle>
               <DialogDescription className="mt-1.5">
                 {completedSessions} / {sessions.length} seans planlandı
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleAutoFill}
-                className="shrink-0"
+                className="shrink-0 text-xs sm:text-sm"
                 disabled={!sessions[0]?.date || !sessions[0]?.time}
               >
                 Haftalık Otomatik Doldur
@@ -150,7 +149,7 @@ export function SessionsDialog({
                 >
                   -
                 </Button>
-                <div className="w-24 text-center text-sm">
+                <div className="w-20 sm:w-24 text-center text-xs sm:text-sm">
                   Seans: {sessions.length} / {sessionCount}
                 </div>
                 <Button
@@ -167,7 +166,7 @@ export function SessionsDialog({
                 variant="outline"
                 size="sm"
                 onClick={handleClearSessions}
-                className="shrink-0"
+                className="shrink-0 text-xs sm:text-sm"
                 disabled={completedSessions === 0}
               >
                 Seansları Temizle
@@ -176,8 +175,8 @@ export function SessionsDialog({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="h-[60vh]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
+        <ScrollArea className="h-[60vh] md:h-[65vh]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 p-2">
             {sessions.map((session, index) => {
               const isSessionComplete = session.date && session.time;
 
@@ -194,8 +193,8 @@ export function SessionsDialog({
                     </div>
                   </div>
 
-                  <div className="mt-2 space-y-3">
-                    <div className="flex flex-col gap-2">
+                  <div className="mt-2 space-y-2 sm:space-y-3">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <CalendarDays className="w-4 h-4" />
                         <span>Tarih</span>
@@ -204,12 +203,12 @@ export function SessionsDialog({
                         selected={session.date ? new Date(`${session.date}T${session.time || '00:00'}`) : null}
                         onChange={(date: Date) => {
                           if (date) {
-                            handleSessionChange(
-                              index,
-                              "date",
+                          handleSessionChange(
+                            index,
+                            "date",
                               format(date, "yyyy-MM-dd")
                             );
-                          }
+                        }
                         }}
                         dateFormat="d MMMM, EEEE"
                         locale={tr}
@@ -217,7 +216,7 @@ export function SessionsDialog({
                       />
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1.5 sm:gap-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="w-4 h-4" />
                         <span>Saat</span>
@@ -243,7 +242,7 @@ export function SessionsDialog({
                       />
                     </div>
 
-                    {isSessionComplete ? (
+                      {isSessionComplete ? (
                       <div className="flex items-center gap-2 text-primary font-medium">
                         <span>
                           {format(
@@ -253,11 +252,11 @@ export function SessionsDialog({
                           )}
                         </span>
                       </div>
-                    ) : (
+                      ) : (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <AlertCircle className="w-4 h-4" />
                         <span>Tarih ve saat seçilmedi</span>
-                      </div>
+                    </div>
                     )}
                   </div>
                 </div>
