@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format, addDays } from "date-fns";
+import { format} from "date-fns";
 import { tr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, CheckCircle2, AlertCircle } from "lucide-react";
@@ -37,6 +37,8 @@ export function SessionsDialog({
   onSessionsChange,
   onConfirm,
 }: SessionsDialogProps) {
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+
   const handleSessionChange = (
     index: number,
     field: "date" | "time",
@@ -100,8 +102,13 @@ export function SessionsDialog({
   };
 
   const handleClearSessions = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const confirmClearSessions = () => {
     const newSessions = sessions.map(() => ({ date: "", time: "" }));
     onSessionsChange(newSessions);
+    setShowConfirmDialog(false);
   };
 
   const handleAddSession = () => {
@@ -139,6 +146,15 @@ export function SessionsDialog({
               >
                 Haftalık Otomatik Doldur
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearSessions}
+                className="shrink-0 text-xs sm:text-sm"
+                disabled={completedSessions === 0}
+              >
+                Seansları Temizle
+              </Button>
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
@@ -162,15 +178,7 @@ export function SessionsDialog({
                   +
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearSessions}
-                className="shrink-0 text-xs sm:text-sm"
-                disabled={completedSessions === 0}
-              >
-                Seansları Temizle
-              </Button>
+              
             </div>
           </div>
         </DialogHeader>
@@ -292,6 +300,32 @@ export function SessionsDialog({
           </div>
         </div>
       </DialogContent>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-sm p-4 md:p-6">
+          <DialogHeader>
+            <DialogTitle>Seansları Temizle</DialogTitle>
+            <DialogDescription className="pt-3">
+              Tüm seansları temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              İptal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmClearSessions}
+            >
+              Temizle
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
