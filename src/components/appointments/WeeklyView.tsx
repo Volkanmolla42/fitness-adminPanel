@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,26 +8,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Appointment, Member, Service } from "@/types/appointments";
+import AppointmentDetailsDialog from "./AppointmentDetailsDialog";
 
 interface WeeklyViewProps {
-  weekDates: Date[];
   appointments: Appointment[];
   members: Member[];
   services: Service[];
+  selectedTrainerId: string | null;
   onAppointmentClick: (appointment: Appointment) => void;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
-  weekDates,
   appointments,
   members,
   services,
+  selectedTrainerId,
   onAppointmentClick,
 }) => {
-  // Helper functions
-  const getDayAbbreviation = (date: Date) => {
-    const days = ["Pzr", "Pzt", "Sal", "Çrş", "Prş", "Cum", "Cts"];
-    return days[date.getDay()];
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+
+  const getDayName = (dayIndex: number) => {
+    const days = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    return days[dayIndex];
   };
 
   const formatTime = (time: string) => {
@@ -39,15 +42,43 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     return member ? `${member.first_name} ${member.last_name}` : "";
   };
 
-  const getServiceName = (serviceId: string) => {
-    const service = services.find((s) => s.id === serviceId);
-    return service ? service.name : "";
+  const getAppointmentsForDayAndHour = (dayIndex: number, hour: number) => {
+    const filteredAppointments = appointments.filter((apt) => {
+      const aptDate = new Date(apt.date);
+      const aptHour = parseInt(apt.time.split(":")[0]);
+      // getDay() 0=Pazar olduğu için, sadece 1-6 arası günleri alıyoruz
+      const day = aptDate.getDay();
+      if (day === 0) return false; // Pazar günlerini gösterme
+      const adjustedDay = day - 1; // 1->0, 2->1, ... 6->5
+      return adjustedDay === dayIndex && 
+             aptHour === hour && 
+             apt.trainer_id === selectedTrainerId &&
+             apt.status === "scheduled";
+    });
+
+    const groupedAppointments = filteredAppointments.reduce((acc, curr) => {
+      const key = `${curr.member_id}-${curr.service_id}`;
+      if (!acc[key]) {
+        acc[key] = {
+          appointment: curr,
+          count: 1
+        };
+      } else {
+        acc[key].count += 1;
+      }
+      return acc;
+    }, {} as Record<string, { appointment: Appointment; count: number }>);
+
+    return Object.values(groupedAppointments);
   };
 
-  const getAppointmentsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return appointments.filter((apt) => apt.date === dateStr);
-  };
+  if (!selectedTrainerId) {
+    return (
+      <div className="flex justify-center items-center h-[400px] bg-white rounded-lg shadow">
+        <p className="text-lg text-gray-500">Lütfen bir eğitmen seçin</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -55,25 +86,15 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px] bg-muted/50">Saat</TableHead>
-              {weekDates.map((date) => (
+              <TableHead className="w-[100px] bg-muted/50">
+                <div className="text-base font-semibold">Saat</div>
+              </TableHead>
+              {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                 <TableHead
-                  key={date.toISOString()}
-                  className={`
-                    min-w-[100px] bg-muted/50
-                    ${
-                      date.toISOString().split("T")[0] ===
-                        new Date().toISOString().split("T")[0] &&
-                      "bg-primary/10"
-                    }`}
+                  key={dayIndex}
+                  className="min-w-[180px] bg-muted/50"
                 >
-                  <div className="font-bold">{getDayAbbreviation(date)}</div>
-                  <div>
-                    {date.toLocaleDateString("tr-TR", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </div>
+                  <div className="text-base font-semibold">{getDayName(dayIndex)}</div>
                 </TableHead>
               ))}
             </TableRow>
@@ -81,55 +102,46 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
           <TableBody>
             {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => (
               <TableRow key={hour}>
-                <TableCell className="font-medium text-sm p-1 bg-muted/50">
+                <TableCell className="font-medium text-base p-2 bg-muted/50">
                   {`${hour.toString().padStart(2, "0")}:00`}
                 </TableCell>
-                {weekDates.map((date) => {
-                  const dayAppointments = getAppointmentsForDate(date).filter(
-                    (apt) => {
-                      const aptHour = parseInt(apt.time.split(":")[0]);
-                      return aptHour === hour;
-                    }
-                  );
+                {[0, 1, 2, 3, 4, 5].map((dayIndex) => {
+                  const groupedAppointments = getAppointmentsForDayAndHour(dayIndex, hour);
 
                   return (
                     <TableCell
-                      key={date.toISOString()}
-                      className={`
-                        p-0.5 h-[70px] align-top
-                        ${
-                          date.toISOString().split("T")[0] ===
-                            new Date().toISOString().split("T")[0] &&
-                          "bg-primary/5"
-                        }`}
+                      key={dayIndex}
+                      className="p-1.5 h-[100px] align-top"
                     >
-                      {dayAppointments.map((apt) => (
+                      {groupedAppointments.map(({ appointment, count }) => (
                         <div
-                          key={apt.id}
-                          onClick={() => onAppointmentClick(apt)}
+                          key={`${appointment.member_id}-${appointment.service_id}`}
+                          onClick={() => {
+                            setSelectedAppointment(appointment);
+                            setIsDetailsDialogOpen(true);
+                          }}
                           className={`
-                            p-0.5 rounded text-[10px] mb-0.5 cursor-pointer hover:opacity-80 transition-opacity
+                            p-2 rounded text-sm mb-1 cursor-pointer hover:opacity-80 transition-opacity
                             ${
-                              apt.status === "completed"
+                              appointment.status === "completed"
                                 ? "bg-green-100 hover:bg-green-200"
-                                : apt.status === "in-progress"
+                                : appointment.status === "in-progress"
                                 ? "bg-yellow-100 hover:bg-yellow-200"
-                                : apt.status === "cancelled"
+                                : appointment.status === "cancelled"
                                 ? "bg-red-100 hover:bg-red-200"
                                 : "bg-blue-100 hover:bg-blue-200"
                             }`}
                         >
                           <div className="font-medium flex justify-between items-center">
-                            <span>{formatTime(apt.time)}</span>
-                            <span className="text-[9px] text-muted-foreground">
-                              {getDayAbbreviation(new Date(apt.date))}
-                            </span>
+                            <span className="text-base">{formatTime(appointment.time)}</span>
+                            {count > 1 && (
+                              <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded-full font-semibold">
+                                {count}x
+                              </span>
+                            )}
                           </div>
-                          <div className="truncate">
-                            {getMemberName(apt.member_id)}
-                          </div>
-                          <div className="text-muted-foreground truncate">
-                            {getServiceName(apt.service_id)}
+                          <div className="font-medium truncate mt-1">
+                            {getMemberName(appointment.member_id)}
                           </div>
                         </div>
                       ))}
@@ -141,6 +153,18 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
           </TableBody>
         </Table>
       </div>
+
+      <AppointmentDetailsDialog
+        appointment={selectedAppointment}
+        appointments={appointments}
+        members={members}
+        services={services}
+        isOpen={isDetailsDialogOpen}
+        onClose={() => {
+          setIsDetailsDialogOpen(false);
+          setSelectedAppointment(null);
+        }}
+      />
     </div>
   );
 };
