@@ -9,6 +9,16 @@ import {
 } from "@/components/ui/table";
 import { Appointment, Member, Service } from "@/types/appointments";
 import AppointmentDetailsDialog from "./AppointmentDetailsDialog";
+import { format, startOfWeek, addDays, addWeeks, subWeeks, endOfWeek } from "date-fns";
+import { tr } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface WeeklyViewProps {
   appointments: Appointment[];
@@ -27,6 +37,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 }) => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const getDayName = (dayIndex: number) => {
     const days = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
@@ -42,15 +53,20 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     return member ? `${member.first_name} ${member.last_name}` : "";
   };
 
+  const getWeekDates = () => {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    return Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+  };
+
   const getAppointmentsForDayAndHour = (dayIndex: number, hour: number) => {
+    const weekDates = getWeekDates();
+    const currentDate = weekDates[dayIndex];
+    
     const filteredAppointments = appointments.filter((apt) => {
       const aptDate = new Date(apt.date);
       const aptHour = parseInt(apt.time.split(":")[0]);
-      // getDay() 0=Pazar olduğu için, sadece 1-6 arası günleri alıyoruz
-      const day = aptDate.getDay();
-      if (day === 0) return false; // Pazar günlerini gösterme
-      const adjustedDay = day - 1; // 1->0, 2->1, ... 6->5
-      return adjustedDay === dayIndex && 
+      
+      return format(aptDate, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd') && 
              aptHour === hour && 
              apt.trainer_id === selectedTrainerId &&
              apt.status === "scheduled";
@@ -72,6 +88,17 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     return Object.values(groupedAppointments);
   };
 
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+
+  const handlePreviousWeek = () => {
+    setSelectedDate(subWeeks(selectedDate, 1));
+  };
+
+  const handleNextWeek = () => {
+    setSelectedDate(addWeeks(selectedDate, 1));
+  };
+
   if (!selectedTrainerId) {
     return (
       <div className="flex justify-center items-center h-[400px] bg-white rounded-lg shadow">
@@ -80,21 +107,60 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     );
   }
 
+  const weekDates = getWeekDates();
+
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="overflow-x-auto">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
+        <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
+          <ChevronLeftIcon className="h-4 w-4" />
+        </Button>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-semibold">
+            {format(weekStart, "d MMMM", { locale: tr })} - {format(weekEnd, "d MMMM yyyy", { locale: tr })}
+          </span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon">
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                locale={tr}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <Button variant="outline" size="icon" onClick={handleNextWeek}>
+          <ChevronRightIcon className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px] bg-muted/50">
-                <div className="text-base font-semibold">Saat</div>
+              <TableHead className="w-[50px] bg-muted/50">
+                <div className="text-sm font-semibold">Saat</div>
               </TableHead>
               {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                 <TableHead
                   key={dayIndex}
-                  className="min-w-[180px] bg-muted/50"
+                  className="min-w-[140px] bg-muted/50"
                 >
-                  <div className="text-base font-semibold">{getDayName(dayIndex)}</div>
+                  <div className="text-sm font-semibold">
+                    {getDayName(dayIndex)}
+                    <div className="text-xs font-normal">
+                      {format(weekDates[dayIndex], "d MMMM", { locale: tr })}
+                    </div>
+                  </div>
                 </TableHead>
               ))}
             </TableRow>
@@ -102,7 +168,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
           <TableBody>
             {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => (
               <TableRow key={hour}>
-                <TableCell className="font-medium text-base p-2 bg-muted/50">
+                <TableCell className="font-medium text-sm p-1.5 bg-muted/50">
                   {`${hour.toString().padStart(2, "0")}:00`}
                 </TableCell>
                 {[0, 1, 2, 3, 4, 5].map((dayIndex) => {
@@ -111,7 +177,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                   return (
                     <TableCell
                       key={dayIndex}
-                      className="p-1.5 h-[100px] align-top"
+                      className="p-1 h-[80px] align-top"
                     >
                       {groupedAppointments.map(({ appointment, count }) => (
                         <div
@@ -155,15 +221,12 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
       </div>
 
       <AppointmentDetailsDialog
+        isOpen={isDetailsDialogOpen}
+        onClose={() => setIsDetailsDialogOpen(false)}
         appointment={selectedAppointment}
         appointments={appointments}
         members={members}
         services={services}
-        isOpen={isDetailsDialogOpen}
-        onClose={() => {
-          setIsDetailsDialogOpen(false);
-          setSelectedAppointment(null);
-        }}
       />
     </div>
   );
