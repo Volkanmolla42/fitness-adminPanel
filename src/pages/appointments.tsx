@@ -38,7 +38,7 @@ function AppointmentsPage() {
     setActiveFilter,
     activeNotifications,
     setActiveNotifications,
-    acknowledgedNotifications,
+
     setAcknowledgedNotifications,
     filteredAppointments,
     groupedAppointments,
@@ -155,7 +155,7 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className="container p-0 mt-4 md:mt-0 py-6 space-y-6">
+    <div className="container p-0 mt-4 md:mt-0  space-y-6">
       {/* Notifications */}
       {activeNotifications.map((notification, index) => (
         <Notification
@@ -249,6 +249,7 @@ function AppointmentsPage() {
                 members={members}
                 trainers={trainers}
                 services={services}
+                appointments={appointments}
                 appointment={selectedAppointment}
                 onSubmit={handleFormSubmit}
                 onCancel={() => {
@@ -332,10 +333,10 @@ function AppointmentsPage() {
 
       {viewMode === "weekly" && (
         <WeeklyView
-          weekDates={getWeekDates()}
           appointments={appointments}
           members={members}
           services={services}
+          selectedTrainerId={selectedTrainerId}
           onAppointmentClick={(appointment) => {
             setSelectedAppointment(appointment);
             setIsDialogOpen(true);
