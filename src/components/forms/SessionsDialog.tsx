@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
@@ -138,6 +138,59 @@ export function SessionsDialog({
 
     return hasConflict;
   };
+
+  // En yakın müsait zamanı bulan fonksiyon
+  const findNextAvailableSlot = (startDate: Date = new Date()): { date: Date; time: string } | null => {
+    if (!selectedTrainerId || !selectedService) return null;
+
+    const workingHours = {
+      start: 9, // 09:00
+      end: 21,  // 21:00
+    };
+
+    let currentDate = startDate;
+    const maxDaysToCheck = 30; // En fazla 30 gün ileriye bakacak
+    let daysChecked = 0;
+
+    while (daysChecked < maxDaysToCheck) {
+      // Pazar günlerini atla
+      if (currentDate.getDay() !== 0) {
+        // Çalışma saatlerini kontrol et
+        for (let hour = workingHours.start; hour < workingHours.end; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) { // 30'ar dakikalık slotlar
+            const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            const dateStr = format(currentDate, 'yyyy-MM-dd');
+            
+            // Çakışma kontrolü
+            const hasConflict = checkConflict(dateStr, time, -1);
+            if (!hasConflict) {
+              return {
+                date: currentDate,
+                time: time
+              };
+            }
+          }
+        }
+      }
+      
+      // Sonraki güne geç
+      currentDate = addDays(currentDate, 1);
+      daysChecked++;
+    }
+
+    return null; // Müsait zaman bulunamadı
+  };
+
+  // Önerilen zamanı tutan state
+  const [suggestedSlot, setSuggestedSlot] = React.useState<{ date: Date; time: string } | null>(null);
+
+  // Dialog açıldığında önerilen zamanı hesapla
+  React.useEffect(() => {
+    if (open && selectedTrainerId && selectedService) {
+      const nextSlot = findNextAvailableSlot();
+      setSuggestedSlot(nextSlot);
+    }
+  }, [open, selectedTrainerId, selectedService]);
 
   const handleSessionChange = (
     index: number,
@@ -276,7 +329,7 @@ export function SessionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl p-4 md:p-6">
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] flex flex-col p-4 md:p-6">
         <DialogHeader>
           <DialogTitle>
             {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
@@ -435,7 +488,33 @@ export function SessionsDialog({
           </div>
         </ScrollArea>
 
-        <div className="flex items-center justify-between gap-4 mt-4 pt-4 border-t">
+        {suggestedSlot && (
+          <div className="p-2 bg-yellow-200 rounded-lg">
+            <div className="text-sm font-medium mb-1">Önerilen İlk Müsait Zaman:</div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CalendarDays className="w-4 h-4" />
+              <span>{format(suggestedSlot.date, 'd MMMM yyyy, EEEE', { locale: tr })}</span>
+              <Clock className="w-4 h-4 ml-2" />
+              <span>{suggestedSlot.time}</span>
+            </div>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="mt-2 w-full"
+              onClick={() => {
+                const newSession: Session = {
+                  date: format(suggestedSlot.date, 'yyyy-MM-dd'),
+                  time: suggestedSlot.time,
+                };
+                onSessionsChange([newSession]); // Replace all sessions with just this one
+              }}
+            >
+              Bu Zamanı Seç
+            </Button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4  pt-4 border-t">
           <div className="flex items-center gap-2">
             <Badge variant={isComplete ? "default" : "secondary"}>
               {isComplete ? (
@@ -465,7 +544,7 @@ export function SessionsDialog({
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="max-w-sm p-4 md:p-6">
+        <DialogContent className="max-w-sm p-4 md:p-4">
           <DialogHeader>
             <DialogTitle>Seansları Temizle</DialogTitle>
             <DialogDescription className="pt-3">
