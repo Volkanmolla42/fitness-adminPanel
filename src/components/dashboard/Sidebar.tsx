@@ -114,13 +114,13 @@ const SidebarContent = memo(
     return (
       <div
         className={cn(
-          "flex flex-col h-svh flex-nowrap bg-background text-foreground",
+          "flex flex-col h-svh flex-nowrap bg-pink-100 text-foreground",
           className
         )}
       >
         {/* Logo Area */}
         <div
-          className={cn("flex flex-col items-center mt-6 mb-8 shrink-0", {
+          className={cn("flex flex-col min-h-24 items-center mt-6 mb-6 shrink-0", {
             "gap-2": isCollapsed,
             "gap-4": !isCollapsed,
           })}
