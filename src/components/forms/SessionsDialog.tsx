@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Appointment } from "@/types/appointments";
+import { Appointment, Service } from "@/types/appointments";
 import { Session } from "@/types/sessions";
 
 interface SessionsDialogProps {
@@ -27,6 +27,7 @@ interface SessionsDialogProps {
   appointments: Appointment[];
   selectedTrainerId: string;
   appointment?: Appointment;
+  selectedService: Service | null;
 }
 
 export function SessionsDialog({
@@ -39,6 +40,7 @@ export function SessionsDialog({
   appointments,
   selectedTrainerId,
   appointment,
+  selectedService,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
@@ -53,7 +55,7 @@ export function SessionsDialog({
 
   // Çakışma kontrolü yapan fonksiyon
   const checkConflict = (date: string, time: string, currentIndex: number): boolean => {
-    if (!selectedTrainerId) return false;
+    if (!selectedTrainerId || !selectedService) return false;
 
     // Zamanları HH:mm formatına normalize et
     const normalizedTime = time.length === 8 ? time.substring(0, 5) : time;
@@ -63,7 +65,9 @@ export function SessionsDialog({
       time: normalizedTime,
       selectedTrainerId,
       currentIndex,
-      currentAppointmentId: appointment?.id
+      currentAppointmentId: appointment?.id,
+      isVIP: selectedService.isVipOnly,
+      maxParticipants: selectedService.max_participants
     });
 
     // Seçilen tarih ve saatte başka randevu var mı kontrol et
@@ -94,6 +98,17 @@ export function SessionsDialog({
       return isSameDateTime;
     });
 
+    // VIP hizmet için çakışma kontrolü
+    if (selectedService.isVipOnly) {
+      const hasConflict = conflictingAppointments.length > 0;
+      console.log('VIP service conflict check result:', { hasConflict });
+      return hasConflict;
+    }
+
+    // Standart hizmet için maksimum katılımcı sayısı kontrolü
+    const sameServiceAppointments = conflictingAppointments.filter(apt => apt.service_id === selectedService.id);
+    const hasReachedMaxParticipants = sameServiceAppointments.length >= selectedService.max_participants;
+
     // Diğer seanslarda aynı tarih ve saat seçilmiş mi kontrol et
     const conflictingSessions = sessions.filter((session, index) => {
       const sessionTime = formatTime(session.time);
@@ -112,13 +127,13 @@ export function SessionsDialog({
       return conflict;
     });
 
-    const hasConflict = conflictingAppointments.length > 0 || conflictingSessions.length > 0;
-    console.log('Conflict check result:', { 
+    const hasConflict = hasReachedMaxParticipants || conflictingSessions.length > 0;
+    console.log('Standard service conflict check result:', { 
       hasConflict,
-      conflictingAppointmentsCount: conflictingAppointments.length,
-      conflictingSessionsCount: conflictingSessions.length,
-      conflictingAppointments: conflictingAppointments.map(a => ({ id: a.id, time: formatTime(a.time) })),
-      conflictingSessions: conflictingSessions.map((s, i) => ({ index: i, time: formatTime(s.time) }))
+      hasReachedMaxParticipants,
+      currentParticipants: sameServiceAppointments.length,
+      maxParticipants: selectedService.max_participants,
+      conflictingSessionsCount: conflictingSessions.length
     });
 
     return hasConflict;
