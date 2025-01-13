@@ -44,20 +44,20 @@ export const MemberStats = ({ stats, onFilterChange }: MemberStatsProps) => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <StatsCard 
         title="Toplam Üye" 
-        value={24} 
+        value={stats.total} 
         icon={Users} 
         onClick={() => onFilterChange("all")}
       />
       <StatsCard
         title="Standart Üyeler"
-        value={14}
+        value={stats.basic}
         icon={Users}
         iconColor="text-blue-500"
         onClick={() => onFilterChange("basic")}
       />
       <StatsCard
         title="VIP Üyeler"
-        value={10}
+        value={stats.vip}
         icon={Crown}
         iconColor="text-yellow-500"
         onClick={() => onFilterChange("vip")}
