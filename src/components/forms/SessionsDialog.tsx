@@ -155,9 +155,19 @@ export function SessionsDialog({
     while (daysChecked < maxDaysToCheck) {
       // Pazar günlerini atla
       if (currentDate.getDay() !== 0) {
+        const isToday = currentDate.toDateString() === new Date().toDateString();
+        const currentHour = isToday ? new Date().getHours() : 0;
+        const currentMinute = isToday ? new Date().getMinutes() : 0;
+
         // Çalışma saatlerini kontrol et
         for (let hour = workingHours.start; hour < workingHours.end; hour++) {
-          for (let minute = 0; minute < 60; minute += 30) { // 30'ar dakikalık slotlar
+          // Eğer bugünse ve saat geçmişse, bu saati atla
+          if (isToday && hour < currentHour) continue;
+
+          for (let minute = 0; minute < 60; minute += 30) {
+            // Eğer bugünse ve aynı saatte ama dakika geçmişse, bu slotu atla
+            if (isToday && hour === currentHour && minute <= currentMinute) continue;
+
             const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             
