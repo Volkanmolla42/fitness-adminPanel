@@ -194,62 +194,64 @@ export function AppointmentForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="member_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Üye</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Üye seçin" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {`${member.first_name} ${member.last_name}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 max-w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="member_id"
+            render={({ field }) => (
+              <FormItem className="w-full">
+                <FormLabel>Üye</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Üye seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {`${member.first_name} ${member.last_name}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="trainer_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Eğitmen</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Eğitmen seçin" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {trainers.map((trainer) => (
-                    <SelectItem key={trainer.id} value={trainer.id}>
-                      {`${trainer.first_name} ${trainer.last_name}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="trainer_id"
+            render={({ field }) => (
+              <FormItem className="w-full">
+                <FormLabel>Eğitmen</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Eğitmen seçin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {trainers.map((trainer) => (
+                      <SelectItem key={trainer.id} value={trainer.id}>
+                        {`${trainer.first_name} ${trainer.last_name}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="service_id"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="w-full">
               <FormLabel>Paket</FormLabel>
               <Select
                 onValueChange={handleServiceChange}
@@ -257,7 +259,7 @@ export function AppointmentForm({
                 disabled={!form.watch("member_id")}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue
                       placeholder={
                         form.watch("member_id")
@@ -270,11 +272,15 @@ export function AppointmentForm({
                 <SelectContent>
                   {availableServices.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                      {service.isVipOnly ? " (VIP)" : " (Standart)"} -{" "}
-                      {service.session_count > 1
-                        ? `${service.session_count} Seans`
-                        : "Tek Seans"}
+                      <div className="flex flex-col">
+                        <span className="font-medium">{service.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {service.isVipOnly ? "(VIP)" : "(Standart)"} - {" "}
+                          {service.session_count > 1
+                            ? `${service.session_count} Seans`
+                            : "Tek Seans"}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -285,15 +291,15 @@ export function AppointmentForm({
         />
 
         {selectedService && (
-          <div className="flex items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30">
-            <div className="space-y-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30">
+            <div className="space-y-1 w-full sm:w-auto">
               <div className="text-sm font-medium">
                 {selectedService.session_count > 1
                   ? `${selectedService.session_count} Seanslık Paket`
                   : "Tek Seanslık Paket"}
               </div>
               {sessions.length > 0 && sessions[0].date && sessions[0].time ? (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground break-words">
                   {appointment ? "Randevu" : "İlk seans"}: {format(new Date(`${sessions[0].date}T${sessions[0].time}`), "d MMMM, EEEE HH:mm", { locale: tr })}
                 </div>
               ) : (
@@ -306,6 +312,7 @@ export function AppointmentForm({
               type="button"
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto whitespace-nowrap"
               onClick={() => setShowSessionsDialog(true)}
             >
               {sessions.length > 0 && sessions[0].date && sessions[0].time
@@ -319,10 +326,10 @@ export function AppointmentForm({
           control={form.control}
           name="notes"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="w-full">
               <FormLabel>Notlar</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} className="min-h-[100px]" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -334,14 +341,14 @@ export function AppointmentForm({
             control={form.control}
             name="status"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="w-full">
                 <FormLabel>Durum</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Durum seçin" />
                     </SelectTrigger>
                   </FormControl>
@@ -357,7 +364,7 @@ export function AppointmentForm({
           />
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
           <Button
             type="button"
             variant="outline"
@@ -365,23 +372,30 @@ export function AppointmentForm({
             onClick={() => setShowSessionsDialog(true)}
             disabled={!appointment && !form.watch("service_id")}
           >
-            <CalendarDays className="w-4 h-4 mr-2" />
-            {sessions[0]?.date && sessions[0]?.time 
-              ? `${format(new Date(sessions[0].date), "d MMMM yyyy", { locale: tr })} - ${sessions[0].time.substring(0, 5)}`
-              : "Tarih ve Saat Seç"}
+            <CalendarDays className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span className="truncate">
+              {sessions[0]?.date && sessions[0]?.time 
+                ? `${format(new Date(sessions[0].date), "d MMMM yyyy", { locale: tr })} - ${sessions[0].time.substring(0, 5)}`
+                : "Tarih ve Saat Seç"}
+            </span>
           </Button>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             İptal
           </Button>
-          <Button type="submit" disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting ? "İşleniyor..." : appointment ? "Güncelle" : "Ekle"}
           </Button>
         </DialogFooter>
