@@ -50,7 +50,9 @@ export const useAppointments = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(null);
+  const [selectedTrainerId, setSelectedTrainerId] = useState<string | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -74,11 +76,13 @@ export const useAppointments = () => {
           return true;
         case "daily":
           return (
-            appointmentDate >= startOfDay(now) && appointmentDate <= endOfDay(now)
+            appointmentDate >= startOfDay(now) &&
+            appointmentDate <= endOfDay(now)
           );
         case "weekly":
           return (
-            appointmentDate >= startOfWeek(now) && appointmentDate <= endOfWeek(now)
+            appointmentDate >= startOfWeek(now) &&
+            appointmentDate <= endOfWeek(now)
           );
         case "monthly":
           return (
@@ -149,7 +153,9 @@ export const useAppointments = () => {
 
     // Filter by trainer
     if (selectedTrainerId) {
-      filtered = filtered.filter((appointment) => appointment.trainer_id === selectedTrainerId);
+      filtered = filtered.filter(
+        (appointment) => appointment.trainer_id === selectedTrainerId
+      );
     }
 
     // Filter by search query
@@ -161,8 +167,12 @@ export const useAppointments = () => {
         const service = services.find((s) => s.id === appointment.service_id);
 
         return (
-          `${member?.first_name} ${member?.last_name}`.toLowerCase().includes(query) ||
-          `${trainer?.first_name} ${trainer?.last_name}`.toLowerCase().includes(query) ||
+          `${member?.first_name} ${member?.last_name}`
+            .toLowerCase()
+            .includes(query) ||
+          `${trainer?.first_name} ${trainer?.last_name}`
+            .toLowerCase()
+            .includes(query) ||
           service?.name.toLowerCase().includes(query)
         );
       });
@@ -190,15 +200,41 @@ export const useAppointments = () => {
       );
     }
 
-    // Sort all appointments by date and time
+    // Sort appointments based on status and date
     filtered.sort((a, b) => {
-      const dateTimeA = new Date(`${a.date}T${a.time}`);
-      const dateTimeB = new Date(`${b.date}T${b.time}`);
-      return dateTimeA.getTime() - dateTimeB.getTime();
+      // If both appointments have the same status, sort by date
+      if (a.status === b.status) {
+        const dateTimeA = new Date(`${a.date}T${a.time}`);
+        const dateTimeB = new Date(`${b.date}T${b.time}`);
+        // For completed appointments, sort in reverse order (newest first)
+        return a.status === "completed"
+          ? dateTimeB.getTime() - dateTimeA.getTime() // Reverse order for completed
+          : dateTimeA.getTime() - dateTimeB.getTime(); // Normal order for others
+      }
+
+      // If different status, maintain existing order priority
+      const statusOrder = {
+        scheduled: 0,
+        "in-progress": 1,
+        completed: 2,
+        cancelled: 3,
+      };
+      return (
+        (statusOrder[a.status as keyof typeof statusOrder] || 0) -
+        (statusOrder[b.status as keyof typeof statusOrder] || 0)
+      );
     });
 
     return filtered;
-  }, [appointments, searchQuery, activeFilter, selectedTrainerId, members, trainers, services]);
+  }, [
+    appointments,
+    searchQuery,
+    activeFilter,
+    selectedTrainerId,
+    members,
+    trainers,
+    services,
+  ]);
 
   // Grouped appointments
   const groupedAppointments = useMemo(() => {
@@ -263,6 +299,43 @@ export const useAppointments = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const checkAppointments = async () => {
+      const now = new Date();
+
+      for (const appointment of appointments) {
+        const appointmentDateTime = new Date(
+          `${appointment.date}T${appointment.time}`
+        );
+        const service = services.find((s) => s.id === appointment.service_id);
+        const appointmentEndTime = new Date(
+          appointmentDateTime.getTime() + (service?.duration || 60) * 60000
+        );
+
+        // If appointment time has arrived and status is still 'scheduled'
+        if (
+          now >= appointmentDateTime &&
+          now < appointmentEndTime &&
+          appointment.status === "scheduled"
+        ) {
+          await updateAppointmentStatus(appointment.id, "in-progress");
+        }
+
+        // If appointment end time has passed and status is still 'in-progress'
+        if (now >= appointmentEndTime && appointment.status === "in-progress") {
+          await updateAppointmentStatus(appointment.id, "completed");
+        }
+      }
+    };
+
+    // Check every minute
+    const statusUpdateTimer = setInterval(checkAppointments, 60000);
+    // Also check immediately on component mount or when appointments change
+    checkAppointments();
+
+    return () => clearInterval(statusUpdateTimer);
+  }, [appointments, currentTime, services]);
 
   useEffect(() => {
     localStorage.setItem(

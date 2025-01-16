@@ -274,12 +274,6 @@ export function AppointmentForm({
                     <SelectItem key={service.id} value={service.id}>
                       <div className="flex flex-col">
                         <span className="font-medium">{service.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {service.isVipOnly ? "(VIP)" : "(Standart)"} - {" "}
-                          {service.session_count > 1
-                            ? `${service.session_count} Seans`
-                            : "Tek Seans"}
-                        </span>
                       </div>
                     </SelectItem>
                   ))}
