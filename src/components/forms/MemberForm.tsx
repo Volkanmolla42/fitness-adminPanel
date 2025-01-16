@@ -113,6 +113,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                     <Input 
                       placeholder="Soyad" 
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e.target.value.toUpperCase());
+                      }}
                       className="border-2 focus-visible:border-primary" 
                     />
                   </FormControl>
