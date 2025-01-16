@@ -3,6 +3,7 @@ import { Appointment, Member, Service, Trainer } from "@/types/appointments";
 import AppointmentCard from "./AppointmentCard";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "../ui/button";
+import { motion } from "framer-motion";
 
 interface AppointmentGroupsProps {
   groupedAppointments: Record<string, Appointment[]>;
@@ -30,11 +31,86 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
     "cancelled": true,
   });
 
+  const [displayCounts, setDisplayCounts] = useState<Record<string, number>>({
+    "in-progress": 6,
+    "scheduled": 6,
+    "completed": 6,
+    "cancelled": 6,
+  });
+
+  const loadMore = (group: string) => {
+    setDisplayCounts(prev => ({
+      ...prev,
+      [group]: prev[group] + 6
+    }));
+  };
+
   const toggleGroupVisibility = (group: string) => {
     setVisibleGroups(prev => ({
       ...prev,
       [group]: !prev[group]
     }));
+  };
+
+  const renderAppointments = (appointments: Appointment[], group: string) => {
+    const displayedAppointments = appointments.slice(0, displayCounts[group]);
+    const hasMore = appointments.length > displayCounts[group];
+
+    return (
+      <>
+        <motion.div 
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        >
+          {displayedAppointments.map((appointment) => (
+            <motion.div
+              key={appointment.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ 
+                duration: 0.2,
+                ease: "easeOut"
+              }}
+            >
+              <AppointmentCard
+                appointment={appointment}
+                member={{
+                  firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
+                  lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
+                  avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
+                }}
+                trainer={{
+                  firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                  lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                }}
+                service={{
+                  name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                  duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                }}
+                onStatusChange={onStatusChange}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+        {hasMore && (
+          <motion.div 
+            className="mt-4 text-center "
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Button
+              variant="outline"
+              onClick={() => loadMore(group)}
+              className="w-full sm:w-auto bg-zinc-200"
+            >
+              Daha Fazla Göster
+            </Button>
+          </motion.div>
+        )}
+      </>
+    );
   };
 
   return (
@@ -56,52 +132,13 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
               {visibleGroups["in-progress"] ? <ChevronUp /> : <ChevronDown />}
             </Button>
           </div>
-          {visibleGroups["in-progress"] && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {groupedAppointments["in-progress"].map((appointment) => (
-                <AppointmentCard
-                  key={appointment.id}
-                  appointment={appointment}
-                  member={{
-                    firstName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.first_name || "",
-                    lastName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.last_name || "",
-                    avatar:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.avatar_url || "",
-                  }}
-                  trainer={{
-                    firstName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.first_name || "",
-                    lastName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.last_name || "",
-                  }}
-                  service={{
-                    name:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.name || "",
-                    duration:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.duration || 0,
-                  }}
-                  onStatusChange={onStatusChange}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
+          {visibleGroups["in-progress"] && renderAppointments(groupedAppointments["in-progress"], "in-progress")}
         </div>
       )}
 
       {/* Planlanmış Randevular */}
       {groupedAppointments["scheduled"]?.length > 0 && (
-        <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-blue-800 flex items-center">
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
@@ -116,52 +153,13 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
               {visibleGroups["scheduled"] ? <ChevronUp /> : <ChevronDown />}
             </Button>
           </div>
-          {visibleGroups["scheduled"] && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {groupedAppointments["scheduled"].map((appointment) => (
-                <AppointmentCard
-                  key={appointment.id}
-                  appointment={appointment}
-                  member={{
-                    firstName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.first_name || "",
-                    lastName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.last_name || "",
-                    avatar:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.avatar_url || "",
-                  }}
-                  trainer={{
-                    firstName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.first_name || "",
-                    lastName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.last_name || "",
-                  }}
-                  service={{
-                    name:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.name || "",
-                    duration:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.duration || 0,
-                  }}
-                  onStatusChange={onStatusChange}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
+          {visibleGroups["scheduled"] && renderAppointments(groupedAppointments["scheduled"], "scheduled")}
         </div>
       )}
 
       {/* Tamamlanmış Randevular */}
       {groupedAppointments["completed"]?.length > 0 && (
-        <div className="bg-green-50/50 border border-green-200 rounded-lg p-4">
+        <div className="bg-green-50/60 border border-green-200 rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-green-800 flex items-center">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
@@ -176,56 +174,17 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
               {visibleGroups["completed"] ? <ChevronUp /> : <ChevronDown />}
             </Button>
           </div>
-          {visibleGroups["completed"] && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {groupedAppointments["completed"].map((appointment) => (
-                <AppointmentCard
-                  key={appointment.id}
-                  appointment={appointment}
-                  member={{
-                    firstName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.first_name || "",
-                    lastName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.last_name || "",
-                    avatar:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.avatar_url || "",
-                  }}
-                  trainer={{
-                    firstName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.first_name || "",
-                    lastName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.last_name || "",
-                  }}
-                  service={{
-                    name:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.name || "",
-                    duration:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.duration || 0,
-                  }}
-                  onStatusChange={onStatusChange}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
+          {visibleGroups["completed"] && renderAppointments(groupedAppointments["completed"], "completed")}
         </div>
       )}
 
-      {/* İptal Edilen Randevular */}
+      {/* İptal Edilmiş Randevular */}
       {groupedAppointments["cancelled"]?.length > 0 && (
-        <div className="bg-red-50/50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50/60 border border-red-200 rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-red-800 flex items-center">
               <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
-              İptal Edilen Randevular
+              İptal Edilmiş Randevular
             </h3>
             <Button
               variant="ghost"
@@ -236,46 +195,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
               {visibleGroups["cancelled"] ? <ChevronUp /> : <ChevronDown />}
             </Button>
           </div>
-          {visibleGroups["cancelled"] && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {groupedAppointments["cancelled"].map((appointment) => (
-                <AppointmentCard
-                  key={appointment.id}
-                  appointment={appointment}
-                  member={{
-                    firstName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.first_name || "",
-                    lastName:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.last_name || "",
-                    avatar:
-                      members.find((m) => m.id === appointment.member_id)
-                        ?.avatar_url || "",
-                  }}
-                  trainer={{
-                    firstName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.first_name || "",
-                    lastName:
-                      trainers.find((t) => t.id === appointment.trainer_id)
-                        ?.last_name || "",
-                  }}
-                  service={{
-                    name:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.name || "",
-                    duration:
-                      services.find((s) => s.id === appointment.service_id)
-                        ?.duration || 0,
-                  }}
-                  onStatusChange={onStatusChange}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
+          {visibleGroups["cancelled"] && renderAppointments(groupedAppointments["cancelled"], "cancelled")}
         </div>
       )}
     </div>
