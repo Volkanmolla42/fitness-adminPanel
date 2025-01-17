@@ -76,7 +76,7 @@ export default function WeeklyView({
       const currentDate = weekDates[dayIndex];
       const dateStr = format(currentDate, 'yyyy-MM-dd');
       
-      for (let hour = 8; hour <= 20; hour++) {
+      for (let hour = 10; hour <= 20; hour++) {
         const key = `${dayIndex}-${hour}`;
         const hourStr = hour.toString().padStart(2, "0");
         
@@ -166,16 +166,16 @@ export default function WeeklyView({
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <Table>
+        <Table className="border-2 border-gray-300">
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px] bg-muted/50">
+            <TableRow className="border-b-2 border-gray-300">
+              <TableHead className="w-[50px] bg-muted/50 border-r-2 border-gray-300">
                 <div className="text-sm font-semibold">Saat</div>
               </TableHead>
               {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                 <TableHead
                   key={dayIndex}
-                  className="min-w-[140px] bg-muted/50"
+                  className="min-w-[140px] bg-muted/50 border-r-2 border-gray-300 last:border-r-0"
                 >
                   <div className="text-sm font-semibold">
                     {getDayName(dayIndex)}
@@ -188,15 +188,15 @@ export default function WeeklyView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => (
+            {Array.from({ length: 11 }, (_, i) => i + 10).map((hour) => (
               <TableRow key={hour}>
-                <TableCell className="font-medium text-sm p-1.5 bg-muted/50">
+                <TableCell className="font-medium text-sm p-1.5 bg-muted/50 border-r-2 border-gray-300">
                   {`${hour.toString().padStart(2, "0")}:00`}
                 </TableCell>
                 {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                   <TableCell
                     key={dayIndex}
-                    className="p-1 h-[80px] align-top"
+                    className="p-1 h-[80px] align-top border-r-2 border-gray-300 last:border-r-0 border-b "
                   >
                     {getAppointmentsForDayAndHour(dayIndex, hour).map(({ service, appointments }) => (
                       <div

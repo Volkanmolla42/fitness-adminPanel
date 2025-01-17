@@ -8,14 +8,12 @@ import {
   Pencil, 
   User, 
   UserCog, 
-  Briefcase, 
   Trash2,
   Calendar,
-  AlertCircle,
   ChevronDown,
   Timer,
-  Dumbbell,
-  Package
+  Package,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -304,7 +302,7 @@ const AppointmentCard = ({
                         className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
                         onClick={() => handleChangeStatus("cancelled")}
                       >
-                        <Trash2 className="w-4 h-4 mr-2" />
+                        <X className="w-4 h-4 mr-2" />
                         İptal Et
                       </Button>
                     </div>
