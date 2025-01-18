@@ -56,7 +56,7 @@ export function SessionsDialog({
   // Çalışma saatleri ve kısıtlamalar için sabitler
   const WORKING_HOURS = {
     start: 10, // 10:00
-    end: 19,   // 19:00
+    end: 20,   // 19:00
   } as const;
 
   const DATE_RESTRICTIONS = {
