@@ -83,8 +83,16 @@ const getRemainingTime = (startTime: string, startDate: string, duration: number
   const appointmentStart = new Date(startDate);
   appointmentStart.setHours(hours, minutes, 0, 0);
   
+  // Zaman dilimi farkını düzeltmek için
+  const localAppointmentStart = new Date(appointmentStart.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+  
   // Calculate minutes until appointment starts
-  const minutesUntilStart = Math.floor((appointmentStart.getTime() - now.getTime()) / (1000 * 60));
+  const minutesUntilStart = Math.floor((localAppointmentStart.getTime() - now.getTime()) / (1000 * 60));
+  
+  if (status === "scheduled" && minutesUntilStart <= -duration) {
+    // Eğer randevu süresi dolmuşsa ve hala "scheduled" durumundaysa
+    return -1; // Özel durum kodu
+  }
   
   if (status === "scheduled") {
     return minutesUntilStart;
@@ -95,7 +103,7 @@ const getRemainingTime = (startTime: string, startDate: string, duration: number
       return duration;
     }
     
-    const elapsedMinutes = Math.floor((now.getTime() - appointmentStart.getTime()) / (1000 * 60));
+    const elapsedMinutes = Math.floor((now.getTime() - localAppointmentStart.getTime()) / (1000 * 60));
     return Math.max(0, duration - elapsedMinutes);
   }
   

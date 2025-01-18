@@ -302,40 +302,63 @@ export const useAppointments = () => {
 
   useEffect(() => {
     const checkAppointments = async () => {
-      const now = new Date();
+      try {
+        const now = new Date();
+        const updatesToMake: { id: string; newStatus: string }[] = [];
 
-      for (const appointment of appointments) {
-        const appointmentDateTime = new Date(
-          `${appointment.date}T${appointment.time}`
-        );
-        const service = services.find((s) => s.id === appointment.service_id);
-        const appointmentEndTime = new Date(
-          appointmentDateTime.getTime() + (service?.duration || 60) * 60000
-        );
+        for (const appointment of appointments) {
+          const appointmentDateTime = new Date(
+            `${appointment.date}T${appointment.time}`
+          );
+          // Zaman dilimini düzelt
+          const localAppointmentDateTime = new Date(
+            appointmentDateTime.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' })
+          );
+          
+          const service = services.find((s) => s.id === appointment.service_id);
+          const appointmentEndTime = new Date(
+            localAppointmentDateTime.getTime() + (service?.duration || 60) * 60000
+          );
 
-        // If appointment time has arrived and status is still 'scheduled'
-        if (
-          now >= appointmentDateTime &&
-          now < appointmentEndTime &&
-          appointment.status === "scheduled"
-        ) {
-          await updateAppointmentStatus(appointment.id, "in-progress");
+          if (
+            now >= localAppointmentDateTime &&
+            now < appointmentEndTime &&
+            appointment.status === "scheduled"
+          ) {
+            updatesToMake.push({ id: appointment.id, newStatus: "in-progress" });
+          }
+
+          if (now >= appointmentEndTime && appointment.status === "in-progress") {
+            updatesToMake.push({ id: appointment.id, newStatus: "completed" });
+          }
+
+          // Eğer randevu zamanı geçmiş ve hala "scheduled" durumundaysa
+          if (now > appointmentEndTime && appointment.status === "scheduled") {
+            updatesToMake.push({ id: appointment.id, newStatus: "completed" });
+          }
         }
 
-        // If appointment end time has passed and status is still 'in-progress'
-        if (now >= appointmentEndTime && appointment.status === "in-progress") {
-          await updateAppointmentStatus(appointment.id, "completed");
+        // Batch update all status changes
+        for (const update of updatesToMake) {
+          await updateAppointmentStatus(update.id, update.newStatus);
         }
+      } catch (error) {
+        console.error("Error checking appointments:", error);
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: "Randevu durumları kontrol edilirken bir hata oluştu.",
+        });
       }
     };
 
-    // Check every minute
-    const statusUpdateTimer = setInterval(checkAppointments, 60000);
-    // Also check immediately on component mount or when appointments change
+    // Check every 30 seconds instead of every minute
+    const statusUpdateTimer = setInterval(checkAppointments, 30000);
+    // Initial check
     checkAppointments();
 
     return () => clearInterval(statusUpdateTimer);
-  }, [appointments, currentTime, services]);
+  }, [appointments, services]);
 
   useEffect(() => {
     localStorage.setItem(
