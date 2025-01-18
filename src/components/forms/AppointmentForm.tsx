@@ -256,15 +256,15 @@ export function AppointmentForm({
               <Select
                 onValueChange={handleServiceChange}
                 value={field.value}
-                disabled={!form.watch("member_id")}
+                disabled={!form.watch("member_id") || !form.watch("trainer_id")}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
                     <SelectValue
                       placeholder={
-                        form.watch("member_id")
-                          ? "Paket seçin"
-                          : "Önce üye seçin"
+                        !form.watch("member_id") || !form.watch("trainer_id")
+                          ? "Önce üye ve eğitmen seçin"
+                          : "Paket seçin"
                       }
                     />
                   </SelectTrigger>
@@ -279,7 +279,7 @@ export function AppointmentForm({
                   ))}
                 </SelectContent>
               </Select>
-              <FormMessage />
+              
             </FormItem>
           )}
         />
