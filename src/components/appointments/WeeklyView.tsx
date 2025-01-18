@@ -68,6 +68,18 @@ export default function WeeklyView({
     weekEnd: endOfWeek(selectedDate, { weekStartsOn: 1 })
   }), [selectedDate]);
 
+  // Zaman dilimlerini tanımla
+  const timeSlots = [
+    "10:00",
+    "11:30",
+    "13:00",
+    "14:30",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00"
+  ];
+
   // Randevuları ve hizmetleri grupla ve önbelleğe al
   const appointmentsByDayAndHour = useMemo(() => {
     const result = new Map();
@@ -76,14 +88,16 @@ export default function WeeklyView({
       const currentDate = weekDates[dayIndex];
       const dateStr = format(currentDate, 'yyyy-MM-dd');
       
-      for (let hour = 10; hour <= 20; hour++) {
-        const key = `${dayIndex}-${hour}`;
-        const hourStr = hour.toString().padStart(2, "0");
+      for (const timeSlot of timeSlots) {
+        const hour = timeSlot.split(":")[0];
+        const minute = timeSlot.split(":")[1];
+        const key = `${dayIndex}-${timeSlot}`;
         
         const filteredAppointments = appointments.filter((apt) => {
-          const aptHour = parseInt(apt.time.split(":")[0]);
+          const [aptHour, aptMinute] = apt.time.split(":");
           return apt.date === dateStr && 
-                 aptHour === hour && 
+                 aptHour === hour &&
+                 aptMinute === minute &&
                  apt.trainer_id === selectedTrainerId &&
                  apt.status === "scheduled";
         });
@@ -111,8 +125,8 @@ export default function WeeklyView({
   }, [appointments, weekDates, selectedTrainerId, services]);
 
   // Belirli gün ve saat için randevuları getir
-  const getAppointmentsForDayAndHour = (dayIndex: number, hour: number) => {
-    return appointmentsByDayAndHour.get(`${dayIndex}-${hour}`) || [];
+  const getAppointmentsForDayAndHour = (dayIndex: number, timeSlot: string) => {
+    return appointmentsByDayAndHour.get(`${dayIndex}-${timeSlot}`) || [];
   };
 
   const handlePreviousWeek = () => {
@@ -188,17 +202,17 @@ export default function WeeklyView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: 11 }, (_, i) => i + 10).map((hour) => (
-              <TableRow key={hour}>
+            {timeSlots.map((timeSlot) => (
+              <TableRow key={timeSlot}>
                 <TableCell className="font-medium text-sm p-1.5 bg-muted/50 border-r-2 border-gray-300">
-                  {`${hour.toString().padStart(2, "0")}:00`}
+                  {timeSlot}
                 </TableCell>
                 {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                   <TableCell
                     key={dayIndex}
                     className="p-1 h-[80px] align-top border-r-2 border-gray-300 last:border-r-0 border-b "
                   >
-                    {getAppointmentsForDayAndHour(dayIndex, hour).map(({ service, appointments }) => (
+                    {getAppointmentsForDayAndHour(dayIndex, timeSlot).map(({ service, appointments }) => (
                       <div
                         key={service.id}
                         className="mb-2 last:mb-0 rounded-lg overflow-hidden border shadow-sm"

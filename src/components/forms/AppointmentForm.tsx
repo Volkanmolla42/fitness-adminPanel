@@ -406,6 +406,7 @@ export function AppointmentForm({
         selectedTrainerId={form.watch("trainer_id")}
         appointment={appointment}
         selectedService={selectedService}
+        services={services}
       />
     </Form>
   );
