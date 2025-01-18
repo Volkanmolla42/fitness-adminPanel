@@ -148,43 +148,33 @@ export function SessionsDialog({
       formatTime(session.time) === normalizedTime
     );
 
-    // VIP randevu kontrolü yap
-    const hasVipAppointment = conflictingAppointments.some(apt => {
+    // VIP randevuları bul
+    const vipAppointments = conflictingAppointments.filter(apt => {
       const appointmentService = services.find(s => s.id === apt.service_id);
       return appointmentService?.isVipOnly ?? false;
     });
 
-    // VIP randevu varsa kesinlikle çakışma var
-    if (hasVipAppointment) {
-      return true;
+    // Eğer bu bir VIP randevu ise
+    if (selectedService.isVipOnly) {
+      // VIP randevular için maksimum 1 kişi kuralı
+      // Eğer başka bir VIP randevu varsa veya herhangi bir standart randevu varsa çakışma var
+      return vipAppointments.length > 0 || conflictingAppointments.length > 0;
     }
 
-    // Aynı servise ait randevuları bul
-    const sameServiceAppointments = conflictingAppointments.filter(
-      apt => apt.service_id === selectedService.id
-    );
+    // Eğer bu standart bir randevu ise
+    else {
+      // Eğer VIP randevu varsa, çakışma var
+      if (vipAppointments.length > 0) {
+        return true;
+      }
 
-    // Farklı servislere ait randevuları bul
-    const differentServiceAppointments = conflictingAppointments.filter(
-      apt => apt.service_id !== selectedService.id
-    );
-
-    // Eğer farklı servise ait randevu varsa, çakışma var
-    if (differentServiceAppointments.length > 0) {
-      return true;
+      // Standart randevular için maksimum 3 kişi kontrolü
+      const totalStandardAppointments = conflictingAppointments.length + conflictingSessions.length;
+      const MAX_STANDARD_APPOINTMENTS = 3;
+      
+      return totalStandardAppointments >= MAX_STANDARD_APPOINTMENTS;
     }
 
-    // Maksimum katılımcı sayısı kontrolü
-    const currentParticipantCount = sameServiceAppointments.length;
-    const hasReachedMaxParticipants = currentParticipantCount >= (selectedService.max_participants || 1);
-
-    // Eğer maksimum katılımcı sayısına ulaşıldıysa çakışma var
-    if (hasReachedMaxParticipants) {
-      return true;
-    }
-
-    // Diğer seanslarla çakışma kontrolü
-    return conflictingSessions.length > 0;
   }, [selectedTrainerId, selectedService, appointments, appointment, sessions, formatTime, services]);
 
   // Önerilen zamanı tutan state
