@@ -141,48 +141,6 @@ export function SessionsDialog({
       return sameDateTime && sameTrainer && isScheduled;
     });
 
-    console.log('Checking conflicts for:', { date, time, currentIndex });
-    console.log('Found conflicting appointments:', conflictingAppointments);
-
-    // Eğer çakışan randevu yoksa, diğer kontrollere gerek yok
-    if (conflictingAppointments.length === 0) {
-      // Sadece diğer seanslarla çakışma kontrolü yap
-      const conflictingSessions = sessions.filter((session, index) => 
-        index !== currentIndex && 
-        session.date === date && 
-        formatTime(session.time) === normalizedTime
-      );
-      return conflictingSessions.length > 0;
-    }
-
-    // VIP randevu kontrolü yap
-    const hasVipAppointment = conflictingAppointments.some(apt => {
-      const appointmentService = services.find(s => s.id === apt.service_id);
-      return appointmentService?.isVipOnly ?? false;
-    });
-
-    console.log('Has VIP appointment:', hasVipAppointment);
-
-    // VIP randevu varsa kesinlikle çakışma var
-    if (hasVipAppointment) {
-      return true;
-    }
-
-    // Standart paket için maksimum katılımcı kontrolü
-    if (!selectedService.isVipOnly) {
-      const sameServiceAppointments = conflictingAppointments.filter(
-        apt => apt.service_id === selectedService.id
-      );
-      const hasReachedMaxParticipants = sameServiceAppointments.length >= selectedService.max_participants;
-
-      console.log('Same service appointments:', sameServiceAppointments);
-      console.log('Has reached max participants:', hasReachedMaxParticipants);
-
-      if (hasReachedMaxParticipants) {
-        return true;
-      }
-    }
-
     // Diğer seanslarda aynı tarih ve saat seçilmiş mi kontrol et
     const conflictingSessions = sessions.filter((session, index) => 
       index !== currentIndex && 
@@ -190,11 +148,43 @@ export function SessionsDialog({
       formatTime(session.time) === normalizedTime
     );
 
-    console.log('Conflicting sessions:', conflictingSessions);
+    // VIP randevu kontrolü yap
+    const hasVipAppointment = conflictingAppointments.some(apt => {
+      const appointmentService = services.find(s => s.id === apt.service_id);
+      return appointmentService?.isVipOnly ?? false;
+    });
 
-    // Eğer çakışan randevu varsa ve buraya kadar geldiyse (VIP değil ve max katılımcı dolmamış)
-    // yine de çakışma var demektir, çünkü eğitmen o saatte başka bir randevuda
-    return conflictingAppointments.length > 0 || conflictingSessions.length > 0;
+    // VIP randevu varsa kesinlikle çakışma var
+    if (hasVipAppointment) {
+      return true;
+    }
+
+    // Aynı servise ait randevuları bul
+    const sameServiceAppointments = conflictingAppointments.filter(
+      apt => apt.service_id === selectedService.id
+    );
+
+    // Farklı servislere ait randevuları bul
+    const differentServiceAppointments = conflictingAppointments.filter(
+      apt => apt.service_id !== selectedService.id
+    );
+
+    // Eğer farklı servise ait randevu varsa, çakışma var
+    if (differentServiceAppointments.length > 0) {
+      return true;
+    }
+
+    // Maksimum katılımcı sayısı kontrolü
+    const currentParticipantCount = sameServiceAppointments.length;
+    const hasReachedMaxParticipants = currentParticipantCount >= (selectedService.max_participants || 1);
+
+    // Eğer maksimum katılımcı sayısına ulaşıldıysa çakışma var
+    if (hasReachedMaxParticipants) {
+      return true;
+    }
+
+    // Diğer seanslarla çakışma kontrolü
+    return conflictingSessions.length > 0;
   }, [selectedTrainerId, selectedService, appointments, appointment, sessions, formatTime, services]);
 
   // Önerilen zamanı tutan state
