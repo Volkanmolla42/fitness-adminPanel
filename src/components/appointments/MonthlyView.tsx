@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format,  isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, parse, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Appointment, Member, Service, Trainer } from "@/types/appointments";
@@ -43,14 +43,21 @@ interface MonthlyViewProps {
 }
 
 const WORKING_HOURS = {
-  start: "09:00",
-  end: "21:00",
+  start: "10:00",
+  end: "19:00",
 };
 
-const TIME_SLOTS = Array.from({ length: 13 }, (_, i) => {
-  const hour = i + 9;
-  return `${hour.toString().padStart(2, "0")}:00`;
-});
+// Sabit randevu saatleri
+const TIME_SLOTS = [
+  "10:00",
+  "11:30",
+  "13:00",
+  "14:30",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00"
+];
 
 const MonthlyView: React.FC<MonthlyViewProps> = ({
   appointments,
@@ -67,6 +74,93 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
     end: WORKING_HOURS.end,
   });
 
+  // Saat formatını normalize eden yardımcı fonksiyon
+  const normalizeTime = (time: string): string => {
+    // HH:mm:ss formatını HH:mm formatına çevir
+    return time.length === 8 ? time.substring(0, 5) : time;
+  };
+
+  // Saat dilimini dakikaya çeviren yardımcı fonksiyon
+  const timeToMinutes = (time: string): number => {
+    const normalizedTime = normalizeTime(time);
+    const [hours, minutes] = normalizedTime.split(':').map(Number);
+    return hours * 60 + (minutes || 0);
+  };
+
+  // İki saat aralığının çakışıp çakışmadığını kontrol eden fonksiyon
+  const isTimeOverlapping = (start1: string, duration1: number, start2: string, duration2: number): boolean => {
+    const start1Minutes = timeToMinutes(start1);
+    const end1Minutes = start1Minutes + duration1;
+    const start2Minutes = timeToMinutes(start2);
+    const end2Minutes = start2Minutes + duration2;
+
+    return (start1Minutes < end2Minutes && end1Minutes > start2Minutes);
+  };
+
+  // Randevu çakışmasını kontrol eden fonksiyon
+  const checkTimeConflict = (time: string, appointments: Appointment[]): boolean => {
+    if (!selectedTrainer || !services) return true;
+
+    // Seçili tarihteki randevuları filtrele
+    const dayAppointments = appointments.filter(apt => 
+      apt.date === format(selectedDate!, 'yyyy-MM-dd') && 
+      apt.trainer_id === selectedTrainer &&
+      apt.status === "scheduled"
+    );
+
+    // Aynı saatteki randevuları bul
+    const conflictingAppointments = dayAppointments.filter(apt => 
+      normalizeTime(apt.time) === normalizeTime(time)
+    );
+
+    // VIP randevuları bul
+    const vipAppointments = conflictingAppointments.filter(apt => {
+      const appointmentService = services.find(s => s.id === apt.service_id);
+      return appointmentService?.isVipOnly ?? false;
+    });
+
+    // Eğer VIP randevu varsa, slot müsait değil
+    if (vipAppointments.length > 0) {
+      return true;
+    }
+
+    // Standart randevular için maksimum 3 kişi kontrolü
+    const MAX_STANDARD_APPOINTMENTS = 3;
+    return conflictingAppointments.length >= MAX_STANDARD_APPOINTMENTS;
+  };
+
+  // Belirli bir gün ve saat için kalan standart randevu kontenjanını hesapla
+  const getRemainingStandardSlots = (date: Date, time: string) => {
+    if (!selectedTrainer || !services) return 0;
+
+    const dayAppointments = appointments.filter(apt => 
+      apt.date === format(date, 'yyyy-MM-dd') && 
+      apt.trainer_id === selectedTrainer &&
+      normalizeTime(apt.time) === normalizeTime(time) &&
+      apt.status === "scheduled"
+    );
+
+    // VIP randevuları bul
+    const vipAppointments = dayAppointments.filter(apt => {
+      const appointmentService = services.find(s => s.id === apt.service_id);
+      return appointmentService?.isVipOnly ?? false;
+    });
+
+    // Eğer VIP randevu varsa, standart randevu alınamaz
+    if (vipAppointments.length > 0) {
+      return 0;
+    }
+
+    const MAX_STANDARD_APPOINTMENTS = 3;
+    return MAX_STANDARD_APPOINTMENTS - dayAppointments.length;
+  };
+
+  // Saati formatlamak için yardımcı fonksiyon
+  const formatTime = (time: string) => {
+    const normalizedTime = normalizeTime(time);
+    return format(parse(normalizedTime, 'HH:mm', new Date()), 'HH:mm', { locale: tr });
+  };
+
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
       const appointmentDate = new Date(`${appointment.date} ${appointment.time}`);
@@ -79,32 +173,46 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
       
       const isTrainerMatch = selectedTrainer === "all" || appointment.trainer_id === selectedTrainer;
       
-      const appointmentTime = appointment.time;
-      const isTimeMatch = appointmentTime >= timeRange.start && appointmentTime <= timeRange.end;
+      // Sadece belirli randevu saatlerini kabul et
+      const normalizedAppointmentTime = normalizeTime(appointment.time);
+      const isValidTimeSlot = TIME_SLOTS.some(slot => normalizeTime(slot) === normalizedAppointmentTime);
+      const isTimeMatch = normalizedAppointmentTime >= timeRange.start && normalizedAppointmentTime <= timeRange.end;
 
       return isDateMatch && isTrainerMatch && isTimeMatch;
     }).sort((a, b) => {
-      // Tarihe göre sıralama
-      const dateA = new Date(`${a.date} ${a.time}`);
-      const dateB = new Date(`${b.date} ${b.time}`);
-      return dateA.getTime() - dateB.getTime();
+      // Önce tarihe göre sırala
+      const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+
+      // Aynı tarihli randevuları saate göre sırala
+      const timeA = timeToMinutes(a.time);
+      const timeB = timeToMinutes(b.time);
+      return timeA - timeB;
     });
   }, [appointments, selectedDate, selectedTrainer, timeRange]);
 
   const availableSlots = useMemo(() => {
-    if (!selectedDate || !showAvailable) return [];
+    if (!selectedDate || !showAvailable || !selectedTrainer || selectedTrainer === "all") return [];
 
-    const bookedSlots = new Set(
-      filteredAppointments.map((apt) => apt.time)
+    // Seçili tarihteki randevuları filtrele
+    const dayAppointments = appointments.filter(apt => 
+      apt.date === format(selectedDate, 'yyyy-MM-dd') && 
+      apt.trainer_id === selectedTrainer &&
+      apt.status === "scheduled"
     );
 
-    return TIME_SLOTS.filter(
-      (slot) => 
-        !bookedSlots.has(slot) && 
-        slot >= timeRange.start && 
-        slot <= timeRange.end
-    );
-  }, [filteredAppointments, selectedDate, showAvailable, timeRange]);
+    // Sadece belirli zaman dilimlerini kontrol et
+    return TIME_SLOTS.filter(slot => {
+      // Seçili aralık kontrolü
+      const normalizedSlot = normalizeTime(slot);
+      if (normalizedSlot < timeRange.start || normalizedSlot > timeRange.end) {
+        return false;
+      }
+
+      // Çakışma kontrolü
+      return !checkTimeConflict(slot, dayAppointments);
+    });
+  }, [appointments, selectedDate, selectedTrainer, showAvailable, timeRange, services]);
 
   const getStatusBadge = (status: string) => {
     const statusColors = {
@@ -200,7 +308,6 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            <span className="self-center">-</span>
             <Select 
               value={timeRange.end}
               onValueChange={(value) => setTimeRange(prev => ({ ...prev, end: value }))}
@@ -228,7 +335,7 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                     <Button
                       variant="outline"
                       onClick={() => setShowAvailable(!showAvailable)}
-                      disabled={!selectedDate}
+                      disabled={!selectedDate || selectedTrainer === "all"}
                     >
                       {showAvailable ? "Müsait Saatleri Gizle" : "Müsait Saatleri Göster"}
                     </Button>
@@ -237,6 +344,11 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                 {!selectedDate && (
                   <TooltipContent>
                     <p>Lütfen önce bir tarih seçin</p>
+                  </TooltipContent>
+                )}
+                {selectedTrainer === "all" && (
+                  <TooltipContent>
+                    <p>Lütfen bir eğitmen seçin</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -266,41 +378,53 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
               return (
                 <TableRow
                   key={appointment.id}
-                  className="cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer hover:bg-gray-50"
                   onClick={() => onEdit(appointment)}
                 >
                   <TableCell>
-                    {format(new Date(`${appointment.date} ${appointment.time}`), "d MMMM yyyy", {
-                      locale: tr,
-                    })}
+                    {format(new Date(appointment.date), "d MMMM yyyy", { locale: tr })}
+                  </TableCell>
+                  <TableCell>{formatTime(appointment.time)}</TableCell>
+                  <TableCell>
+                    {trainer?.first_name} {trainer?.last_name}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(`${appointment.date} ${appointment.time}`), "HH:mm")}
+                    {member?.first_name} {member?.last_name}
                   </TableCell>
                   <TableCell>
-                    {trainer ? `${trainer.first_name} ${trainer.last_name}` : "-"}
+                    {service?.name}
                   </TableCell>
-                  <TableCell>
-                    {member ? `${member.first_name} ${member.last_name}` : "-"}
-                  </TableCell>
-                  <TableCell>{service ? service.name : "-"}</TableCell>
                   <TableCell>
                     {getStatusBadge(appointment.status)}
                   </TableCell>
                 </TableRow>
               )
             })}
-            {showAvailable && availableSlots.map((slot) => (
-              <TableRow key={slot} className="bg-green-50">
-                <TableCell>
-                  {selectedDate && format(selectedDate, "d MMMM yyyy", { locale: tr })}
-                </TableCell>
-                <TableCell>{slot}</TableCell>
-                <TableCell colSpan={4} className="text-green-600 font-medium">
-                  Müsait
-                </TableCell>
-              </TableRow>
-            ))}
+            {showAvailable && availableSlots.map(slot => {
+              const remainingSlots = getRemainingStandardSlots(selectedDate!, slot);
+              return (
+                <TableRow key={slot} className="bg-gray-50">
+                  <TableCell>
+                    {selectedDate && format(selectedDate, "d MMMM yyyy", { locale: tr })}
+                  </TableCell>
+                  <TableCell>{formatTime(slot)}</TableCell>
+                  <TableCell>
+                    {trainers.find(t => t.id === selectedTrainer)?.first_name} {trainers.find(t => t.id === selectedTrainer)?.last_name}
+                  </TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell>-</TableCell>
+                  <TableCell className="text-green-600 font-medium">
+                    {remainingSlots === 3 ? (
+                      "Tüm kontenjan müsait"
+                    ) : remainingSlots > 0 ? (
+                      `${remainingSlots} randevu daha alınabilir`
+                    ) : (
+                      "Kontenjan doldu"
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {filteredAppointments.length === 0 && !showAvailable && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-4 text-gray-500">
