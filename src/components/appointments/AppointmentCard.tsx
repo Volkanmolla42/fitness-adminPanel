@@ -208,13 +208,7 @@ const AppointmentCard = ({
 
                 <DropdownMenuSeparator />
                 
-                <DropdownMenuItem 
-                  className="text-blue-600 focus:text-blue-600 focus:bg-blue-50"
-                  onClick={() => onEdit(appointment)}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  <span>Düzenle</span>
-                </DropdownMenuItem>
+                
                 
                 <DropdownMenuItem 
                   className="text-red-600 focus:text-red-600 focus:bg-red-50"
@@ -300,6 +294,7 @@ const AppointmentCard = ({
                 </div>
               </div>
             </div>
+            
 
             {/* Notlar */}
             {appointment.notes && (
@@ -307,8 +302,17 @@ const AppointmentCard = ({
                 {appointment.notes}
               </div>
             )}
+            
           </div>
+          
         </div>
+        <div 
+                  className="text-blue-600 absolute bottom-4 right-4 cursor-pointer flex items-center border border-blue-300 rounded-md p-2 hover:bg-blue-50"
+                  onClick={() => onEdit(appointment)}
+                >
+                  <Pencil className="h-4 w-4" />
+                 
+                </div>
       </Card>
 
       {/* Status Change Modal */}
