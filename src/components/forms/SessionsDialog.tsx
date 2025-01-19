@@ -35,7 +35,9 @@ interface SessionsDialogProps {
   selectedTrainerId: string;
   appointment?: Appointment;
   selectedService: Service | null;
-  services: Service[];  // Tüm servislerin listesi
+  services: Service[];
+  defaultDate?: string;
+  defaultTime?: string;
 }
 
 export function SessionsDialog({
@@ -49,7 +51,9 @@ export function SessionsDialog({
   selectedTrainerId,
   appointment,
   selectedService,
-  services = [],  // Default boş array
+  services = [],
+  defaultDate,
+  defaultTime,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
@@ -186,13 +190,22 @@ export function SessionsDialog({
       // Hiç seans seçilmemiş mi kontrol et
       const hasNoSelectedSessions = sessions.every(session => !session.date && !session.time);
       if (hasNoSelectedSessions) {
-        const nextSlot = findNextAvailableSlot();
-        setSuggestedSlot(nextSlot);
+        if (defaultDate && defaultTime) {
+          // Eğer varsayılan tarih ve saat varsa, bunları kullan
+          setSuggestedSlot({
+            date: new Date(defaultDate),
+            time: defaultTime
+          });
+        } else {
+          // Yoksa bir sonraki müsait zamanı bul
+          const nextSlot = findNextAvailableSlot();
+          setSuggestedSlot(nextSlot);
+        }
       } else {
         setSuggestedSlot(null);
       }
     }
-  }, [open, selectedTrainerId, selectedService, sessions]);
+  }, [open, selectedTrainerId, selectedService, sessions, defaultDate, defaultTime]);
 
   const handleSessionChange = React.useCallback((
     index: number,
