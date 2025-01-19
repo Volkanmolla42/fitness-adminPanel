@@ -290,14 +290,16 @@ export function SessionsDialog({
 
         const dateStr = format(nextDate, 'yyyy-MM-dd');
         
-        // Tarih validasyonu ve çakışma kontrolü
+        // Tarih validasyonu yap
         const validation = validateDateTime(dateStr, targetDay.time);
         const hasConflict = checkConflict(dateStr, targetDay.time, index);
 
-        if (validation.isValid && !hasConflict) {
+        if (validation.isValid) {
           newSessions[index] = {
             date: dateStr,
-            time: targetDay.time
+            time: targetDay.time,
+            hasConflict: hasConflict,
+            hasError: hasConflict ? "Bu tarih ve saatte eğitmen müsait değil" : undefined
           };
           lastDate = nextDate;
           break;
