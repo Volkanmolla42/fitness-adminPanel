@@ -17,14 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { XCircle } from "lucide-react";
-import { CalendarDays } from "lucide-react";
+
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/types/supabase";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { SessionsDialog } from "./SessionsDialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -60,6 +62,21 @@ export function AppointmentForm({
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
+  const [searchMembers, setSearchMembers] = useState("");
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMemberDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const form = useForm<AppointmentInput>({
     resolver: zodResolver(appointmentFormSchema),
@@ -79,7 +96,6 @@ export function AppointmentForm({
     setSelectedService(service || null);
     form.setValue("service_id", serviceId);
 
-    // Yeni randevu eklerken seans dialogunu göster
     if (!appointment) {
       setSessions([{ date: "", time: "", hasConflict: false }]);
       setShowSessionsDialog(true);
@@ -88,26 +104,30 @@ export function AppointmentForm({
 
   const handleSessionsConfirm = () => {
     if (sessions.length > 0 && sessions.every((s) => s.date && s.time)) {
-      // Set the first session's date and time to the main form
       form.setValue("date", sessions[0].date);
       form.setValue("time", sessions[0].time);
       setShowSessionsDialog(false);
     }
   };
 
-  // Çakışma kontrolü yapan fonksiyon
+  const checkBusinessHours = (time: string): boolean => {
+    const [hours] = time.split(':').map(Number);
+    return hours >= 10 && hours < 20; 
+  };
+
   const checkConflict = (date: string, time: string): boolean => {
     if (!form.watch("trainer_id")) return false;
 
-    // Pazar günü kontrolü
-    const selectedDate = new Date(date);
-    if (selectedDate.getDay() === 0) {
-      return true; // Pazar günü seçilemez
+    if (!checkBusinessHours(time)) {
+      return true;
     }
 
-    // Seçilen tarih ve saatte başka randevu var mı kontrol et
+    const selectedDate = new Date(date);
+    if (selectedDate.getDay() === 0) {
+      return true; 
+    }
+
     return appointments.some(apt => {
-      // Eğer bu bir düzenleme ise ve aynı randevuysa çakışma yok
       if (apt.id === appointment?.id) return false;
 
       const isSameDateTime = apt.date === date && 
@@ -115,12 +135,10 @@ export function AppointmentForm({
                            apt.trainer_id === form.watch("trainer_id") &&
                            apt.status === "scheduled";
                            
-      // Aynı eğitmenin aynı tarih ve saatte başka randevusu varsa çakışma var
       return isSameDateTime;
     });
   };
 
-  // Tarih veya saat değiştiğinde çakışma kontrolü yap
   useEffect(() => {
     const date = form.watch("date");
     const time = form.watch("time");
@@ -129,7 +147,15 @@ export function AppointmentForm({
       const conflict = checkConflict(date, time);
       setHasConflict(conflict);
 
-      // Eğer pazar günü seçildiyse uyarı göster
+      if (!checkBusinessHours(time)) {
+        form.setError("time", {
+          type: "manual",
+          message: "Randevular 10:00 - 20:00 saatleri arasında olmalıdır"
+        });
+      } else {
+        form.clearErrors("time");
+      }
+
       const selectedDate = new Date(date);
       if (selectedDate.getDay() === 0) {
         form.setError("date", {
@@ -144,7 +170,6 @@ export function AppointmentForm({
     }
   }, [form.watch("date"), form.watch("time"), form.watch("trainer_id")]);
 
-  // Mevcut randevunun tarih ve saatini sessions'a ekle
   useEffect(() => {
     if (appointment) {
       setSessions([{ 
@@ -152,10 +177,10 @@ export function AppointmentForm({
         time: appointment.time,
         hasConflict: false
       }]);
+      setSelectedService(services.find(s => s.id === appointment.service_id) || null);
     }
-  }, [appointment]);
+  }, [appointment, services]);
 
-  // Get the selected member's subscribed services
   const selectedMember = members.find(
     (member) => member.id === form.watch("member_id"),
   );
@@ -167,12 +192,10 @@ export function AppointmentForm({
     setIsSubmitting(true);
     try {
       if (sessions.length > 1) {
-        // Submit multiple appointments
         for (const session of sessions) {
           await onSubmit({ ...data, date: session.date, time: session.time });
         }
       } else {
-        // Submit single appointment
         await onSubmit(data);
       }
     } finally {
@@ -180,7 +203,6 @@ export function AppointmentForm({
     }
   };
 
-  // Reset service selection when member changes
   useEffect(() => {
     if (form.watch("member_id") && form.watch("service_id")) {
       const isServiceAvailable = selectedMember?.subscribed_services?.includes(
@@ -202,20 +224,66 @@ export function AppointmentForm({
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel>Üye</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Üye seçin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {members.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {`${member.first_name} ${member.last_name}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative" ref={dropdownRef}>
+                  <div className="relative">
+                    <Input
+                      placeholder="Üye ara veya seç..."
+                      value={searchMembers}
+                      onChange={(e) => setSearchMembers(e.target.value)}
+                      onFocus={() => setShowMemberDropdown(true)}
+                      className="w-full"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                    >
+                      <CaretSortIcon className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </div>
+
+                  {showMemberDropdown && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+                      <div className="max-h-[200px] overflow-y-auto py-1">
+                        {members.length === 0 && (
+                          <div className="relative flex select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-muted-foreground">
+                            Üye bulunamadı
+                          </div>
+                        )}
+                        {members
+                          .filter((member) =>
+                            `${member.first_name} ${member.last_name}`
+                              .toLowerCase()
+                              .includes(searchMembers.toLowerCase())
+                          )
+                          .map((member) => (
+                            <div
+                              key={member.id}
+                              onClick={() => {
+                                form.setValue("member_id", member.id);
+                                setSearchMembers(`${member.first_name} ${member.last_name}`);
+                                setShowMemberDropdown(false);
+                              }}
+                              className={cn(
+                                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                member.id === field.value && "bg-accent text-accent-foreground"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <CheckIcon className={cn(
+                                  "h-4 w-4",
+                                  member.id === field.value ? "opacity-100" : "opacity-0"
+                                )} />
+                                <span>{member.first_name} {member.last_name}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -227,7 +295,10 @@ export function AppointmentForm({
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel>Eğitmen</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Eğitmen seçin" />
@@ -242,6 +313,9 @@ export function AppointmentForm({
                   </SelectContent>
                 </Select>
                 <FormMessage />
+                <FormDescription className="mt-1 text-sm text-muted-foreground">
+                  Eğitmenin müsait saatlerini kontrol edin
+                </FormDescription>
               </FormItem>
             )}
           />
@@ -253,79 +327,61 @@ export function AppointmentForm({
           render={({ field }) => (
             <FormItem className="w-full">
               <FormLabel>Paket</FormLabel>
-              <Select
-                onValueChange={handleServiceChange}
-                value={field.value}
-                disabled={!form.watch("member_id") || !form.watch("trainer_id")}
-              >
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={
-                        !form.watch("member_id") || !form.watch("trainer_id")
-                          ? "Önce üye ve eğitmen seçin"
-                          : "Paket seçin"
-                      }
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {availableServices.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{service.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-            </FormItem>
-          )}
-        />
-
-        {selectedService && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg bg-muted/30">
-            <div className="space-y-1 w-full sm:w-auto">
-              <div className="text-sm font-medium">
-                {selectedService.session_count > 1
-                  ? `${selectedService.session_count} Seanslık Paket`
-                  : "Tek Seanslık Paket"}
-              </div>
-              {sessions.length > 0 && sessions[0].date && sessions[0].time ? (
-                <div className="text-sm text-muted-foreground break-words">
-                  {appointment ? "Randevu" : "İlk seans"}: {format(new Date(`${sessions[0].date}T${sessions[0].time}`), "d MMMM, EEEE HH:mm", { locale: tr })}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <div className="flex-1 min-w-0">
+                  <Select
+                    onValueChange={handleServiceChange}
+                    value={field.value}
+                    disabled={!form.watch("member_id") || !form.watch("trainer_id")}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            !form.watch("member_id") || !form.watch("trainer_id")
+                              ? "Önce üye ve eğitmen seçin"
+                              : "Paket seçin"
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableServices.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          <span className="truncate">{service.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Henüz seans tarihi seçilmedi
+                {selectedService && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-10"
+                    onClick={() => setShowSessionsDialog(true)}
+                  >
+                    {sessions.length > 0 && sessions[0].date && sessions[0].time
+                      ? "Düzenle"
+                      : "Tarih Seç"}
+                  </Button>
+                )}
+              </div>
+              {selectedService && (
+                <div className="mt-2 space-y-1">
+                  <div className="text-sm font-medium text-muted-foreground truncate">
+                    {selectedService.session_count > 1
+                      ? `${selectedService.session_count} Seanslık Paket`
+                      : "Tek Seanslık Paket"}
+                  </div>
+                  {sessions.length > 0 && sessions[0].date && sessions[0].time && (
+                    <div className="text-sm text-muted-foreground break-words">
+                      {appointment ? "Randevu" : "İlk seans"}: {format(new Date(`${sessions[0].date}T${sessions[0].time}`), "d MMMM, EEEE HH:mm", { locale: tr })}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto whitespace-nowrap"
-              onClick={() => setShowSessionsDialog(true)}
-            >
-              {sessions.length > 0 && sessions[0].date && sessions[0].time
-                ? "Randevu Tarihini Düzenle"
-                : "Randevu Tarihi Seç"}
-            </Button>
-          </div>
-        )}
-
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem className="w-full">
-              <FormLabel>Notlar</FormLabel>
-              <FormControl>
-                <Textarea {...field} className="min-h-[100px]" />
-              </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
@@ -357,24 +413,19 @@ export function AppointmentForm({
             )}
           />
         )}
-
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => setShowSessionsDialog(true)}
-            disabled={!appointment && !form.watch("service_id")}
-          >
-            <CalendarDays className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="truncate">
-              {sessions[0]?.date && sessions[0]?.time 
-                ? `${format(new Date(sessions[0].date), "d MMMM yyyy", { locale: tr })} - ${sessions[0].time.substring(0, 5)}`
-                : "Tarih ve Saat Seç"}
-            </span>
-          </Button>
-        </div>
-
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>Notlar</FormLabel>
+              <FormControl>
+                <Textarea {...field} className="min-h-min" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6">
           <Button
             type="button"

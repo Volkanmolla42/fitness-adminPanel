@@ -387,6 +387,7 @@ export function SessionsDialog({
   ).length;
 
   const [openTimeSelect, setOpenTimeSelect] = React.useState<number | null>(null);
+  const [openDatePicker, setOpenDatePicker] = React.useState<number | null>(null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -524,10 +525,13 @@ export function SessionsDialog({
                               "date",
                               format(date, "yyyy-MM-dd")
                             );
-                            // Open time select for this session
+                            setOpenDatePicker(null);
                             setOpenTimeSelect(index);
                           }
                         }}
+                        open={openDatePicker === index}
+                        onClickOutside={() => setOpenDatePicker(null)}
+                        onInputClick={() => setOpenDatePicker(index)}
                         minDate={new Date()}
                         dateFormat="d MMMM, EEEE"
                         locale={tr}

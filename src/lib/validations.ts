@@ -84,32 +84,31 @@ export const serviceSchema = z.object({
 });
 
 // Appointment validation schema
-export const appointmentFormSchema = z
-  .object({
-    member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
-    trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
-    service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
-    date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
-    time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
-    notes: z.string().optional(),
-    status: z.enum(["scheduled", "in-progress", "completed", "cancelled"]).default("scheduled"),
-  })
-  .refine(
-    (data) => {
-      const appointmentDate = new Date(`${data.date}T${data.time}`);
-      const now = new Date();
+export const appointmentFormSchema = z.object({
+  member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
+  trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
+  service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
+  status: z.enum(["scheduled", "in-progress", "completed", "cancelled"]),
+  date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
+  time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
+  notes: z.string().optional(),
+})
+.refine(
+  (data) => {
+    const appointmentDate = new Date(`${data.date}T${data.time}`);
+    const now = new Date();
 
-      // Set the seconds and milliseconds to 0 for both dates to compare only hours and minutes
-      appointmentDate.setSeconds(0, 0);
-      now.setSeconds(0, 0);
+    // Set the seconds and milliseconds to 0 for both dates to compare only hours and minutes
+    appointmentDate.setSeconds(0, 0);
+    now.setSeconds(0, 0);
 
-      return appointmentDate >= now;
-    },
-    {
-      message: "Geçmiş bir saat için randevu oluşturamazsınız",
-      path: ["time"],
-    },
-  );
+    return appointmentDate >= now;
+  },
+  {
+    message: "Geçmiş bir saat için randevu oluşturamazsınız",
+    path: ["time"],
+  },
+);
 
 // Multi-session appointment validation schema
 export const multiSessionAppointmentSchema = z.object({
