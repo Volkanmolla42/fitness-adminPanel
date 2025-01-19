@@ -8,7 +8,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Appointment, Member, Service } from "@/types/appointments";
-import AppointmentDetailsDialog from "./AppointmentDetailsDialog";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, endOfWeek } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,6 +26,7 @@ interface WeeklyViewProps {
   services: Service[];
   selectedTrainerId: string | null;
   onAppointmentClick: (appointment: Appointment) => void;
+  onAddAppointment: (date: string, time: string) => void;
 }
 
 export default function WeeklyView({
@@ -35,6 +35,7 @@ export default function WeeklyView({
   services,
   selectedTrainerId,
   onAppointmentClick,
+  onAddAppointment,
 }: WeeklyViewProps) {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -129,6 +130,28 @@ export default function WeeklyView({
     return appointmentsByDayAndHour.get(`${dayIndex}-${timeSlot}`) || [];
   };
 
+  // Belirli gün ve saatte kontenjan var mı kontrol et
+  const hasAvailableSlot = (dayIndex: number, timeSlot: string) => {
+    const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
+    
+    // Hiç randevu yoksa, kontenjan vardır
+    if (appointments.length === 0) {
+      return true;
+    }
+
+    // VIP randevusu varsa, kontenjan yoktur
+    const hasVipAppointment = appointments.some(({ service }) => service.isVipOnly);
+    if (hasVipAppointment) {
+      return false;
+    }
+
+    // Standart randevular için toplam katılımcı sayısını kontrol et
+    const totalParticipants = appointments.reduce((total, { appointments }) => total + appointments.length, 0);
+    const MAX_STANDARD_PARTICIPANTS = 3;
+
+    return totalParticipants < MAX_STANDARD_PARTICIPANTS;
+  };
+
   const handlePreviousWeek = () => {
     setSelectedDate(subWeeks(selectedDate, 1));
   };
@@ -210,77 +233,87 @@ export default function WeeklyView({
                 {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                   <TableCell
                     key={dayIndex}
-                    className="p-1 h-[80px] align-top border-r-2 border-gray-300 last:border-r-0 border-b "
+                    className="p-1 h-[80px] align-top border-r-2 border-gray-300 last:border-r-0 border-b"
                   >
-                    {getAppointmentsForDayAndHour(dayIndex, timeSlot).map(({ service, appointments }) => (
-                      <div
-                        key={service.id}
-                        className="mb-2 last:mb-0 rounded-lg overflow-hidden border shadow-sm"
-                      >
-                        <div 
-                          className={`text-xs font-medium px-2 py-1.5 flex items-center justify-between cursor-pointer hover:opacity-80
-                            ${service.isVipOnly 
-                              ? "bg-purple-300 text-purple-900" 
-                              : "bg-blue-300 text-blue-900"}`}
-                          onClick={() => {
-                            setSelectedService(service);
-                            setIsServiceDialogOpen(true);
-                          }}
+                    <div className="space-y-2">
+                      {getAppointmentsForDayAndHour(dayIndex, timeSlot).map(({ service, appointments }) => (
+                        <div
+                          key={service.id}
+                          className="rounded-lg overflow-hidden border shadow-sm"
                         >
-                          <div className="flex items-center">
-                            {service.name}
-                            {appointments.length > 1 && (
-                              <span className="ml-1 text-[10px] px-1 py-0.5 rounded-full bg-white/50">
-                                {appointments.length}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
-                              {formatTime(appointments[0].time)}
-                            </span>
-                            {service.max_participants > 1 && appointments.length > 1 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
-                                {appointments.length}/{service.max_participants}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-0.5">
-                          {appointments.map((appointment) => (
-                            <div
-                              key={appointment.id}
-                              onClick={() => {
-                                setSelectedAppointment(appointment);
-                                setIsDetailsDialogOpen(true);
-                              }}
-                              className={`
-                                p-2 rounded text-sm mb-0.5 last:mb-0 cursor-pointer 
-                                hover:opacity-80 transition-opacity
-                                ${service.isVipOnly
-                                  ? "bg-purple-200 hover:bg-purple-100"
-                                  : "bg-blue-200 hover:bg-blue-100"
-                                }
-                                ${
-                                  appointment.status === "completed"
-                                    ? "!bg-green-50 hover:!bg-green-100"
-                                    : appointment.status === "in-progress"
-                                    ? "!bg-yellow-50 hover:!bg-yellow-100"
-                                    : appointment.status === "cancelled"
-                                    ? "!bg-red-50 hover:!bg-red-100"
-                                    : ""
-                                }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-medium truncate">
-                                  {getMemberName(appointment.member_id)}
+                          <div 
+                            className={`text-xs font-medium px-2 py-1.5 flex items-center justify-between cursor-pointer hover:opacity-80
+                              ${service.isVipOnly 
+                                ? "bg-purple-300 text-purple-900" 
+                                : "bg-blue-300 text-blue-900"}`}
+                            onClick={() => {
+                              setSelectedService(service);
+                              setIsServiceDialogOpen(true);
+                            }}
+                          >
+                            <div className="flex items-center">
+                              {service.name}
+                              {appointments.length > 1 && (
+                                <span className="ml-1 text-[10px] px-1 py-0.5 rounded-full bg-white/50">
+                                  {appointments.length}
                                 </span>
-                              </div>
+                              )}
                             </div>
-                          ))}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
+                                {formatTime(appointments[0].time)}
+                              </span>
+                              {service.max_participants > 1 && appointments.length > 1 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
+                                  {appointments.length}/{service.max_participants}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="p-0.5">
+                            {appointments.map((appointment) => (
+                              <div
+                                key={appointment.id}
+                                onClick={() => onAppointmentClick(appointment)}
+                                className={`
+                                  p-2 rounded text-sm mb-0.5 last:mb-0 cursor-pointer 
+                                  hover:opacity-80 transition-opacity
+                                  ${service.isVipOnly
+                                    ? "bg-purple-200 hover:bg-purple-100"
+                                    : "bg-blue-200 hover:bg-blue-100"
+                                  }
+                                  ${
+                                    appointment.status === "completed"
+                                      ? "!bg-green-50 hover:!bg-green-100"
+                                      : appointment.status === "in-progress"
+                                      ? "!bg-yellow-50 hover:!bg-yellow-100"
+                                      : appointment.status === "cancelled"
+                                      ? "!bg-red-50 hover:!bg-red-100"
+                                      : ""
+                                  }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-medium truncate">
+                                    {getMemberName(appointment.member_id)}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                      {hasAvailableSlot(dayIndex, timeSlot) && (
+                        <button
+                          onClick={() => onAddAppointment(format(weekDates[dayIndex], 'yyyy-MM-dd'), timeSlot)}
+                          className="w-full h-6 flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-200 rounded transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                 ))}
               </TableRow>
@@ -288,15 +321,6 @@ export default function WeeklyView({
           </TableBody>
         </Table>
       </div>
-
-      <AppointmentDetailsDialog
-        isOpen={isDetailsDialogOpen}
-        onClose={() => setIsDetailsDialogOpen(false)}
-        appointment={selectedAppointment}
-        appointments={appointments}
-        members={members}
-        services={services}
-      />
 
       {selectedService && (
         <ServiceAppointmentsDialog
