@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,10 @@ import {
   UserCog, 
   Trash2,
   Calendar,
-  ChevronDown,
   Timer,
   Package,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -26,10 +26,12 @@ import {
 } from "@/components/ui/dialog";
 
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface AppointmentCardProps {
   appointment: {
@@ -121,25 +123,8 @@ const AppointmentCard = ({
 }: AppointmentCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-      }
-    };
-
-    if (isExpanded) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isExpanded]);
 
   const handleChangeStatus = (status: string) => {
     setPendingStatus(status);
@@ -159,237 +144,171 @@ const AppointmentCard = ({
 
   return (
     <>
-      <Card className="h-max transform transition-all duration-200 hover:shadow-lg" ref={cardRef}>
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-          <div className="p-4 relative">
-            {/* Header */}
-            <Badge className={`${getStatusColor(appointment.status)} px-2 py-1  absolute top-4 right-4`}>
-              {getStatusText(appointment.status)}
-            </Badge>
-            <div className="flex  items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-50 p-2 rounded-lg">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+      <Card 
+        className="group h-max transform transition-all duration-300 hover:shadow-lg relative border-gray-300 overflow-hidden border-l-4  bg-white"
+        style={{
+          borderLeftColor: appointment.status === 'scheduled' ? '#3b82f6' : 
+                          appointment.status === 'in-progress' ? '#eab308' : 
+                          appointment.status === 'completed' ? '#22c55e' : '#ef4444'
+        }}
+        ref={cardRef}
+      >
+        <div className="p-4">
+          {/* Status Badge with Dropdown */}
+          <div className="absolute top-3 right-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="p-0 h-auto hover:bg-transparent cursor-pointer"
+                >
+                  <Badge 
+                    className={`
+                      ${getStatusColor(appointment.status)} px-3 py-1.5 
+                      font-medium tracking-wide cursor-pointer
+                      flex items-center gap-1.5 shadow-sm
+                      transition-all duration-200
+                      hover:opacity-90
+                    `}
+                  >
+                    <span>{getStatusText(appointment.status)}</span>
+                    <ChevronDown className="h-3.5 w-3.5 opacity-70 stroke-[3]" />
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                {appointment.status === "scheduled" && (
+                  <>
+                    <DropdownMenuItem 
+                      className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-50"
+                      onClick={() => handleChangeStatus("in-progress")}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      <span>Başlat</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                      onClick={() => handleChangeStatus("cancelled")}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      <span>İptal Et</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {appointment.status === "in-progress" && (
+                  <DropdownMenuItem 
+                    className="text-green-600 focus:text-green-600 focus:bg-green-50"
+                    onClick={() => handleChangeStatus("completed")}
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    <span>Tamamla</span>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  className="text-blue-600 focus:text-blue-600 focus:bg-blue-50"
+                  onClick={() => onEdit(appointment)}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  <span>Düzenle</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Sil</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="space-y-3">
+            {/* Tarih ve Saat */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="bg-gray-50 p-2 rounded-lg">
+                  <Calendar className="h-5 w-5 text-gray-600" />
                 </div>
-                <div className="flex items-center space-x-3">
-                  
-                  <div className="flex items-center">
-                    <span className={` text-2xl font-bold ${(isUpcoming || isAboutToStart) ? 'text-orange-500 font-medium' : ''}`}>
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-3">
+                    <span className={`text-2xl font-bold tracking-tight ${(isUpcoming || isAboutToStart) ? 'text-orange-500' : 'text-gray-900'}`}>
                       {appointment.time.slice(0, 5)}
                     </span>
                     {isAboutToStart && appointment.status === "scheduled" && (
-                      <div className="flex items-center ml-2 text-orange-600">
-                        <span className="text-sm font-medium">Başlamak Üzere</span>
+                      <div className="flex items-center bg-orange-100 px-2 py-0.5 rounded-full">
+                        <Timer className="w-3.5 h-3.5 text-orange-600 mr-1" />
+                        <span className="text-xs font-medium text-orange-600">Başlamak Üzere</span>
                       </div>
                     )}
                     {isUpcoming && !isAboutToStart && appointment.status === "scheduled" && (
-                      <div className="flex items-center ml-2 text-orange-600">
-                        <span className="text-sm font-medium">Yaklaşıyor</span>
+                      <div className="flex items-center bg-orange-100 px-2 py-0.5 rounded-full">
+                        <Clock className="w-3.5 h-3.5 text-orange-600 mr-1" />
+                        <span className="text-xs font-medium text-orange-600">Yaklaşıyor</span>
                       </div>
                     )}
                   </div>
-                  <span className="text italic text-gray-600">
+                  <span className="text-sm text-gray-500">
                     {format(new Date(appointment.date), "d MMMM", { locale: tr })} - {weekDay}
                   </span>
                 </div>
               </div>
 
-              <CollapsibleTrigger asChild className="border absolute bottom-2 right-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-9 p-0"
-                >
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "transform rotate-180" : ""}`} />
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-
-            {/* Quick Info */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2 items-center ">
-                  {member.avatar ? (
-                    <img
-                      src={member.avatar}
-                      alt={`${member.firstName} ${member.lastName}`}
-                      className="w-8 h-8 rounded-full border-2 border-white"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-500" />
-                    </div>
-                  )}
-                  {member.firstName && member.lastName ? (
-                    <span>
-                      {member.firstName} {member.lastName}
-                    </span>
-                  ) : (
-                    <span> üye adı bulunamadı </span>
-                  )}
-                </div>
-                <div className="flex gap-2 items-center text-xs  p-2 rounded-lg">
-                    <Package className="h-4 w-4 text-orange-600" />
-                    <span> {service.name}</span>
-                  </div>
-                 
-              </div>
-              
               {appointment.status === "in-progress" && (
-                <div className="flex items-center space-x-1 text-yellow-600">
-                  <Timer className="w-4 h-4" />
-                  <span className="text-sm font-medium">{remainingTime}dk</span>
+                <div className="ml-auto flex items-center bg-yellow-50 px-2.5 py-1.5 rounded-lg">
+                  <Timer className="w-4 h-4 text-yellow-600 mr-1.5" />
+                  <span className="text-sm font-medium text-yellow-700">{remainingTime}dk</span>
                 </div>
               )}
-              
-              
             </div>
-          </div>
 
-          {/* Expanded Content */}
-          <CollapsibleContent>
-            <div className="px-4 pb-4 space-y-2">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-purple-50 p-2 rounded-lg">
-                    <User className="h-4 w-4 text-purple-600" />
+            {/* Kişi ve Paket Bilgileri */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {member.avatar ? (
+                  <img
+                    src={member.avatar}
+                    alt={`${member.firstName} ${member.lastName}`}
+                    className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm">
+                    <User className="w-4 h-4 text-gray-600" />
                   </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Üye</span>
-                    <p className="font-medium">{`${member.firstName} ${member.lastName}`}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="bg-green-50 p-2 rounded-lg">
-                    <UserCog className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Eğitmen</span>
-                    <p className="font-medium">{`${trainer.firstName} ${trainer.lastName}`}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="bg-orange-50 p-2 rounded-lg">
-                    <Package className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500">Paket</span>
-                    <p className="font-medium">{service.name}</p>
-                    <span className="text-sm text-gray-500">
-                      {service.duration} dakika
+                )}
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-gray-900">
+                      {member.firstName && member.lastName 
+                        ? `${member.firstName} ${member.lastName}`
+                        : "Üye adı bulunamadı"
+                      }
                     </span>
+                    <span className="text-sm text-gray-400">•</span>
+                    <span className="text-sm text-gray-600">{trainer.firstName} {trainer.lastName}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-500 mt-0.5">
+                    <Package className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                    <span>{service.name}</span>
+                    <span className="mx-1.5">•</span>
+                    <span>{service.duration}dk</span>
                   </div>
                 </div>
-              </div>
-
-              {appointment.notes && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {appointment.notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                {appointment.status === "scheduled" && (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        className="w-full h-9 text-yellow-600 border-2 border-yellow-600 hover:bg-yellow-50"
-                        onClick={() => handleChangeStatus("in-progress")}
-                      >
-                        <Clock className="w-4 h-4 mr-2" />
-                        Başlat
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
-                        onClick={() => handleChangeStatus("cancelled")}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        İptal Et
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        className="h-9 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
-                        onClick={() => onEdit(appointment)}
-                      >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Düzenle
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
-                        onClick={() => setIsDeleteModalOpen(true)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Sil
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {appointment.status === "in-progress" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="w-full h-9 text-green-600 border-2 border-green-600 hover:bg-green-50"
-                      onClick={() => handleChangeStatus("completed")}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Tamamla
-                    </Button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        className="h-9 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
-                        onClick={() => onEdit(appointment)}
-                      >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Düzenle
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
-                        onClick={() => setIsDeleteModalOpen(true)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Sil
-                      </Button>
-                    </div>
-                  </>
-                )}
-
-                {(appointment.status === "completed" || appointment.status === "cancelled") && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="h-9 text-blue-600 border-2 border-blue-600 hover:bg-blue-50"
-                      onClick={() => onEdit(appointment)}
-                    >
-                      <Pencil className="w-4 h-4 mr-2" />
-                      Düzenle
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
-                      onClick={() => setIsDeleteModalOpen(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Sil
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+
+            {/* Notlar */}
+            {appointment.notes && (
+              <div className="text-sm text-gray-600 bg-gray-50/50 rounded-lg p-2.5 border border-gray-100/80">
+                {appointment.notes}
+              </div>
+            )}
+          </div>
+        </div>
       </Card>
 
       {/* Status Change Modal */}
@@ -405,67 +324,67 @@ const AppointmentCard = ({
                 : pendingStatus === "completed"
                 ? "Bu randevuyu tamamlamak istediğinize"
                 : "Bu randevuyu iptal etmek istediğinize emin misiniz?"}
-                </DialogDescription>
-                <div className="mt-4 flex justify-center space-x-4">
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    İptal
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 text-green-600 border-2 border-green-600 hover:bg-green-50"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      if (pendingStatus) {
-                        onStatusChange(appointment.id, pendingStatus);
-                        setPendingStatus(null);
-                      }
-                    }}
-                  >
-                    Onayla
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-    
-          {/* Delete Confirmation Modal */}
-          <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-            <DialogContent className="sm:max-w-[425px] p-0">
-              <div className="p-6">
-                <DialogTitle className="text-xl font-semibold text-center mb-2">
-                  Silme İşlemi
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  Bu randevuyu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
-                </DialogDescription>
-                <div className="mt-4 flex justify-center space-x-4">
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
-                    onClick={() => setIsDeleteModalOpen(false)}
-                  >
-                    İptal
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
-                    onClick={() => {
-                      setIsDeleteModalOpen(false);
-                      onDelete(appointment.id);
-                    }}
-                  >
-                    Sil
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </>
-      );
-    };
-    
-    export default AppointmentCard;
+            </DialogDescription>
+            <div className="mt-4 flex justify-center space-x-4">
+              <Button
+                variant="outline"
+                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
+                onClick={() => setIsModalOpen(false)}
+              >
+                İptal
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-9 text-green-600 border-2 border-green-600 hover:bg-green-50"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  if (pendingStatus) {
+                    onStatusChange(appointment.id, pendingStatus);
+                    setPendingStatus(null);
+                  }
+                }}
+              >
+                Onayla
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px] p-0">
+          <div className="p-6">
+            <DialogTitle className="text-xl font-semibold text-center mb-2">
+              Silme İşlemi
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Bu randevuyu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+            </DialogDescription>
+            <div className="mt-4 flex justify-center space-x-4">
+              <Button
+                variant="outline"
+                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                İptal
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  onDelete(appointment.id);
+                }}
+              >
+                Sil
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default AppointmentCard;
