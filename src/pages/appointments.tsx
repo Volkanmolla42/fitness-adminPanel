@@ -48,6 +48,8 @@ function AppointmentsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "weekly" | "monthly">("list");
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null);
+  const [defaultDate, setDefaultDate] = useState<string | undefined>();
+  const [defaultTime, setDefaultTime] = useState<string | undefined>();
 
   // Get the current week's start and end dates
   const getWeekDates = () => {
@@ -231,6 +233,8 @@ function AppointmentsPage() {
               setIsDialogOpen(open);
               if (!open) {
                 setSelectedAppointment(null);
+                setDefaultDate(undefined);
+                setDefaultTime(undefined);
               }
             }}
           >
@@ -251,10 +255,15 @@ function AppointmentsPage() {
                 services={services}
                 appointments={appointments}
                 appointment={selectedAppointment}
+                defaultDate={defaultDate}
+                defaultTime={defaultTime}
+                defaultTrainerId={selectedTrainerId || undefined}
                 onSubmit={handleFormSubmit}
                 onCancel={() => {
                   setIsDialogOpen(false);
                   setSelectedAppointment(null);
+                  setDefaultDate(undefined);
+                  setDefaultTime(undefined);
                 }}
               />
             </DialogContent>
@@ -325,6 +334,8 @@ function AppointmentsPage() {
           onStatusChange={handleStatusChange}
           onEdit={(appointment) => {
             setSelectedAppointment(appointment);
+            setDefaultDate(undefined);
+            setDefaultTime(undefined);
             setIsDialogOpen(true);
           }}
           onDelete={handleDeleteAppointment}
@@ -341,6 +352,12 @@ function AppointmentsPage() {
             setSelectedAppointment(appointment);
             setIsDialogOpen(true);
           }}
+          onAddAppointment={(date, time) => {
+            setSelectedAppointment(null);
+            setDefaultDate(date);
+            setDefaultTime(time);
+            setIsDialogOpen(true);
+          }}
         />
       )}
 
@@ -352,6 +369,8 @@ function AppointmentsPage() {
           services={services}
           onEdit={(appointment) => {
             setSelectedAppointment(appointment);
+            setDefaultDate(undefined);
+            setDefaultTime(undefined);
             setIsDialogOpen(true);
           }}
         />
