@@ -46,6 +46,9 @@ interface AppointmentFormProps {
   appointments: Appointment[];
   onSubmit: (data: AppointmentInput) => Promise<void>;
   onCancel: () => void;
+  defaultDate?: string;
+  defaultTime?: string;
+  defaultTrainerId?: string;
 }
 
 export function AppointmentForm({
@@ -56,6 +59,9 @@ export function AppointmentForm({
   appointments,
   onSubmit,
   onCancel,
+  defaultDate,
+  defaultTime,
+  defaultTrainerId,
 }: AppointmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
@@ -82,12 +88,12 @@ export function AppointmentForm({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       member_id: appointment?.member_id || "",
-      trainer_id: appointment?.trainer_id || "",
+      trainer_id: appointment?.trainer_id || defaultTrainerId || "",
       service_id: appointment?.service_id || "",
       notes: appointment?.notes || "",
       status: appointment?.status || "scheduled",
-      date: appointment?.date || "",
-      time: appointment?.time || "",
+      date: appointment?.date || defaultDate || "",
+      time: appointment?.time || defaultTime || "",
     },
   });
 
@@ -97,7 +103,11 @@ export function AppointmentForm({
     form.setValue("service_id", serviceId);
 
     if (!appointment) {
-      setSessions([{ date: "", time: "", hasConflict: false }]);
+      setSessions([{ 
+        date: defaultDate || "", 
+        time: defaultTime || "", 
+        hasConflict: false 
+      }]);
       setShowSessionsDialog(true);
     }
   };
@@ -180,6 +190,15 @@ export function AppointmentForm({
       setSelectedService(services.find(s => s.id === appointment.service_id) || null);
     }
   }, [appointment, services]);
+
+  useEffect(() => {
+    if (appointment?.member_id) {
+      const member = members.find(m => m.id === appointment.member_id);
+      if (member) {
+        setSearchMembers(`${member.first_name} ${member.last_name}`);
+      }
+    }
+  }, [appointment, members]);
 
   const selectedMember = members.find(
     (member) => member.id === form.watch("member_id"),
@@ -458,6 +477,8 @@ export function AppointmentForm({
         appointment={appointment}
         selectedService={selectedService}
         services={services}
+        defaultDate={defaultDate}
+        defaultTime={defaultTime}
       />
     </Form>
   );
