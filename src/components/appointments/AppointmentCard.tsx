@@ -270,17 +270,17 @@ const AppointmentCard = ({
             </DropdownMenu>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
             {/* Tarih ve Saat */}
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
               <div className="flex items-center space-x-2">
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <Calendar className="h-5 w-5 text-gray-600" />
+                <div className="bg-gray-50 p-1.5 sm:p-2 rounded-lg">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                 </div>
                 <div className="flex flex-col">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
                     <span
-                      className={`text-2xl font-bold tracking-tight ${
+                      className={`text-xl sm:text-2xl font-bold tracking-tight ${
                         isUpcoming || isAboutToStart
                           ? "text-orange-500"
                           : "text-gray-900"
@@ -289,9 +289,9 @@ const AppointmentCard = ({
                       {appointment.time.slice(0, 5)}
                     </span>
                     {isAboutToStart && appointment.status === "scheduled" && (
-                      <div className="flex items-center bg-orange-100 px-2 py-0.5 rounded-full">
-                        <Timer className="w-3.5 h-3.5 text-orange-600 mr-1" />
-                        <span className="text-xs font-medium text-orange-600">
+                      <div className="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded-full">
+                        <Timer className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 mr-1" />
+                        <span className="text-xs font-medium text-orange-600 whitespace-nowrap">
                           Başlamak Üzere
                         </span>
                       </div>
@@ -299,15 +299,15 @@ const AppointmentCard = ({
                     {isUpcoming &&
                       !isAboutToStart &&
                       appointment.status === "scheduled" && (
-                        <div className="flex items-center bg-orange-100 px-2 py-0.5 rounded-full">
-                          <Clock className="w-3.5 h-3.5 text-orange-600 mr-1" />
-                          <span className="text-xs font-medium text-orange-600">
+                        <div className="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 mr-1" />
+                          <span className="text-xs font-medium text-orange-600 whitespace-nowrap">
                             Yaklaşıyor
                           </span>
                         </div>
                       )}
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     {format(new Date(appointment.date), "d MMMM", {
                       locale: tr,
                     })}{" "}
@@ -317,9 +317,9 @@ const AppointmentCard = ({
               </div>
 
               {appointment.status === "in-progress" && (
-                <div className="ml-auto flex items-center bg-yellow-50 px-2.5 py-1.5 rounded-lg">
-                  <Timer className="w-4 h-4 text-yellow-600 mr-1.5" />
-                  <span className="text-sm font-medium text-yellow-700">
+                <div className="flex items-center bg-yellow-50 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto">
+                  <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 mr-1 sm:mr-1.5" />
+                  <span className="text-xs sm:text-sm font-medium text-yellow-700">
                     {remainingTime}dk
                   </span>
                 </div>
@@ -327,34 +327,38 @@ const AppointmentCard = ({
             </div>
 
             {/* Kişi ve Paket Bilgileri */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
               <div className="flex items-center space-x-3">
                 {member.avatar ? (
                   <img
                     src={member.avatar}
                     alt={`${member.firstName} ${member.lastName}`}
-                    className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-white shadow-sm"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm">
-                    <User className="w-4 h-4 text-gray-600" />
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm">
+                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
                   </div>
                 )}
                 <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                    <span className="text-sm sm:text-base font-medium text-gray-900">
                       {member.firstName && member.lastName
                         ? `${member.firstName} ${member.lastName}`
                         : "Üye adı bulunamadı"}
                     </span>
-                    <span className="text-sm text-gray-400">•</span>
-                    <span className="text-sm text-gray-600">
-                      {trainer.firstName} {trainer.lastName}
-                    </span>
+                    <div className="flex items-center mt-0.5 sm:mt-0">
+                      <span className="text-sm text-gray-400 hidden sm:inline">
+                        •
+                      </span>
+                      <span className="text-xs sm:text-sm text-gray-600 sm:ml-2">
+                        {trainer.firstName} {trainer.lastName}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-gray-500 mt-0.5">
-                    <Package className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                    <span>{service.name}</span>
+                  <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-0.5">
+                    <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 mr-1.5" />
+                    <span className="truncate">{service.name}</span>
                     <span className="mx-1.5">•</span>
                     <span>{service.duration}dk</span>
                   </div>
@@ -364,15 +368,13 @@ const AppointmentCard = ({
 
             {/* Notlar */}
             {appointment.notes && (
-              <div className="text-sm text-gray-600 bg-gray-50/50 rounded-lg p-2.5 border border-gray-100/80">
+              <div className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 rounded-lg p-2 sm:p-2.5 border border-gray-100/80">
                 {appointment.notes}
               </div>
             )}
           </div>
         </div>
-
       </Card>
-      
 
       {/* Status Change Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -456,30 +458,30 @@ const AppointmentCard = ({
             Randevu Detayları
           </DialogTitle>
 
-          <div className="grid gap-6 py-4">
+          <div className="grid gap-4 sm:gap-6 py-4">
             {/* Üye Bilgileri Bölümü */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">
                 ÜYE BİLGİLERİ
               </h3>
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 {member.avatar ? (
                   <img
                     src={member.avatar}
                     alt={`${member.firstName} ${member.lastName}`}
-                    className="h-16 w-16 rounded-full object-cover"
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-8 w-8 text-muted-foreground" />
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground" />
                   </div>
                 )}
                 <div className="space-y-1">
-                  <h3 className="flex gap-2 items-center font-medium text-lg">
+                  <h3 className="flex flex-wrap gap-1.5 sm:gap-2 items-center font-medium text-base sm:text-lg">
                     {member.firstName} {member.lastName}
                     {member.membership_type && (
                       <Badge
-                        className={`text-xs ${
+                        className={`text-[10px] sm:text-xs ${
                           member.membership_type === "vip"
                             ? "bg-yellow-500"
                             : "bg-gray-500"
@@ -490,14 +492,14 @@ const AppointmentCard = ({
                     )}
                   </h3>
                   {member.email && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                      <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {member.email}
                     </p>
                   )}
                   {member.phone_number && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                      <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {member.phone_number}
                     </p>
                   )}
@@ -506,45 +508,45 @@ const AppointmentCard = ({
             </div>
 
             {/* Randevu Detayları Bölümü */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-sm text-muted-foreground">
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">
                 RANDEVU DETAYLARI
               </h3>
-              <div className="grid gap-3 bg-muted/50 p-4 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
+              <div className="grid gap-2.5 sm:gap-3 bg-muted/50 p-3 sm:p-4 rounded-lg">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs sm:text-sm">
                     {format(new Date(appointment.date), "d MMMM yyyy", {
                       locale: tr,
                     })}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Timer className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Timer className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs sm:text-sm">
                     {appointment.time.slice(0, 5)}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <UserCog className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <UserCog className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs sm:text-sm">
                     <span className="text-muted-foreground">Eğitmen:</span>{" "}
                     {trainer.firstName} {trainer.lastName}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Package className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs sm:text-sm">
                     <span className="text-muted-foreground">Hizmet:</span>{" "}
                     {service.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Activity className="h-4 w-4 text-primary" />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                  <span className="text-xs sm:text-sm">
                     <span className="text-muted-foreground">Durum:</span>{" "}
                     <Badge
-                      className={`${
+                      className={`text-[10px] sm:text-xs ${
                         appointment.status === "scheduled"
                           ? "bg-blue-500"
                           : appointment.status === "in-progress"
@@ -563,12 +565,12 @@ const AppointmentCard = ({
 
             {/* Notlar Bölümü */}
             {appointment.notes && (
-              <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="font-medium text-xs sm:text-sm text-muted-foreground">
                   NOTLAR
                 </h3>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="text-sm">{appointment.notes}</p>
+                <div className="bg-muted/50 p-3 sm:p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm">{appointment.notes}</p>
                 </div>
               </div>
             )}
