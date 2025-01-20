@@ -168,7 +168,7 @@ export const getAppointments = async () => {
       return [];
     }
 
-    console.log('Fetched appointments:', appointmentsData);
+    console.log('Appointments fetched:');
     
     return appointmentsData;
   } catch (error) {
