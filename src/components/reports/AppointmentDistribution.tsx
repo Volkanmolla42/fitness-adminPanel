@@ -17,42 +17,60 @@ interface AppointmentDistributionProps {
   appointments: Appointment[];
 }
 
+const TIME_SLOTS = [
+  "10:00",
+  "11:30",
+  "13:00",
+  "14:30",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00"
+];
+
 export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = ({
   appointments,
 }) => {
   const data = useMemo(() => {
-    // Create a map to store hour counts
-    const hourlyDistribution: { [key: string]: number } = {};
+    // Create a map to store time slot counts
+    const slotDistribution: { [key: string]: number } = {};
     
-    // Initialize all hours with 0
-    for (let i = 0; i < 24; i++) {
-      const hourStr = i.toString().padStart(2, '0') + ':00';
-      hourlyDistribution[hourStr] = 0;
-    }
-
-    // Count appointments for each hour
-    appointments.forEach(appointment => {
-      const timeHour = parseInt(appointment.time.split(':')[0]);
-      const hourStr = timeHour.toString().padStart(2, '0') + ':00';
-      hourlyDistribution[hourStr]++;
+    // Initialize all time slots with 0
+    TIME_SLOTS.forEach(slot => {
+      slotDistribution[slot] = 0;
     });
 
-    // Convert to array and sort
-    return Object.entries(hourlyDistribution)
-      .map(([saat, randevu]) => ({
-        saat,
-        randevu
-      }))
-      .sort((a, b) => parseInt(a.saat) - parseInt(b.saat));
+    // Count appointments for each time slot
+    appointments.forEach(appointment => {
+      const appointmentTime = appointment.time;
+      // Find the closest time slot
+      const matchingSlot = TIME_SLOTS.find(slot => {
+        const [slotHour, slotMinute] = slot.split(":").map(Number);
+        const [appHour, appMinute] = appointmentTime.split(":").map(Number);
+        
+        // Check if the appointment time matches exactly
+        return appHour === slotHour && appMinute === slotMinute;
+      });
+
+      if (matchingSlot) {
+        slotDistribution[matchingSlot]++;
+      }
+    });
+
+    // Convert to array format for the chart
+    return TIME_SLOTS.map(saat => ({
+      saat,
+      randevu: slotDistribution[saat]
+    }));
   }, [appointments]);
 
-  // Calculate total appointments
+  // Calculate total appointments in these time slots
   const totalAppointments = useMemo(() => 
-    appointments.length
-  , [appointments]);
+    data.reduce((sum, item) => sum + item.randevu, 0)
+  , [data]);
 
   return (
-    <Card className="col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle>Saatlik Randevu Dağılımı</CardTitle>
         <p className="text-sm text-muted-foreground">Toplam {totalAppointments} randevu</p>

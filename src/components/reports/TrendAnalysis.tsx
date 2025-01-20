@@ -75,30 +75,17 @@ export const TrendAnalysis = ({ appointments, members, selectedDateRange }: Tren
   }, [selectedDateRange]);
 
   const appointmentTrends = calculateTrends(appointments, currentPeriod, previousPeriod);
-  const memberTrends = calculateTrends(members, currentPeriod, previousPeriod);
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-4">
+    <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Randevu Trendi</CardTitle>
+          <CardTitle>Randevu Sayısı</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{appointmentTrends.current}</div>
           <div className={`text-sm ${appointmentTrends.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {appointmentTrends.percentageChange >= 0 ? '↑' : '↓'} {Math.abs(appointmentTrends.percentageChange).toFixed(1)}%
-            <span className="text-gray-500 ml-1">önceki döneme göre</span>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Üye Trendi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{memberTrends.current}</div>
-          <div className={`text-sm ${memberTrends.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {memberTrends.percentageChange >= 0 ? '↑' : '↓'} {Math.abs(memberTrends.percentageChange).toFixed(1)}%
             <span className="text-gray-500 ml-1">önceki döneme göre</span>
           </div>
         </CardContent>

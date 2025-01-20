@@ -29,12 +29,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export const ServiceUsageStats: React.FC<ServiceUsageStatsProps> = ({ data }) => {
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300">
+    <Card className="hover:shadow-lg  transition-shadow duration-300">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold text-gray-800">Paket Dağılımı</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}

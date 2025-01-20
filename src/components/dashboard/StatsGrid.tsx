@@ -41,32 +41,7 @@ interface StatsGridProps {
 }
 
 const StatsGrid = ({ stats }: StatsGridProps) => {
-  const defaultStats = [
-    {
-      title: "Aktif Üyeler",
-      value: "89",
-      icon: <Users className="h-6 w-6 text-primary" />,
-      description: "Toplam aktif spor salonu üyeleri",
-    },
-    {
-      title: "Günün Randevuları",
-      value: "26",
-      icon: <Calendar className="h-6 w-6 text-primary" />,
-      description: "Bugün için planlanan",
-    },
-    {
-      title: "Aylık Gelir",
-      value: "₺45.231",
-      icon: <DollarSign className="h-6 w-6 text-primary" />,
-      description: "Bu ayki gelir",
-    },
-    {
-      title: "Büyüme Oranı",
-      value: "%12,5",
-      icon: <TrendingUp className="h-6 w-6 text-primary" />,
-      description: "Geçen aya göre",
-    },
-  ];
+  const defaultStats = [];
 
   const displayStats = stats || defaultStats;
 
