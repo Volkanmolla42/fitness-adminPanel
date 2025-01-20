@@ -68,6 +68,7 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTrainer, setSelectedTrainer] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("scheduled");
   const [showAvailable, setShowAvailable] = useState<boolean>(false);
   const [timeRange, setTimeRange] = useState({
     start: WORKING_HOURS.start,
@@ -129,7 +130,7 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
     return conflictingAppointments.length >= MAX_STANDARD_APPOINTMENTS;
   };
 
-  // Belirli bir gün ve saat için kalan standart randevu kontenjanını hesapla
+  // Belirli bir gün ve saat için kalan standart randevu randevuını hesapla
   const getRemainingStandardSlots = (date: Date, time: string) => {
     if (!selectedTrainer || !services) return 0;
 
@@ -162,34 +163,38 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
   };
 
   const filteredAppointments = useMemo(() => {
-    return appointments.filter((appointment) => {
-      const appointmentDate = new Date(`${appointment.date} ${appointment.time}`);
-      const isDateMatch = selectedDate 
-        ? isWithinInterval(appointmentDate, {
-            start: startOfDay(selectedDate),
-            end: endOfDay(selectedDate),
-          })
-        : true;
-      
-      const isTrainerMatch = selectedTrainer === "all" || appointment.trainer_id === selectedTrainer;
-      
-      // Sadece belirli randevu saatlerini kabul et
-      const normalizedAppointmentTime = normalizeTime(appointment.time);
-      const isValidTimeSlot = TIME_SLOTS.some(slot => normalizeTime(slot) === normalizedAppointmentTime);
-      const isTimeMatch = normalizedAppointmentTime >= timeRange.start && normalizedAppointmentTime <= timeRange.end;
+    return appointments
+      .filter((appointment) => {
+        const appointmentDate = new Date(`${appointment.date} ${appointment.time}`);
+        const isDateMatch = selectedDate 
+          ? isWithinInterval(appointmentDate, {
+              start: startOfDay(selectedDate),
+              end: endOfDay(selectedDate),
+            })
+          : true;
+        
+        const isTrainerMatch = selectedTrainer === "all" || appointment.trainer_id === selectedTrainer;
+        const isStatusMatch = selectedStatus === "all" || appointment.status === selectedStatus;
+        
+        // Sadece belirli randevu saatlerini kabul et
+        const normalizedAppointmentTime = normalizeTime(appointment.time);
+        const isValidTimeSlot = TIME_SLOTS.some(slot => normalizeTime(slot) === normalizedAppointmentTime);
+        const isTimeMatch = normalizedAppointmentTime >= timeRange.start && normalizedAppointmentTime <= timeRange.end;
 
-      return isDateMatch && isTrainerMatch && isTimeMatch;
-    }).sort((a, b) => {
-      // Önce tarihe göre sırala
-      const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
-      if (dateCompare !== 0) return dateCompare;
+        return isDateMatch && isTrainerMatch && isStatusMatch && isTimeMatch;
+      })
+      .sort((a, b) => {
+        // Tarihleri karşılaştır (en eski tarih önce)
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        const dateCompare = dateA.getTime() - dateB.getTime();
+        
+        if (dateCompare !== 0) return dateCompare;
 
-      // Aynı tarihli randevuları saate göre sırala
-      const timeA = timeToMinutes(a.time);
-      const timeB = timeToMinutes(b.time);
-      return timeA - timeB;
-    });
-  }, [appointments, selectedDate, selectedTrainer, timeRange]);
+        // Aynı tarihli randevuları saate göre sırala
+        return timeToMinutes(a.time) - timeToMinutes(b.time);
+      });
+  }, [appointments, selectedDate, selectedTrainer, selectedStatus, timeRange]);
 
   const availableSlots = useMemo(() => {
     if (!selectedDate || !showAvailable || !selectedTrainer || selectedTrainer === "all") return [];
@@ -286,6 +291,22 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                   {trainer.first_name} {trainer.last_name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex-1 space-y-2">
+          <Label>Durum</Label>
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger>
+              <SelectValue placeholder="Durum seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tümü</SelectItem>
+              <SelectItem value="scheduled">Planlandı</SelectItem>
+              <SelectItem value="in-progress">Devam Ediyor</SelectItem>
+              <SelectItem value="completed">Tamamlandı</SelectItem>
+              <SelectItem value="cancelled">İptal Edildi</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -415,11 +436,11 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                   <TableCell>-</TableCell>
                   <TableCell className="text-green-600 font-medium">
                     {remainingSlots === 3 ? (
-                      "Tüm kontenjan müsait"
+                      "Boş"
                     ) : remainingSlots > 0 ? (
                       `${remainingSlots} randevu daha alınabilir`
                     ) : (
-                      "Kontenjan doldu"
+                      "Randevu saati doldu"
                     )}
                   </TableCell>
                 </TableRow>
