@@ -74,8 +74,8 @@ export default function WeeklyView({
     "10:00",
     "11:30",
     "13:00",
-    "14:30",
-    "16:00",
+    "14:00",
+    "15:30",
     "17:00",
     "18:00",
     "19:00"
@@ -132,6 +132,17 @@ export default function WeeklyView({
 
   // Belirli gün ve saatte kontenjan var mı kontrol et
   const hasAvailableSlot = (dayIndex: number, timeSlot: string) => {
+    const currentDate = new Date();
+    const slotDate = weekDates[dayIndex];
+    const [hour, minute] = timeSlot.split(":").map(Number);
+    const slotDateTime = new Date(slotDate);
+    slotDateTime.setHours(hour, minute, 0, 0);
+
+    // Geçmiş tarih ve saatler için false döndür
+    if (slotDateTime < currentDate) {
+      return false;
+    }
+
     const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
     
     // Hiç randevu yoksa, kontenjan vardır
