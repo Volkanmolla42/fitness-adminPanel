@@ -237,7 +237,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden sticky top-0 md:flex h-svh border-r z-50",
+          "hidden sticky bg-pink-100 top-0 md:flex h-svh border-r z-50",
           {
             "w-64": !isCollapsed,
             "w-20": isCollapsed,
@@ -271,13 +271,13 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden fixed top-4 bg-gray-200 left-4 z-[51]"
+            className="md:hidden fixed top-4  bg-pink-100 left-4 z-[51]"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-6 w-64 z-[52]">
+        <SheetContent side="left" className="p-6 w-64 z-[52] bg-pink-100">
           <SheetTitle className="hidden">FitAdmin Menu</SheetTitle>
           <SheetDescription className="hidden">
             Gezinmek için menüyü kullanın
