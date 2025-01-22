@@ -1,4 +1,4 @@
-import { Award, Clock, FileText, User2, Users, CalendarDays, MapPin } from "lucide-react";
+import { Award, Clock, FileText, User2, Phone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trainer } from "@/types";
@@ -41,9 +41,7 @@ export const TrainerCard = ({
 
       {/* Arkaplan Deseni */}
       <div className="absolute top-0 right-0 w-32 h-32 opacity-5 transform rotate-45">
-        {isBusy && (
-          <Clock className="w-full h-full text-primary" />
-        )}
+        {isBusy && <Clock className="w-full h-full text-primary" />}
       </div>
 
       <div className="flex flex-col items-center text-center relative">
@@ -63,15 +61,14 @@ export const TrainerCard = ({
           {trainer.first_name} {trainer.last_name}
         </h3>
 
-       
-
         {/* Randevu Bilgileri */}
         {isBusy && currentAppointment && (
           <div className="space-y-2 w-full p-2 bg-muted/30 rounded-lg mb-3">
             <div className="flex items-center justify-center gap-2 text-sm">
               <User2 className="w-4 h-4 text-blue-500" />
               <span className="text-muted-foreground font-medium">
-                {currentAppointment.member?.first_name} {currentAppointment.member?.last_name}
+                {currentAppointment.member?.first_name}{" "}
+                {currentAppointment.member?.last_name}
               </span>
             </div>
             <div className="flex items-center justify-center gap-2 text-sm">
@@ -81,15 +78,23 @@ export const TrainerCard = ({
               </span>
             </div>
             {getRemainingMinutes && (
-              <Badge variant="outline" className="w-full justify-center border-primary/30">
+              <Badge
+                variant="outline"
+                className="w-full justify-center border-primary/30"
+              >
                 <Clock className="w-3 h-3 mr-1 text-primary" />
                 {(() => {
-                  const service = services?.find(s => s.id === currentAppointment.service_id);
+                  const service = services?.find(
+                    (s) => s.id === currentAppointment.service_id
+                  );
                   const duration = service?.duration || 60;
-                  const remainingMinutes = getRemainingMinutes(currentAppointment.time, duration);
+                  const remainingMinutes = getRemainingMinutes(
+                    currentAppointment.time,
+                    duration
+                  );
                   return remainingMinutes > 0
                     ? `${remainingMinutes} dakika kaldı`
-                    : 'Randevu süresi doldu';
+                    : "Randevu süresi doldu";
                 })()}
               </Badge>
             )}
@@ -99,20 +104,8 @@ export const TrainerCard = ({
         {/* Alt Bilgiler */}
         <div className="w-full space-y-2 pt-2 border-t">
           <div className="flex items-center text-sm text-muted-foreground justify-center">
-            <Clock className="w-4 h-4 mr-1.5 text-purple-500" />
-            {trainer.working_hours?.start || "09:00"} - {trainer.working_hours?.end || "17:00"}
-          </div>
-          
-          {trainer.address && (
-            <div className="flex items-center text-sm text-muted-foreground justify-center">
-              <MapPin className="w-4 h-4 mr-1.5 text-orange-500" />
-              <span className="truncate">{trainer.address}</span>
-            </div>
-          )}
-          
-          <div className="flex items-center text-sm text-muted-foreground justify-center">
-            <CalendarDays className="w-4 h-4 mr-1.5 text-indigo-500" />
-            <span>Başlangıç: {new Date(trainer.start_date).toLocaleDateString('tr-TR')}</span>
+            <Phone className="w-4 h-4 mr-1.5 text-indigo-500" />
+            <span>{trainer.phone}</span>
           </div>
         </div>
       </div>

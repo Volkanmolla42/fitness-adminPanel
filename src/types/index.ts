@@ -9,7 +9,6 @@ export interface Trainer {
   start_date: string;
   avatar_url?: string;
   specialization?: string;
-  address?: string;
   working_hours: {
     start: string;
     end: string;
@@ -43,11 +42,14 @@ export interface Appointment {
   service_id: string;
   date: string;
   time: string;
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  status: "scheduled" | "in-progress" | "completed" | "cancelled";
   created_at?: string;
   service?: Service;
   member?: Member;
   trainer?: AppointmentTrainer;
 }
 
-export type TrainerInput = Omit<Trainer, 'id' | 'created_at' | 'hasOngoingAppointment'>;
+export type TrainerInput = Omit<
+  Trainer,
+  "id" | "created_at" | "hasOngoingAppointment"
+>;

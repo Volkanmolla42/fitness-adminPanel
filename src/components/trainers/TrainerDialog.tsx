@@ -1,5 +1,22 @@
-import { Award, Calendar, CalendarDays, Clock, FileText, Mail, MapPin, Phone, Pencil, Trash2, User2, History } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Award,
+  Calendar,
+  CalendarDays,
+  Clock,
+  FileText,
+  Mail,
+  Phone,
+  Pencil,
+  Trash2,
+  User2,
+  History,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trainer } from "@/types";
@@ -52,7 +69,11 @@ export const TrainerDialog = ({
                 </DialogTitle>
                 <div className="flex flex-wrap gap-1">
                   {trainer.categories?.map((category) => (
-                    <Badge key={category} variant="outline" className="text-xs px-1.5 py-0">
+                    <Badge
+                      key={category}
+                      variant="outline"
+                      className="text-xs px-1.5 py-0"
+                    >
                       {category}
                     </Badge>
                   ))}
@@ -77,12 +98,6 @@ export const TrainerDialog = ({
                     <Phone className="w-3 h-3 mr-1.5 text-green-500" />
                     <span>{trainer.phone}</span>
                   </div>
-                  {trainer.address && (
-                    <div className="flex items-center text-xs">
-                      <MapPin className="w-3 h-3 mr-1.5 text-orange-500" />
-                      <span className="truncate">{trainer.address}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -94,11 +109,16 @@ export const TrainerDialog = ({
                 <div className="space-y-1">
                   <div className="flex items-center text-xs">
                     <Clock className="w-3 h-3 mr-1.5 text-purple-500" />
-                    <span>{trainer.working_hours?.start || "09:00"} - {trainer.working_hours?.end || "17:00"}</span>
+                    <span>
+                      {trainer.working_hours?.start || "09:00"} -{" "}
+                      {trainer.working_hours?.end || "17:00"}
+                    </span>
                   </div>
                   <div className="flex items-center text-xs">
                     <CalendarDays className="w-3 h-3 mr-1.5 text-indigo-500" />
-                    <span>{new Date(trainer.start_date).toLocaleDateString('tr-TR')}</span>
+                    <span>
+                      {new Date(trainer.start_date).toLocaleDateString("tr-TR")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -121,7 +141,13 @@ export const TrainerDialog = ({
                   </h4>
                   <div className="flex items-center gap-2">
                     <p className="text-lg font-semibold text-accent-foreground">
-                      {appointments.filter(a => a.status === "scheduled" || a.status === "in-progress").length}
+                      {
+                        appointments.filter(
+                          (a) =>
+                            a.status === "scheduled" ||
+                            a.status === "in-progress"
+                        ).length
+                      }
                     </p>
                     <Button
                       variant="ghost"
