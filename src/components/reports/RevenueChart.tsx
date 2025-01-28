@@ -16,31 +16,31 @@ interface RevenueChartProps {
 
 export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   return (
-    <Card className="col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle>Gelir Analizi</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis 
-                tickFormatter={(value) => 
-                  new Intl.NumberFormat('tr-TR', {
-                    style: 'currency',
-                    currency: 'TRY',
-                    maximumFractionDigits: 0
+              <YAxis
+                tickFormatter={(value) =>
+                  new Intl.NumberFormat("tr-TR", {
+                    style: "currency",
+                    currency: "TRY",
+                    maximumFractionDigits: 0,
                   }).format(value)
                 }
               />
-              <Tooltip 
-                formatter={(value: number) => 
-                  new Intl.NumberFormat('tr-TR', {
-                    style: 'currency',
-                    currency: 'TRY',
-                    maximumFractionDigits: 0
+              <Tooltip
+                formatter={(value: number) =>
+                  new Intl.NumberFormat("tr-TR", {
+                    style: "currency",
+                    currency: "TRY",
+                    maximumFractionDigits: 0,
                   }).format(value)
                 }
                 labelFormatter={(label) => `${label} Ayı`}

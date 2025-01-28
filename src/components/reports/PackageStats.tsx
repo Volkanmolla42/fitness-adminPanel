@@ -1,6 +1,13 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import type { Database } from "@/types/supabase";
 
@@ -27,13 +34,21 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
 
     if (selectedDateRange === "all") {
       // Tüm zamanlar seçiliyse tarih filtresi uygulamayacağız
-    } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+    } else if (
+      selectedDateRange === "custom" &&
+      customDateRange?.from &&
+      customDateRange?.to
+    ) {
       startDate = customDateRange.from;
       endDate = customDateRange.to;
     } else {
       switch (selectedDateRange) {
         case "week":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+          startDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - 7
+          );
           endDate = now;
           break;
         case "year":
@@ -60,7 +75,10 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
     const filteredMembers = members.filter((member) => {
       if (!startDate || !endDate) return true;
       const memberStartDate = new Date(member.start_date);
-      return isWithinInterval(memberStartDate, { start: startDate, end: endDate });
+      return isWithinInterval(memberStartDate, {
+        start: startDate,
+        end: endDate,
+      });
     });
 
     // Calculate stats for each service
@@ -68,7 +86,10 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
       member.subscribed_services.forEach((serviceId) => {
         const service = services.find((s) => s.id === serviceId);
         if (service) {
-          const stats = packageStats.get(service.name) || { count: 0, revenue: 0 };
+          const stats = packageStats.get(service.name) || {
+            count: 0,
+            revenue: 0,
+          };
           stats.count += 1;
           stats.revenue += service.price;
           packageStats.set(service.name, stats);
@@ -83,7 +104,8 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
         .map(([name, stats]) => ({
           name,
           ...stats,
-          percentage: totalPackages === 0 ? 0 : (stats.count / totalPackages) * 100,
+          percentage:
+            totalPackages === 0 ? 0 : (stats.count / totalPackages) * 100,
         }))
         .sort((a, b) => b.count - a.count), // En çok satılan paketleri üste sırala
       totalRevenue,
@@ -96,23 +118,11 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardHeader>
-        <CardTitle>Paket İstatistikleri</CardTitle>
+        <CardTitle>Paket / Üye Dağılımı</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg border p-3">
-              <div className="text-sm font-medium text-gray-600">Toplam Satılan Paket</div>
-              <div className="text-2xl font-bold">{stats.totalPackages}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-sm font-medium text-gray-600">Toplam Gelir</div>
-              <div className="text-2xl font-bold">₺{stats.totalRevenue.toLocaleString()}</div>
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <div className="text-sm font-medium text-gray-600 mb-2">Paket Dağılımı</div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -124,11 +134,18 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
               </TableHeader>
               <TableBody>
                 {stats.packageStats.map((stat) => (
-                  <TableRow key={stat.name} className={stat.count === 0 ? 'text-muted-foreground' : ''}>
+                  <TableRow
+                    key={stat.name}
+                    className={stat.count === 0 ? "text-muted-foreground" : ""}
+                  >
                     <TableCell className="font-medium">{stat.name}</TableCell>
                     <TableCell className="text-right">{stat.count}</TableCell>
-                    <TableCell className="text-right">{stat.percentage.toFixed(1)}%</TableCell>
-                    <TableCell className="text-right">₺{stat.revenue.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      {stat.percentage.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ₺{stat.revenue.toLocaleString()}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

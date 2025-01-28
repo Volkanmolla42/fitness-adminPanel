@@ -7,7 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -27,11 +27,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export const ServiceUsageStats: React.FC<ServiceUsageStatsProps> = ({ data }) => {
+export const ServiceUsageStats: React.FC<ServiceUsageStatsProps> = ({
+  data,
+}) => {
   return (
     <Card className="hover:shadow-lg  transition-shadow duration-300">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-gray-800">Paket Dağılımı</CardTitle>
+        <CardTitle className="text-lg font-semibold text-gray-800">
+          Paket / Randevu Dağılımı
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[400px]">
@@ -42,22 +46,27 @@ export const ServiceUsageStats: React.FC<ServiceUsageStatsProps> = ({ data }) =>
               barSize={40}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="name" 
+              <XAxis
+                dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#666', fontSize: 12 }}
+                tick={{ fill: "#666", fontSize: 12 }}
               />
-              <YAxis 
+              <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#666', fontSize: 12 }}
-                label={{ value: 'Ders Sayısı', angle: -90, position: 'insideLeft', fill: '#666' }}
+                tick={{ fill: "#666", fontSize: 12 }}
+                label={{
+                  value: "Ders Sayısı",
+                  angle: -90,
+                  position: "insideLeft",
+                  fill: "#666",
+                }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar 
-                dataKey="kullanim" 
+              <Bar
+                dataKey="kullanim"
                 fill="#7C3AED"
                 radius={[4, 4, 0, 0]}
                 name="Ders Sayısı"
