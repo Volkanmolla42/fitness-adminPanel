@@ -124,8 +124,7 @@ const DashboardPage: React.FC = () => {
       const activeMembers = members.length;
       const todayAppointments = appointments.filter(
         (app) =>
-          new Date(app.date).toISOString().split("T")[0] === today &&
-          app.status === "scheduled"
+          new Date(app.date).toISOString().split("T")[0] === today
       ).length;
 
       const calculateMonthRevenue = (month: number, year: number) =>

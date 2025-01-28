@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Calendar, TrendingUp, DollarSign } from "lucide-react";
+import {TrendingUp} from "lucide-react";
 
 interface StatsCardProps {
   title: string;
