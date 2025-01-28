@@ -39,27 +39,27 @@ const getStatusText = (status: Appointment["status"]) => {
 const getRelevantAppointments = (appointments: Appointment[], showAll: boolean) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
   
-  // Bugünün randevularını filtrele
-  const todayAppointments = appointments.filter(apt => {
+  // Bugün ve gelecek 7 günün randevularını filtrele
+  const upcomingAppointments = appointments.filter(apt => {
     const aptDate = new Date(apt.date);
-    return aptDate.getDate() === today.getDate() &&
-           aptDate.getMonth() === today.getMonth() &&
-           aptDate.getFullYear() === today.getFullYear();
+    return aptDate >= today && aptDate <= nextWeek;
   });
 
   // Öncelikli randevuları ayır
-  const inProgressAppointments = todayAppointments.filter(apt => apt.status === "in-progress");
-  const scheduledAppointments = todayAppointments.filter(apt => apt.status === "scheduled");
-  const otherAppointments = todayAppointments.filter(apt => 
+  const inProgressAppointments = upcomingAppointments.filter(apt => apt.status === "in-progress");
+  const scheduledAppointments = upcomingAppointments.filter(apt => apt.status === "scheduled");
+  const otherAppointments = upcomingAppointments.filter(apt => 
     apt.status !== "in-progress" && apt.status !== "scheduled"
   );
 
-  // Planlanan randevuları saate göre sırala
+  // Planlanan randevuları tarihe ve saate göre sırala
   const sortedScheduledAppointments = scheduledAppointments.sort((a, b) => {
-    const timeA = a.time.slice(0, 5);
-    const timeB = b.time.slice(0, 5);
-    return timeA.localeCompare(timeB);
+    const dateA = new Date(a.date + 'T' + a.time);
+    const dateB = new Date(b.date + 'T' + b.time);
+    return dateA.getTime() - dateB.getTime();
   });
 
   // Önce devam eden, sonra planlanan, en son diğer randevular
@@ -70,6 +70,20 @@ const getRelevantAppointments = (appointments: Appointment[], showAll: boolean) 
   ];
 
   return showAll ? sortedAppointments : sortedAppointments.slice(0, 3);
+};
+
+const getTimeUntilStart = (date: string, time: string): number | null => {
+  const appointmentTime = new Date(date + 'T' + time);
+  const now = new Date();
+  const diffInMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / (1000 * 60));
+  return diffInMinutes >= 0 && diffInMinutes <= 30 ? diffInMinutes : null;
+};
+
+const getElapsedTime = (date: string, time: string): number | null => {
+  const appointmentTime = new Date(date + 'T' + time);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - appointmentTime.getTime()) / (1000 * 60));
+  return diffInMinutes >= 0 ? diffInMinutes : null;
 };
 
 const AppointmentsWidget = ({
@@ -96,7 +110,7 @@ const AppointmentsWidget = ({
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <h2 className="text-xl md:text-2xl font-semibold text-foreground">
-            Günlük randevular
+            Yaklaşan randevular
           </h2>
           <Badge variant="secondary" className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
@@ -114,7 +128,7 @@ const AppointmentsWidget = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {displayAppointments.map((appointment) => {
           const member = members[appointment.member_id];
           const trainer = trainers[appointment.trainer_id];
@@ -127,6 +141,8 @@ const AppointmentsWidget = ({
                 "flex flex-col p-4 rounded-lg border transition-all hover:shadow-md",
                 appointment.status === "in-progress"
                   ? "border-2 border-yellow-500 bg-yellow-500/10 scale-105 shadow-lg animate-pulse-border"
+                  : getTimeUntilStart(appointment.date, appointment.time) !== null
+                  ? "border-2 border-orange-500 bg-orange-500/5 shadow-md"
                   : "border-border hover:bg-accent"
               )}
               role="button"
@@ -140,6 +156,31 @@ const AppointmentsWidget = ({
                   <p className="text-sm text-muted-foreground">
                     {service?.name}
                   </p>
+                  {(() => {
+                    if (appointment.status === "in-progress") {
+                      const elapsedTime = getElapsedTime(appointment.date, appointment.time);
+                      if (elapsedTime !== null) {
+                        return (
+                          <p className="text-sm text-yellow-500 font-medium mt-1">
+                            {elapsedTime === 0 
+                              ? "Yeni başladı" 
+                              : `${elapsedTime} dakikadır devam ediyor`}
+                          </p>
+                        );
+                      }
+                    }
+                    const timeUntilStart = getTimeUntilStart(appointment.date, appointment.time);
+                    if (timeUntilStart !== null) {
+                      return (
+                        <p className="text-sm text-orange-500 font-medium mt-1">
+                          {timeUntilStart === 0 
+                            ? "Şimdi başlayacak" 
+                            : `${timeUntilStart} dakika içinde başlayacak`}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 <Badge
                   className={cn(
