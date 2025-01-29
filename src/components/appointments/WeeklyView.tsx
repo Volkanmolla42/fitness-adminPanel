@@ -157,8 +157,8 @@ export default function WeeklyView({
     }
 
     // Standart randevular için toplam katılımcı sayısını kontrol et
-    const totalParticipants = appointments.reduce((total, { appointments }) => total + appointments.length, 0);
-    const MAX_STANDARD_PARTICIPANTS = 3;
+    const totalParticipants = appointments.reduce((total : number, { appointments }) => total + appointments.length, 0);
+    const MAX_STANDARD_PARTICIPANTS = 4;
 
     return totalParticipants < MAX_STANDARD_PARTICIPANTS;
   };

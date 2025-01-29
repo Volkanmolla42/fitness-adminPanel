@@ -125,8 +125,8 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
       return true;
     }
 
-    // Standart randevular için maksimum 3 kişi kontrolü
-    const MAX_STANDARD_APPOINTMENTS = 3;
+    // Standart randevular için maksimum 4 kişi kontrolü
+    const MAX_STANDARD_APPOINTMENTS = 4;
     return conflictingAppointments.length >= MAX_STANDARD_APPOINTMENTS;
   };
 
@@ -152,7 +152,7 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
       return 0;
     }
 
-    const MAX_STANDARD_APPOINTMENTS = 3;
+    const MAX_STANDARD_APPOINTMENTS = 4;
     return MAX_STANDARD_APPOINTMENTS - dayAppointments.length;
   };
 

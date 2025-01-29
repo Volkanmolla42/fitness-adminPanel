@@ -172,9 +172,9 @@ export function SessionsDialog({
         return true;
       }
 
-      // Standart randevular için maksimum 3 kişi kontrolü
+      // Standart randevular için maksimum 4 kişi kontrolü
       const totalStandardAppointments = conflictingAppointments.length + conflictingSessions.length;
-      const MAX_STANDARD_APPOINTMENTS = 3;
+      const MAX_STANDARD_APPOINTMENTS = 4;
       
       return totalStandardAppointments >= MAX_STANDARD_APPOINTMENTS;
     }
