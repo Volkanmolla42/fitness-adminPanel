@@ -80,6 +80,7 @@ export type Database = {
           start_date: string;
           subscribed_services: string[];
           notes: string | null;
+          completed_packages: Array<{ package_id: string, completion_count: number }> | null;
         };
         Insert: {
           avatar_url?: string | null;
@@ -93,6 +94,7 @@ export type Database = {
           start_date: string;
           subscribed_services?: string[];
           notes?: string | null;
+          completed_packages?: Array<{ package_id: string, completion_count: number }> | null;
         };
         Update: {
           avatar_url?: string | null;
@@ -106,6 +108,7 @@ export type Database = {
           start_date?: string;
           subscribed_services?: string[];
           notes?: string | null;
+          completed_packages?: Array<{ package_id: string, completion_count: number }> | null;
         };
         Relationships: [];
       };

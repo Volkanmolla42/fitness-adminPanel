@@ -12,7 +12,7 @@ interface AppointmentsWidgetProps {
   appointments: Appointment[];
   members: Record<string, { first_name: string; last_name: string }>;
   trainers: Record<string, { first_name: string; last_name: string }>;
-  services: Record<string, { name: string }>;
+  services: Record<string, { name: string; duration: number }>;
   showAll?: boolean;
 }
 
@@ -73,16 +73,24 @@ const getRelevantAppointments = (appointments: Appointment[], showAll: boolean) 
 };
 
 const getTimeUntilStart = (date: string, time: string): number | null => {
-  const appointmentTime = new Date(date + 'T' + time);
+  // Randevu tarih ve saatini Türkiye saatinde oluştur
+  const [hours, minutes] = time.split(':');
+  const appointmentDate = new Date(date);
+  appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  
   const now = new Date();
-  const diffInMinutes = Math.floor((appointmentTime.getTime() - now.getTime()) / (1000 * 60));
+  const diffInMinutes = Math.floor((appointmentDate.getTime() - now.getTime()) / (1000 * 60));
   return diffInMinutes >= 0 && diffInMinutes <= 30 ? diffInMinutes : null;
 };
 
 const getElapsedTime = (date: string, time: string): number | null => {
-  const appointmentTime = new Date(date + 'T' + time);
+  // Randevu tarih ve saatini Türkiye saatinde oluştur
+  const [hours, minutes] = time.split(':');
+  const appointmentDate = new Date(date);
+  appointmentDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  
   const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - appointmentTime.getTime()) / (1000 * 60));
+  const diffInMinutes = Math.floor((now.getTime() - appointmentDate.getTime()) / (1000 * 60));
   return diffInMinutes >= 0 ? diffInMinutes : null;
 };
 
@@ -160,11 +168,14 @@ const AppointmentsWidget = ({
                     if (appointment.status === "in-progress") {
                       const elapsedTime = getElapsedTime(appointment.date, appointment.time);
                       if (elapsedTime !== null) {
+                        const duration = services[appointment.service_id]?.duration || 0;
+                        const remainingTime = Math.max(0, duration - elapsedTime);
+                        const isOvertime = elapsedTime > duration;
                         return (
                           <p className="text-sm text-yellow-500 font-medium mt-1">
                             {elapsedTime === 0 
                               ? "Yeni başladı" 
-                              : `${elapsedTime} dakikadır devam ediyor`}
+                              : `${elapsedTime} dakikadır devam ediyor${isOvertime ? ' (Süre aşıldı)' : ` (${remainingTime} dk kaldı)`}`}
                           </p>
                         );
                       }

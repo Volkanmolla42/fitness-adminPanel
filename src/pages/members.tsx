@@ -248,6 +248,22 @@ const MembersPage = () => {
               appointments={appointments}
               onEdit={setEditingMember}
               onDelete={handleDelete}
+              onUpdate={async (updatedMember) => {
+                try {
+                  await updateMember(updatedMember.id, updatedMember);
+                  setSelectedMember(updatedMember);
+                  toast({
+                    title: "Başarılı",
+                    description: "Paket başarıyla tamamlandı.",
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Hata",
+                    description: "Paket tamamlanırken bir hata oluştu.",
+                    variant: "destructive",
+                  });
+                }
+              }}
             />
           </DialogContent>
         )}

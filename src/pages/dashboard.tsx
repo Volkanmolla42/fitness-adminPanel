@@ -280,7 +280,7 @@ const DashboardPage: React.FC = () => {
           ])
         )}
         services={Object.fromEntries(
-          services.map((s) => [s.id, { name: s.name }])
+          services.map((s) => [s.id, { name: s.name, duration: s.duration }])
         )}
       />
     </div>

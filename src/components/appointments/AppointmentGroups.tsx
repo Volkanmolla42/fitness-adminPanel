@@ -124,7 +124,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-yellow-800 flex items-center">
               <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
-              Devam Eden Randevular
+              Devam Eden Randevular ({groupedAppointments["in-progress"]?.length})
             </h3>
             <Button
               variant="ghost"
@@ -145,7 +145,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-blue-800 flex items-center">
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
-              Planlanmış Randevular
+              Planlanmış Randevular ({groupedAppointments["scheduled"]?.length})
             </h3>
             <Button
               variant="ghost"
@@ -166,7 +166,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-green-800 flex items-center">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
-              Tamamlanmış Randevular
+              Tamamlanmış Randevular ({groupedAppointments["completed"]?.length})
             </h3>
             <Button
               variant="ghost"
@@ -187,7 +187,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-red-800 flex items-center">
               <div className="w-2 h-2 bg-red-500 rounded-full mr-2" />
-              İptal Edilmiş Randevular
+              İptal Edilmiş Randevular ({groupedAppointments["cancelled"]?.length})
             </h3>
             <Button
               variant="ghost"

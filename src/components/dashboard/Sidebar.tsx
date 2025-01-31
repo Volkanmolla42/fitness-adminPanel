@@ -277,7 +277,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-6 w-64 z-[52] bg-pink-100">
+        <SheetContent side="left" className="py-0 px-2 w-64 z-[52] bg-pink-100">
           <SheetTitle className="hidden">FitAdmin Menu</SheetTitle>
           <SheetDescription className="hidden">
             Gezinmek için menüyü kullanın
