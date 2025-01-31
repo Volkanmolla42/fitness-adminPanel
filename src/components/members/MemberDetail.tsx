@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Crown, Pencil, Phone, Mail, Calendar, ListChecks, History, Trash2, CheckCircle2 } from "lucide-react";
+import { Crown, Pencil, Phone, Mail, Calendar, ListChecks, History, Trash2, CheckCircle2, CalendarHeart, StickyNote, Notebook } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
 import { useState } from "react";
@@ -50,6 +50,9 @@ export const MemberDetail = ({
   const totalPackageAmount = member.subscribed_services.reduce((total, serviceId) => {
     const service = services[serviceId];
     return total + (service?.price || 0);
+  }, 0) + (member.completed_packages || []).reduce((total, completedPackage) => {
+    const service = services[completedPackage.package_id];
+    return total + ((service?.price || 0) * completedPackage.completion_count);
   }, 0);
 
   // Calculate used sessions for each service
@@ -155,20 +158,41 @@ export const MemberDetail = ({
                 {isVip ? "VIP Üye" : "Standart Üye"}
               </Badge>
             </div>
-            <div className="flex flex-col gap-1 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Phone className="w-3.5 h-3.5 shrink-0" />
-                <span>{member.phone}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* İletişim Bilgileri */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground mb-1">İletişim Bilgileri</h4>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="bg-muted/50 p-1.5 rounded-md">
+                      <Phone className="w-3.5 h-3.5 text-primary/70" />
+                    </div>
+                    <span>{member.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="bg-muted/50 p-1.5 rounded-md">
+                      <Mail className="w-3.5 h-3.5 text-primary/70" />
+                    </div>
+                    <span>{member.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="bg-muted/50 p-1.5 rounded-md">
+                      <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                    </div>
+                    <span>{new Date(member.start_date).toLocaleDateString("tr-TR")}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Mail className="w-3.5 h-3.5 shrink-0" />
-                <span>{member.email}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {new Date(member.start_date).toLocaleDateString("tr-TR")}
-                </span>
+
+              {/* Notlar */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground mb-1">Notlar</h4>
+                <div className="bg-muted/30 p-2.5 rounded-lg min-h-[80px] text-sm">
+                  <div className="flex gap-2">
+                    <Notebook className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" />
+                    <span className="text-muted-foreground">{member.notes || "Not bulunmuyor"}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -191,7 +215,7 @@ export const MemberDetail = ({
         <div className="space-y-2.5">
           {/* Aktif Paketler */}
           <div>
-            <h4 className="text-xs font-medium mb-1.5 text-muted-foreground">Aktif Paketler</h4>
+            <h4 className="text-xs font-medium mb- text-muted-foreground">Aktif Paketler</h4>
             <div className="flex flex-wrap gap-1.5">
               {member.subscribed_services.map((serviceId) => {
                 const service = services[serviceId];
@@ -199,9 +223,9 @@ export const MemberDetail = ({
                   <Badge
                     key={serviceId}
                     variant="outline"
-                    className="px-2 py-0.5 flex items-center gap-1.5 text-xs group hover:bg-primary/5"
+                    className="px-2 py-0.5 flex items-center gap-2 text-sm group hover:bg-primary/5"
                   >
-                    <span className=" truncate max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
+                    <span className="max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
                     <span className="text-muted-foreground whitespace-nowrap">
                       {service?.price?.toLocaleString('tr-TR')} ₺
                     </span>
@@ -209,12 +233,13 @@ export const MemberDetail = ({
                       {usedSessions[serviceId] || 0}/{service?.session_count} Seans
                     </span>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-5 w-5 p-0 opacity-50 group-hover:opacity-100"
+                      className="ml-1 px-2 py-1 text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-200 flex items-center gap-1 group-hover:border-green-500"
                       onClick={() => setCompletingPackage(serviceId)}
                     >
-                      <CheckCircle2 className="h-3 w-3" />
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Tamamla</span>
                     </Button>
                   </Badge>
                 );
@@ -224,7 +249,7 @@ export const MemberDetail = ({
 
           {/* Tamamlanan Paketler */}
           <div>
-            <h4 className="text-xs font-medium mb-1.5 text-muted-foreground">Tamamlanan Paketler</h4>
+            <h4 className="text-xs font-medium mb-1 text-muted-foreground">Tamamlanan Paketler</h4>
             <div className="flex flex-wrap gap-1.5">
               {member.completed_packages && member.completed_packages.length > 0 ? (
                 member.completed_packages.map((completedPackage) => {
@@ -235,10 +260,10 @@ export const MemberDetail = ({
                       variant="secondary"
                       className="px-2 py-0.5 flex items-center gap-1.5 text-xs hover:bg-secondary/20"
                     >
-                      <span className="truncate max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
                       <span className="bg-secondary/20 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                        x{completedPackage.completion_count}
+                        {completedPackage.completion_count} x
                       </span>
+                      <span className="max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
                     </Badge>
                   );
                 })

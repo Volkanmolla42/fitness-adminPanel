@@ -260,6 +260,7 @@ const ReportsPage = () => {
 
     members.forEach((member) => {
       const memberDate = new Date(member.created_at);
+      // Aktif paketlerin gelirlerini hesapla
       member.subscribed_services?.forEach((serviceId) => {
         const service = services.find((s) => s.id === serviceId);
         if (service) {
@@ -272,6 +273,24 @@ const ReportsPage = () => {
           ) {
             previousMonthRevenue += service.price;
             previousMonthPackages += 1;
+          }
+        }
+      });
+
+      // Tamamlanan paketlerin gelirlerini hesapla
+      member.completed_packages?.forEach((completedPackage) => {
+        const service = services.find((s) => s.id === completedPackage.package_id);
+        if (service) {
+          const totalCompletedRevenue = service.price * completedPackage.completion_count;
+          if (memberDate >= currentMonthStart && memberDate <= now) {
+            currentMonthRevenue += totalCompletedRevenue;
+            currentMonthPackages += completedPackage.completion_count;
+          } else if (
+            memberDate >= previousMonthStart &&
+            memberDate <= previousMonthEnd
+          ) {
+            previousMonthRevenue += totalCompletedRevenue;
+            previousMonthPackages += completedPackage.completion_count;
           }
         }
       });
@@ -373,12 +392,20 @@ const ReportsPage = () => {
           locale: tr,
         });
 
-        // O ay içinde satın alınan paketlerin fiyatlarını topla
+        // Aktif paketlerin gelirlerini hesapla
         member.subscribed_services.forEach((serviceId) => {
           const service = services.find((s) => s.id === serviceId);
           if (service) {
-            acc[memberStartMonth] =
-              (acc[memberStartMonth] || 0) + service.price;
+            acc[memberStartMonth] = (acc[memberStartMonth] || 0) + service.price;
+          }
+        });
+
+        // Tamamlanan paketlerin gelirlerini hesapla
+        member.completed_packages?.forEach((completedPackage) => {
+          const service = services.find((s) => s.id === completedPackage.package_id);
+          if (service) {
+            const totalCompletedRevenue = service.price * completedPackage.completion_count;
+            acc[memberStartMonth] = (acc[memberStartMonth] || 0) + totalCompletedRevenue;
           }
         });
 

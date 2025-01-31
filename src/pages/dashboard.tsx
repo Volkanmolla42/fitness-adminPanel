@@ -136,12 +136,21 @@ const DashboardPage: React.FC = () => {
             );
           })
           .reduce(
-            (sum, member) =>
-              sum +
-              member.subscribed_services.reduce((serviceSum, serviceId) => {
+            (sum, member) => {
+              // Aktif paketlerin gelirlerini hesapla
+              const activePackagesRevenue = member.subscribed_services.reduce((serviceSum, serviceId) => {
                 const service = services.find((s) => s.id === serviceId);
                 return serviceSum + (service?.price || 0);
-              }, 0),
+              }, 0);
+
+              // Tamamlanan paketlerin gelirlerini hesapla
+              const completedPackagesRevenue = (member.completed_packages || []).reduce((packageSum, completedPackage) => {
+                const service = services.find((s) => s.id === completedPackage.package_id);
+                return packageSum + ((service?.price || 0) * completedPackage.completion_count);
+              }, 0);
+
+              return sum + activePackagesRevenue + completedPackagesRevenue;
+            },
             0
           );
 

@@ -83,6 +83,7 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
 
     // Calculate stats for each service
     filteredMembers.forEach((member) => {
+      // Aktif paketlerin istatistiklerini hesapla
       member.subscribed_services.forEach((serviceId) => {
         const service = services.find((s) => s.id === serviceId);
         if (service) {
@@ -95,6 +96,23 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
           packageStats.set(service.name, stats);
           totalRevenue += service.price;
           totalPackages += 1;
+        }
+      });
+
+      // Tamamlanan paketlerin istatistiklerini hesapla
+      member.completed_packages?.forEach((completedPackage) => {
+        const service = services.find((s) => s.id === completedPackage.package_id);
+        if (service) {
+          const stats = packageStats.get(service.name) || {
+            count: 0,
+            revenue: 0,
+          };
+          // Tamamlanma sayısı kadar ekle
+          stats.count += completedPackage.completion_count;
+          stats.revenue += service.price * completedPackage.completion_count;
+          packageStats.set(service.name, stats);
+          totalRevenue += service.price * completedPackage.completion_count;
+          totalPackages += completedPackage.completion_count;
         }
       });
     });
@@ -128,26 +146,37 @@ export const PackageStats: React.FC<PackageStatsProps> = ({
                 <TableRow>
                   <TableHead>Paket</TableHead>
                   <TableHead className="text-right">Satış</TableHead>
-                  <TableHead className="text-right">Oran</TableHead>
+                  <TableHead className="text-right">Fiyat</TableHead>
                   <TableHead className="text-right">Gelir</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.packageStats.map((stat) => (
-                  <TableRow
-                    key={stat.name}
-                    className={stat.count === 0 ? "text-muted-foreground" : ""}
-                  >
-                    <TableCell className="font-medium">{stat.name}</TableCell>
-                    <TableCell className="text-right">{stat.count}</TableCell>
-                    <TableCell className="text-right">
-                      {stat.percentage.toFixed(1)}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ₺{stat.revenue.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {stats.packageStats.map((stat) => {
+                  const service = services.find((s) => s.name === stat.name);
+                  return (
+                    <TableRow
+                      key={stat.name}
+                      className={stat.count === 0 ? "text-muted-foreground" : ""}
+                    >
+                      <TableCell className="font-medium">{stat.name}</TableCell>
+                      <TableCell className="text-right">{stat.count}</TableCell>
+                      <TableCell className="text-right">
+                        ₺{service?.price.toLocaleString() || 0}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₺{stat.revenue.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="font-semibold border-t-2">
+                  <TableCell>Toplam</TableCell>
+                  <TableCell className="text-right">{stats.totalPackages}</TableCell>
+                  <TableCell className="text-right">
+                    ₺{services.reduce((sum, service) => sum + service.price, 0).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right">₺{stats.totalRevenue.toLocaleString()}</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>
