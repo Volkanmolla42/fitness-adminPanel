@@ -412,10 +412,31 @@ const ReportsPage = () => {
                 app.service_id === serviceId && app.status === "completed"
             );
 
+            // Paketin tamamlanma sayısını bulalım
+            const completedPackage = member.completed_packages?.find(
+              (cp) => cp.package_id === serviceId
+            );
+
+            // Paketin başlangıç tarihini bulalım (ilk randevu tarihi veya üyelik başlangıç tarihi)
+            const packageAppointments = memberAppointments.filter(
+              (app) => app.service_id === serviceId
+            ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+            const startDate = packageAppointments.length > 0
+              ? new Date(packageAppointments[0].date)
+              : new Date(member.start_date);
+
+            // Paketin durumunu belirleyelim
+            const isCompleted = completedAppointments.length >= service.session_count;
+            const status: 'active' | 'completed' = isCompleted ? 'completed' : 'active';
+
             return {
               name: service.name,
               totalSessions: service.session_count,
               completedSessions: completedAppointments.length,
+              startDate,
+              status,
+              completionCount: completedPackage?.completion_count || 0
             };
           })
           .filter((pkg): pkg is NonNullable<typeof pkg> => pkg !== null) || [];
