@@ -6,14 +6,12 @@ interface StatsCardProps {
   title: string;
   value: string;
   icon: React.ReactNode;
-  description: string;
 }
 
 const StatsCard = ({
   title = "İstatistik Başlığı",
   value = "0",
   icon = <TrendingUp />,
-  description = "Açıklama mevcut değil",
 }: StatsCardProps) => {
   return (
     <Card>
@@ -22,7 +20,6 @@ const StatsCard = ({
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <h3 className="text-2xl font-bold mt-2 text-foreground">{value}</h3>
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
           </div>
           <div className="p-3 bg-primary/10 rounded-full">{icon}</div>
         </div>
@@ -36,7 +33,6 @@ interface StatsGridProps {
     title: string;
     value: string;
     icon: React.ReactNode;
-    description: string;
   }[];
 }
 
@@ -54,7 +50,6 @@ const StatsGrid = ({ stats }: StatsGridProps) => {
             title={stat.title}
             value={stat.value}
             icon={stat.icon}
-            description={stat.description}
           />
         ))}
       </div>

@@ -24,8 +24,7 @@ interface Stats {
   activeMembers: number;
   todayAppointments: number;
   monthlyRevenue: number;
-  revenueGrowthRate: string;
-  memberGrowthRate: string;
+  monthlyAppointments: number;
 }
 
 // Custom hook for error handling - moved outside component
@@ -34,7 +33,6 @@ const useErrorHandler = (error: unknown, entityName: string, toast: any) => {
     if (error) {
       toast({
         title: "Hata",
-        description: `${entityName} yüklenirken bir hata oluştu.`,
         variant: "destructive",
       });
     }
@@ -118,8 +116,6 @@ const DashboardPage: React.FC = () => {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
-      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
       const activeMembers = members.length;
       const todayAppointments = appointments.filter(
@@ -155,54 +151,16 @@ const DashboardPage: React.FC = () => {
           );
 
       const monthlyRevenue = calculateMonthRevenue(currentMonth, currentYear);
-      const previousMonthRevenue = calculateMonthRevenue(
-        previousMonth,
-        previousYear
-      );
-
-      const revenueGrowthRate =
-        previousMonthRevenue === 0
-          ? monthlyRevenue > 0
-            ? "100%"
-            : "0%"
-          : Number(
-              ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) *
-                100
-            ).toFixed(1) + "%";
-
-      const currentMonthMembers = members.filter((member) => {
-        const joinDate = new Date(member.start_date);
-        return (
-          joinDate.getMonth() === currentMonth &&
-          joinDate.getFullYear() === currentYear
-        );
+      const monthlyAppointments = appointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.date);
+        return appointmentDate.getMonth() === currentMonth && appointmentDate.getFullYear() === currentYear;
       }).length;
-
-      const previousMonthMembers = members.filter((member) => {
-        const joinDate = new Date(member.start_date);
-        return (
-          joinDate.getMonth() === previousMonth &&
-          joinDate.getFullYear() === previousYear
-        );
-      }).length;
-
-      const memberGrowthRate =
-        previousMonthMembers === 0
-          ? currentMonthMembers > 0
-            ? "100%"
-            : "0%"
-          : Number(
-              ((currentMonthMembers - previousMonthMembers) /
-                previousMonthMembers) *
-                100
-            ).toFixed(1) + "%";
 
       return {
         activeMembers,
         todayAppointments,
         monthlyRevenue,
-        revenueGrowthRate,
-        memberGrowthRate,
+        monthlyAppointments,
       };
     },
     []
@@ -219,28 +177,24 @@ const DashboardPage: React.FC = () => {
         title: "Aktif Üyeler",
         value: stats.activeMembers.toString(),
         icon: <Users className="h-6 w-6 text-primary" />,
-        description: `Büyüme: ${stats.memberGrowthRate}`,
       },
       {
         title: "Günün Randevuları",
         value: stats.todayAppointments.toString(),
         icon: <Calendar className="h-6 w-6 text-primary" />,
-        description: "Bugün için planlanan",
       },
       {
         title: "Aylık Gelir",
         value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
         icon: <DollarSign className="h-6 w-6 text-primary" />,
-        description: `Büyüme: ${stats.revenueGrowthRate}`,
       },
       {
-        title: "Toplam Randevu",
-        value: appointments.length.toString(),
+        title: "Aylık Randevular",
+        value: stats.monthlyAppointments.toString(),
         icon: <TrendingUp className="h-6 w-6 text-primary" />,
-        description: "Tüm zamanlar",
       },
     ],
-    [stats, appointments.length]
+    [stats]
   );
 
   const isLoading =
