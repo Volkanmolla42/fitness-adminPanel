@@ -211,139 +211,129 @@ const ReportsPage = () => {
 
   const calculateMetrics = () => {
     const now = new Date();
-    const currentMonthStart = startOfMonth(now);
-    const previousMonthStart = startOfMonth(
-      new Date(now.getFullYear(), now.getMonth() - 1)
-    );
-    const previousMonthEnd = endOfMonth(
-      new Date(now.getFullYear(), now.getMonth() - 1)
-    );
+    
+    // Tarih aralığı hesaplama
+    let dateRange = null;
+    if (selectedDateRange === "all") {
+      dateRange = null;
+    } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+      dateRange = {
+        start: customDateRange.from,
+        end: customDateRange.to,
+      };
+    } else {
+      dateRange = {
+        start:
+          selectedDateRange === "week"
+            ? startOfWeek(now, { locale: tr })
+            : selectedDateRange === "month"
+            ? startOfMonth(now)
+            : startOfYear(now),
+        end: now,
+      };
+    }
 
-    // Bu ayki veriler
-    const currentMonthAppointments = filteredData.filter(
-      (app) =>
-        new Date(app.date) >= currentMonthStart && new Date(app.date) <= now
-    );
-
-    const currentMonthMembers = members.filter(
-      (member) =>
-        new Date(member.created_at) >= currentMonthStart &&
-        new Date(member.created_at) <= now &&
-        (filters.membershipType === "all" ||
-          member.membership_type === filters.membershipType)
-    );
-
-    // Geçen ayki veriler
-    const previousMonthAppointments = filteredData.filter(
-      (app) =>
-        new Date(app.date) >= previousMonthStart &&
-        new Date(app.date) <= previousMonthEnd
-    );
-
-    const previousMonthMembers = members.filter(
-      (member) =>
-        new Date(member.created_at) >= previousMonthStart &&
-        new Date(member.created_at) <= previousMonthEnd &&
-        (filters.membershipType === "all" ||
-          member.membership_type === filters.membershipType)
-    );
-
-    // Toplam üye ve randevu sayıları
-    const uniqueMembers = members.length;
-    const totalAppointments = appointments.length;
+    // Filtreleme fonksiyonu
+    const isInDateRange = (date: Date) => {
+      if (!dateRange) return true;
+      return isWithinInterval(date, {
+        start: dateRange.start,
+        end: dateRange.end,
+      });
+    };
 
     // Paket ve gelir hesaplamaları
-    let currentMonthRevenue = 0;
-    let previousMonthRevenue = 0;
-    let currentMonthPackages = 0;
-    let previousMonthPackages = 0;
+    let totalRevenue = 0;
+    let totalPackages = 0;
 
-    members.forEach((member) => {
+    // Filtrelenmiş üyeler
+    const filteredMembers = members.filter((member) => {
       const memberDate = new Date(member.created_at);
-      // Aktif paketlerin gelirlerini hesapla
+      const matchesMembershipType =
+        filters.membershipType === "all" ||
+        member.membership_type === filters.membershipType;
+      
+      return isInDateRange(memberDate) && matchesMembershipType;
+    });
+
+    filteredMembers.forEach((member) => {
+      // Aktif paketlerin gelirlerini ve sayılarını hesapla
       member.subscribed_services?.forEach((serviceId) => {
         const service = services.find((s) => s.id === serviceId);
         if (service) {
-          if (memberDate >= currentMonthStart && memberDate <= now) {
-            currentMonthRevenue += service.price;
-            currentMonthPackages += 1;
-          } else if (
-            memberDate >= previousMonthStart &&
-            memberDate <= previousMonthEnd
-          ) {
-            previousMonthRevenue += service.price;
-            previousMonthPackages += 1;
+          const matchesServiceType =
+            filters.serviceType === "all" ||
+            service.id.toString() === filters.serviceType;
+
+          if (matchesServiceType) {
+            const revenue = service.price;
+            if (!filters.minRevenue || revenue >= Number(filters.minRevenue)) {
+              if (!filters.maxRevenue || revenue <= Number(filters.maxRevenue)) {
+                totalRevenue += revenue;
+                totalPackages += 1;
+              }
+            }
           }
         }
       });
 
-      // Tamamlanan paketlerin gelirlerini hesapla
+      // Tamamlanan paketlerin gelirlerini ve sayılarını hesapla
       member.completed_packages?.forEach((completedPackage) => {
         const service = services.find((s) => s.id === completedPackage.package_id);
         if (service) {
-          const totalCompletedRevenue = service.price * completedPackage.completion_count;
-          if (memberDate >= currentMonthStart && memberDate <= now) {
-            currentMonthRevenue += totalCompletedRevenue;
-            currentMonthPackages += completedPackage.completion_count;
-          } else if (
-            memberDate >= previousMonthStart &&
-            memberDate <= previousMonthEnd
-          ) {
-            previousMonthRevenue += totalCompletedRevenue;
-            previousMonthPackages += completedPackage.completion_count;
+          const matchesServiceType =
+            filters.serviceType === "all" ||
+            service.id.toString() === filters.serviceType;
+
+          if (matchesServiceType) {
+            const revenue = service.price * completedPackage.completion_count;
+            if (!filters.minRevenue || revenue >= Number(filters.minRevenue)) {
+              if (!filters.maxRevenue || revenue <= Number(filters.maxRevenue)) {
+                totalRevenue += revenue;
+                totalPackages += completedPackage.completion_count;
+              }
+            }
           }
         }
       });
     });
 
-    // Artış oranları hesaplama
-    const calculateGrowth = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? 100 : 0;
-      return ((current - previous) / previous) * 100;
-    };
+    // Filtrelenmiş randevular
+    const filteredAppointments = appointments.filter((appointment) => {
+      const appointmentDate = new Date(appointment.date);
+      const service = services.find((s) => s.id === appointment.service_id);
+      const member = members.find((m) => m.id === appointment.member_id);
 
-    const revenueGrowth = calculateGrowth(
-      currentMonthRevenue,
-      previousMonthRevenue
-    );
-    const packageGrowth = calculateGrowth(
-      currentMonthPackages,
-      previousMonthPackages
-    );
-    const memberGrowth = calculateGrowth(
-      currentMonthMembers.length,
-      previousMonthMembers.length
-    );
-    const appointmentGrowth = calculateGrowth(
-      currentMonthAppointments.length,
-      previousMonthAppointments.length
-    );
+      const matchesServiceType =
+        filters.serviceType === "all" ||
+        appointment.service_id.toString() === filters.serviceType;
+
+      const matchesMembershipType =
+        filters.membershipType === "all" ||
+        member?.membership_type === filters.membershipType;
+
+      const appointmentRevenue = service?.price || 0;
+      const matchesRevenue =
+        (!filters.minRevenue || appointmentRevenue >= Number(filters.minRevenue)) &&
+        (!filters.maxRevenue || appointmentRevenue <= Number(filters.maxRevenue));
+
+      return (
+        isInDateRange(appointmentDate) &&
+        matchesServiceType &&
+        matchesMembershipType &&
+        matchesRevenue
+      );
+    });
 
     // Ortalama gelir hesaplama
-    const totalRevenue = currentMonthRevenue;
-    const totalPackages = currentMonthPackages;
-    const averageRevenuePerPackage =
-      totalPackages > 0 ? totalRevenue / totalPackages : 0;
-    const previousAverageRevenue =
-      previousMonthPackages > 0
-        ? previousMonthRevenue / previousMonthPackages
-        : 0;
-    const averageRevenueGrowth = calculateGrowth(
-      averageRevenuePerPackage,
-      previousAverageRevenue
-    );
+    const averageRevenuePerPackage = totalPackages > 0 ? totalRevenue / totalPackages : 0;
 
     return {
       totalRevenue,
       totalPackages,
-      uniqueMembers,
-      totalAppointments,
+      uniqueMembers: filteredMembers.length,
+      totalAppointments: filteredAppointments.length,
       averageRevenuePerPackage,
-      revenueGrowth,
-      packageGrowth,
-      memberGrowth,
-      appointmentGrowth,
-      averageRevenueGrowth,
     };
   };
 
@@ -649,17 +639,6 @@ const ReportsPage = () => {
                       currency: "TRY",
                     })}
                   </div>
-                  <div
-                    className={`text-sm ${
-                      metrics.revenueGrowth >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.revenueGrowth >= 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(metrics.revenueGrowth).toFixed(1)}%
-                    <span className="text-gray-500 ml-1">geçen aya göre</span>
-                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -672,17 +651,6 @@ const ReportsPage = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {metrics.totalPackages}
-                  </div>
-                  <div
-                    className={`text-sm ${
-                      metrics.packageGrowth >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.packageGrowth >= 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(metrics.packageGrowth).toFixed(1)}%
-                    <span className="text-gray-500 ml-1">geçen aya göre</span>
                   </div>
                 </CardContent>
               </Card>
@@ -697,17 +665,6 @@ const ReportsPage = () => {
                   <div className="text-2xl font-bold">
                     {metrics.uniqueMembers}
                   </div>
-                  <div
-                    className={`text-sm ${
-                      metrics.memberGrowth >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.memberGrowth >= 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(metrics.memberGrowth).toFixed(1)}%
-                    <span className="text-gray-500 ml-1">geçen aya göre</span>
-                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -720,17 +677,6 @@ const ReportsPage = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {metrics.totalAppointments}
-                  </div>
-                  <div
-                    className={`text-sm ${
-                      metrics.appointmentGrowth >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.appointmentGrowth >= 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(metrics.appointmentGrowth).toFixed(1)}%
-                    <span className="text-gray-500 ml-1">geçen aya göre</span>
                   </div>
                 </CardContent>
               </Card>
@@ -747,17 +693,6 @@ const ReportsPage = () => {
                       style: "currency",
                       currency: "TRY",
                     })}
-                  </div>
-                  <div
-                    className={`text-sm ${
-                      metrics.averageRevenueGrowth >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.averageRevenueGrowth >= 0 ? "↑" : "↓"}{" "}
-                    {Math.abs(metrics.averageRevenueGrowth).toFixed(1)}%
-                    <span className="text-gray-500 ml-1">geçen aya göre</span>
                   </div>
                 </CardContent>
               </Card>
