@@ -8,7 +8,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -332,9 +331,7 @@ export function AppointmentForm({
                   </SelectContent>
                 </Select>
                 <FormMessage />
-                <FormDescription className="mt-1 text-sm text-muted-foreground">
-                  Eğitmenin müsait saatlerini kontrol edin
-                </FormDescription>
+               
               </FormItem>
             )}
           />
@@ -373,32 +370,26 @@ export function AppointmentForm({
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedService && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 h-10"
-                    onClick={() => setShowSessionsDialog(true)}
-                  >
-                    {sessions.length > 0 && sessions[0].date && sessions[0].time
-                      ? "Düzenle"
-                      : "Tarih Seç"}
-                  </Button>
-                )}
               </div>
+             
               {selectedService && (
-                <div className="mt-2 space-y-1">
-                  <div className="text-sm font-medium text-muted-foreground truncate">
-                    {selectedService.session_count > 1
-                      ? `${selectedService.session_count} Seanslık Paket`
-                      : "Tek Seanslık Paket"}
-                  </div>
+                <div className="flex items-center justify-evenly outline outline-2  outline-green-400 p-2">
                   {sessions.length > 0 && sessions[0].date && sessions[0].time && (
                     <div className="text-sm text-muted-foreground break-words">
                       {appointment ? "Randevu" : "İlk seans"}: {format(new Date(`${sessions[0].date}T${sessions[0].time}`), "d MMMM, EEEE HH:mm", { locale: tr })}
                     </div>
                   )}
+                  <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="shrink-0 h-10"
+                  onClick={() => setShowSessionsDialog(true)}
+                >
+                  {sessions.length > 0 && sessions[0].date && sessions[0].time
+                    ? "Düzenle"
+                    : "Tarih Seç"}
+                </Button>
                 </div>
               )}
             </FormItem>
