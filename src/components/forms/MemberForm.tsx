@@ -224,12 +224,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                 <Select
                   onValueChange={(value) => {
                     const currentServices = field.value || [];
-                    const newValue = currentServices.includes(value)
-                      ? currentServices.filter((id) => id !== value)
-                      : [...currentServices, value];
-                    field.onChange(newValue);
+                    field.onChange([...currentServices, value]);
                   }}
-                  value={field.value?.[field.value.length - 1] || ""}
+                  value=""
                 >
                   <FormControl>
                     <SelectTrigger className="w-full border-2 focus-visible:border-primary">
@@ -246,7 +243,6 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                         return a.name.localeCompare(b.name);
                       })
                       .map((service) => {
-                        const isSelected = field.value?.includes(service.id);
                         const isDisabled = service.isVipOnly && form.watch("membership_type") !== "vip";
                         
                         return (
@@ -254,7 +250,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                             key={service.id}
                             value={service.id}
                             disabled={isDisabled}
-                            className={`${isSelected ? 'bg-primary/10' : ''} ${
+                            className={`${
                               service.isVipOnly ? 'border-l-2 border-rose-500' : ''
                             } ${isDisabled ? 'opacity-50' : ''}`}
                           >
@@ -278,12 +274,12 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                 <div className="mt-2 space-y-2">
                   {/* Seçili Paketler */}
                   <div className="flex flex-wrap gap-2">
-                    {field.value?.map((serviceId) => {
+                    {field.value?.map((serviceId, index) => {
                       const service = services.find((s) => s.id === serviceId);
                       if (!service) return null;
                       return (
                         <Badge
-                          key={serviceId}
+                          key={`${serviceId}-${index}`}
                           variant="secondary"
                           className="px-2 py-1 flex items-center gap-1.5"
                         >
@@ -295,7 +291,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                             type="button"
                             className="ml-1 hover:text-destructive"
                             onClick={() => {
-                              field.onChange(field.value.filter((id) => id !== serviceId));
+                              const newServices = [...field.value];
+                              newServices.splice(index, 1);
+                              field.onChange(newServices);
                             }}
                           >
                             ×

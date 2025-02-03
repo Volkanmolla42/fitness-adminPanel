@@ -15,7 +15,6 @@ import MonthlyView from "@/components/appointments/MonthlyView";
 import AppointmentGroups from "@/components/appointments/AppointmentGroups";
 import { useAppointments } from "@/hooks/useAppointments";
 import { Notification } from "@/components/ui/notification";
-import { createAppointment, updateAppointment, deleteAppointment } from "@/lib/queries";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
 
@@ -38,7 +37,9 @@ function AppointmentsPage() {
     setActiveFilter,
     activeNotifications,
     setActiveNotifications,
-
+    createAppointment,
+    updateAppointment,
+    deleteAppointment,
     setAcknowledgedNotifications,
     filteredAppointments,
     groupedAppointments,
@@ -51,22 +52,6 @@ function AppointmentsPage() {
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
   const [defaultTime, setDefaultTime] = useState<string | undefined>();
 
-  // Get the current week's start and end dates
-  const getWeekDates = () => {
-    const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Adjust when current day is Sunday
-    const monday = new Date(now.setDate(diff));
-    const weekDates = [];
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-      weekDates.push(date);
-    }
-
-    return weekDates;
-  };
 
   const handleFormSubmit = async (
     data: Omit<AppointmentType, "id" | "created_at" | "status">
@@ -273,17 +258,7 @@ function AppointmentsPage() {
 
       <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
         <div className="flex flex-col md:flex-row md:space-x-2 border-b md:border-none w-full md:w-auto">
-          <button
-            className={`px-4 py-2 ${
-              activeFilter === "all"
-                ? "border-b-2 border-blue-500 text-blue-500 "
-                : "text-gray-500"
-            }`}
-            onClick={() => setActiveFilter("all")}
-          >
-            Tüm Randevular ({getFilteredCount("all")})
-          </button>
-          <button
+        <button
             className={`px-4 py-2 ${
               activeFilter === "daily"
                 ? "border-b-2 border-blue-500 text-blue-500 "
@@ -303,6 +278,7 @@ function AppointmentsPage() {
           >
             Haftalık Randevular ({getFilteredCount("weekly")})
           </button>
+         
           <button
             className={`px-4 py-2 ${
               activeFilter === "monthly"
@@ -313,6 +289,18 @@ function AppointmentsPage() {
           >
             Aylık Randevular ({getFilteredCount("monthly")})
           </button>
+          <button
+            className={`px-4 py-2 ${
+              activeFilter === "all"
+                ? "border-b-2 border-blue-500 text-blue-500 "
+                : "text-gray-500"
+            }`}
+            onClick={() => setActiveFilter("all")}
+          >
+            Tüm Randevular ({getFilteredCount("all")})
+          </button>
+         
+          
         </div>
         <div className="w-full md:w-auto">
           <AppointmentFilters
@@ -375,7 +363,7 @@ function AppointmentsPage() {
           }}
         />
       )}
-    </div>
+ </div>
   );
 }
 

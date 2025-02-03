@@ -26,7 +26,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/types/supabase";
-import { useEffect, useState, useRef } from "react";
+import React,{ useEffect, useState, useRef } from "react";
 import { SessionsDialog } from "./SessionsDialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -468,7 +468,7 @@ export function AppointmentForm({
       <SessionsDialog
         open={showSessionsDialog}
         onOpenChange={setShowSessionsDialog}
-        sessionCount={selectedService?.session_count || 1}
+        sessionCount={selectedService?.session_count || 0}
         sessions={sessions}
         onSessionsChange={setSessions}
         onConfirm={handleSessionsConfirm}
@@ -479,6 +479,7 @@ export function AppointmentForm({
         services={services}
         defaultDate={defaultDate}
         defaultTime={defaultTime}
+        memberId={form.watch("member_id")}
       />
     </Form>
   );

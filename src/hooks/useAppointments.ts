@@ -7,7 +7,10 @@ import {
   getTrainers,
   getServices,
   updateAppointment,
+  createAppointment,
+  deleteAppointment,
 } from "@/lib/queries";
+
 import {
   Appointment,
   Member,
@@ -24,24 +27,6 @@ import {
   endOfMonth,
 } from "date-fns";
 
-type Database = {
-  public: {
-    Tables: {
-      appointments: {
-        Row: Appointment;
-      };
-      members: {
-        Row: Member;
-      };
-      trainers: {
-        Row: Trainer;
-      };
-      services: {
-        Row: Service;
-      };
-    };
-  };
-};
 
 export const useAppointments = () => {
   const { toast } = useToast();
@@ -55,7 +40,7 @@ export const useAppointments = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("daily");
   const [activeNotifications, setActiveNotifications] = useState<
     Array<{ id: string; message: string }>
   >([]);
@@ -114,6 +99,7 @@ export const useAppointments = () => {
         description: "Veriler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
     } finally {
       setIsLoading(false);
     }
@@ -388,6 +374,9 @@ export const useAppointments = () => {
     groupedAppointments,
     getFilteredCount,
     updateAppointmentStatus,
+    updateAppointment,
+    createAppointment,
+    deleteAppointment,
   };
 };
 

@@ -62,7 +62,12 @@ export const MemberCard = ({ member, services, onClick }: MemberCardProps) => {
         <div className="w-full mt-3">
           <p className="text-xs text-muted-foreground mb-1">Aldığı Paketler</p>
           <div className="flex flex-wrap justify-center gap-1">
-            {member.subscribed_services.map((serviceId) => {
+            {Object.entries(
+              member.subscribed_services.reduce((acc, serviceId) => {
+                acc[serviceId] = (acc[serviceId] || 0) + 1;
+                return acc;
+              }, {} as { [key: string]: number })
+            ).map(([serviceId, count]) => {
               const service = services[serviceId];
               return (
                 <Badge 
@@ -71,7 +76,11 @@ export const MemberCard = ({ member, services, onClick }: MemberCardProps) => {
                   className="px-3 py-1 flex items-center gap-2"
                 >
                   <span>{service?.name || "Yükleniyor..."}</span>
-                  
+                  {count > 1 && (
+                    <span className="text-xs text-muted-foreground">
+                      × {count}
+                    </span>
+                  )}
                 </Badge>
               );
             })}

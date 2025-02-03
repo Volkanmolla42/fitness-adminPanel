@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Crown, Pencil, Phone, Mail, Calendar, ListChecks, History, Trash2, CheckCircle2, CalendarHeart, StickyNote, Notebook } from "lucide-react";
+import { Crown, Pencil, Phone, Mail, Calendar, ListChecks, History, Trash2, CheckCircle2, CalendarHeart, Notebook } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
-import { useState } from "react";
+import React, { useState } from "react";
 import { AppointmentHistory } from "./AppointmentHistory";
 import {
   Dialog,
@@ -40,6 +40,7 @@ export const MemberDetail = ({
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPackagesDialog, setShowPackagesDialog] = useState(false);
   const [completingPackage, setCompletingPackage] = useState<string | null>(null);
   const isVip = member.membership_type === "vip";
 
@@ -199,78 +200,32 @@ export const MemberDetail = ({
         </div>
       </div>
 
-      {/* Services */}
+      {/* Services Summary */}
       <div className="bg-muted/30 rounded-lg p-2.5 mb-3">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium flex items-center gap-1.5 text-sm">
-            <ListChecks className="w-3.5 h-3.5" />
-            Aldığı Paketler
-          </h3>
-          <div className="text-sm">
-            <span className="text-muted-foreground mr-1">Toplam:</span>
-            <span className="font-medium">{totalPackageAmount.toLocaleString('tr-TR')} ₺</span>
-          </div>
-        </div>
-
-        <div className="space-y-2.5">
-          {/* Aktif Paketler */}
-          <div>
-            <h4 className="text-xs font-medium mb- text-muted-foreground">Aktif Paketler</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {member.subscribed_services.map((serviceId) => {
-                const service = services[serviceId];
-                return (
-                  <Badge
-                    key={serviceId}
-                    variant="outline"
-                    className="px-2 py-0.5 flex items-center gap-2 text-sm group hover:bg-primary/5"
-                  >
-                    <span className="max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
-                    <span className="text-muted-foreground whitespace-nowrap">
-                      {service?.price?.toLocaleString('tr-TR')} ₺
-                    </span>
-                    <span className="bg-primary/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                      {usedSessions[serviceId] || 0}/{service?.session_count} Seans
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-1 px-2 py-1 text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-200 flex items-center gap-1 group-hover:border-green-500"
-                      onClick={() => setCompletingPackage(serviceId)}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Tamamla</span>
-                    </Button>
-                  </Badge>
-                );
-              })}
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <h3 className="font-medium flex items-center gap-1.5 text-sm mb-1">
+              <ListChecks className="w-3.5 h-3.5" />
+              Aldığı Paketler
+            </h3>
+            <div className="text-sm text-muted-foreground">
+              {member.subscribed_services.length} aktif, {member.completed_packages?.length || 0} tamamlanan paket
             </div>
           </div>
-
-          {/* Tamamlanan Paketler */}
-          <div>
-            <h4 className="text-xs font-medium mb-1 text-muted-foreground">Tamamlanan Paketler</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {member.completed_packages && member.completed_packages.length > 0 ? (
-                member.completed_packages.map((completedPackage) => {
-                  const service = services[completedPackage.package_id];
-                  return (
-                    <Badge
-                      key={`${completedPackage.package_id}-${completedPackage.completion_count}`}
-                      variant="secondary"
-                      className="px-2 py-0.5 flex items-center gap-1.5 text-xs hover:bg-secondary/20"
-                    >
-                      <span className="bg-secondary/20 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                        {completedPackage.completion_count} x
-                      </span>
-                      <span className="max-w-[250px]">{service?.name || "Yükleniyor..."}</span>
-                    </Badge>
-                  );
-                })
-              ) : (
-                <span className="text-xs text-muted-foreground">Henüz tamamlanan paket bulunmuyor</span>
-              )}
+          <div className="text-right">
+            <div className="text-sm">
+              <span className="text-muted-foreground mr-1">Toplam:</span>
+              <span className="font-medium">{totalPackageAmount.toLocaleString('tr-TR')} ₺</span>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPackagesDialog(true)}
+              className="mt-2"
+            >
+              <CalendarHeart className="w-3.5 h-3.5 mr-1.5" />
+              Paketleri Görüntüle
+            </Button>
           </div>
         </div>
       </div>
@@ -352,6 +307,110 @@ export const MemberDetail = ({
               }}
             >
               Tamamla
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Packages Dialog */}
+      <Dialog open={showPackagesDialog} onOpenChange={setShowPackagesDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Paket Detayları</DialogTitle>
+            <DialogDescription>
+              {member.first_name} {member.last_name} üyesinin aktif ve tamamlanmış paketleri
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Aktif Paketler */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                <div className="bg-primary/10 p-1.5 rounded">
+                  <CalendarHeart className="w-4 h-4 text-primary" />
+                </div>
+                Aktif Paketler
+              </h4>
+              <div className="space-y-2">
+                {member.subscribed_services.map((serviceId) => {
+                  const service = services[serviceId];
+                  return (
+                    <div
+                      key={serviceId}
+                      className="flex items-center justify-between gap-4 bg-muted/30 p-2.5 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{service?.name || "Yükleniyor..."}</div>
+                        <div className="text-sm text-muted-foreground mt-0.5">
+                          {service?.price?.toLocaleString('tr-TR')} ₺
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary" className="px-2.5">
+                          {usedSessions[serviceId] || 0}/{service?.session_count} Seans
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-200"
+                          onClick={() => setCompletingPackage(serviceId)}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                          Tamamla
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {member.subscribed_services.length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    Aktif paket bulunmuyor
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tamamlanan Paketler */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                <div className="bg-green-100 p-1.5 rounded">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                </div>
+                Tamamlanan Paketler
+              </h4>
+              <div className="space-y-2">
+                {member.completed_packages && member.completed_packages.length > 0 ? (
+                  member.completed_packages.map((completedPackage) => {
+                    const service = services[completedPackage.package_id];
+                    return (
+                      <div
+                        key={`${completedPackage.package_id}-${completedPackage.completion_count}`}
+                        className="flex items-center justify-between gap-4 bg-muted/30 p-2.5 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{service?.name || "Yükleniyor..."}</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">
+                            {(service?.price || 0) * completedPackage.completion_count} ₺
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="px-2.5">
+                          {completedPackage.completion_count} kez tamamlandı
+                        </Badge>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    Henüz tamamlanan paket bulunmuyor
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPackagesDialog(false)}>
+              Kapat
             </Button>
           </DialogFooter>
         </DialogContent>

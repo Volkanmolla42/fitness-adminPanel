@@ -38,6 +38,7 @@ interface SessionsDialogProps {
   services: Service[];
   defaultDate?: string;
   defaultTime?: string;
+  memberId?: string;
 }
 
 export function SessionsDialog({
@@ -54,6 +55,7 @@ export function SessionsDialog({
   services = [],
   defaultDate,
   defaultTime,
+  memberId,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
@@ -286,9 +288,9 @@ export function SessionsDialog({
     let lastDate = new Date(Math.max(...selectedDays.map(d => d.date.getTime())));
 
     unselectedIndices.forEach((index) => {
-      let targetDayIndex = index % selectedDays.length;
-      let targetDay = selectedDays[targetDayIndex];
-      let nextDate = new Date(lastDate);
+      const targetDayIndex = index % selectedDays.length;
+      const targetDay = selectedDays[targetDayIndex];
+      const nextDate = new Date(lastDate);
       let attempts = 0;
       const maxAttempts = 30; // Sonsuz döngüyü engellemek için
 
@@ -394,6 +396,38 @@ export function SessionsDialog({
     return null;
   }, [sessions, checkConflict]);
 
+  const calculateCompletedSessions = React.useCallback(() => {
+    // Üye ID'sini appointment'dan veya prop'dan al
+    const currentMemberId = appointment?.member_id || memberId;
+    
+    if (!currentMemberId || !selectedService?.id) return 0;
+    
+    // Bu servis için tamamlanan randevuları bul
+    const completedAppointments = appointments.filter(apt => 
+      apt.member_id === currentMemberId && 
+      apt.service_id === selectedService.id && 
+      apt.status === "completed"
+    );
+
+    return completedAppointments.length;
+  }, [appointments, appointment?.member_id, memberId, selectedService?.id]);
+
+  const calculateScheduledSessions = React.useCallback(() => {
+    // Üye ID'sini appointment'dan veya prop'dan al
+    const currentMemberId = appointment?.member_id || memberId;
+    
+    if (!currentMemberId || !selectedService?.id) return 0;
+    
+    // Bu servis için planlanan randevuları bul
+    const scheduledAppointments = appointments.filter(apt => 
+      apt.member_id === currentMemberId && 
+      apt.service_id === selectedService.id && 
+      apt.status === "scheduled"
+    );
+
+    return scheduledAppointments.length;
+  }, [appointments, appointment?.member_id, memberId, selectedService?.id]);
+
   const isComplete = sessions.every((session) => 
     session.date && session.time && !session.hasConflict
   );
@@ -419,6 +453,39 @@ export function SessionsDialog({
               : "Randevunun tarih ve saatini seçin."}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Seans Bilgileri Kartı */}
+        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium">Üye Seans Bilgileri</h4>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Tamamlanan: {calculateCompletedSessions()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Planlanan: {calculateScheduledSessions()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Toplam: {sessionCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Kalan: {sessionCount - (calculateCompletedSessions() + calculateScheduledSessions())}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <ScrollArea className="h-[60vh] md:h-[65vh]">
           <div className="flex flex-col sm:flex-row gap-2">

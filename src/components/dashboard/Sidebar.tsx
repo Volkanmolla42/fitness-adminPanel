@@ -28,7 +28,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 
 interface SidebarProps {
@@ -189,7 +188,6 @@ const SidebarContent = memo(
               "flex-col gap-3 justify-center": isCollapsed,
             })}
           >
-            <ThemeToggle />
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

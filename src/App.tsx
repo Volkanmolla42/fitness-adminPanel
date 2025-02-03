@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import Dashboard from "@/pages/dashboard";
@@ -11,7 +11,6 @@ import SettingsPage from "@/pages/settings";
 import Login from "@/pages/login";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
-import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -87,7 +86,6 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
         <AuthProvider>
           <Suspense
             fallback={
@@ -101,7 +99,6 @@ function App() {
           <Toaster />
           <Analytics />
         </AuthProvider>
-      </ThemeProvider>
     </QueryClientProvider>
   );
 }
