@@ -62,7 +62,7 @@ export function SessionsDialog({
   // Çalışma saatleri ve kısıtlamalar için sabitler
   const WORKING_HOURS = {
     start: 10, // 10:00
-    end: 20,   // 19:00
+    end: 20,   // 20:00
   } as const;
 
   const DATE_RESTRICTIONS = {
@@ -122,67 +122,72 @@ export function SessionsDialog({
 
     // Çalışma saati kontrolü
     const hour = parseInt(time.split(':')[0]);
-    const minute = parseInt(time.split(':')[1]);
+   
     if (hour < WORKING_HOURS.start || hour >= WORKING_HOURS.end) {
       return { isValid: false, error: `Randevular ${WORKING_HOURS.start}:00 - ${WORKING_HOURS.end}:00 arasında olmalıdır` };
     }
     return { isValid: true };
   }, []);
 
-  // Çakışma kontrolü yapan fonksiyon
   const checkConflict = React.useCallback((date: string, time: string, currentIndex: number): boolean => {
-    if (!selectedTrainerId || !selectedService || !services) return false;
-
-    // Zamanları HH:mm formatına normalize et
+    // 1. Erken Çıkış Koşullarını Optimize Et
+    if (!selectedTrainerId || !selectedService?.id || !services?.length) return false;
+  
+    // 2. Zaman Formatlama İşlemini Merkezileştir
     const normalizedTime = formatTime(time);
-
-    // Seçilen tarih ve saatte başka randevu var mı kontrol et
-    const conflictingAppointments = appointments.filter(apt => {
-      if (apt.id === appointment?.id) return false;  // Mevcut randevuyu hariç tut
-
+    const currentAppointmentId = appointment?.id;
+  
+    // 3. Önbelleklenmiş Verileri Kullan
+    const serviceIsVip = selectedService.isVipOnly;
+    const MAX_STANDARD_CAPACITY = selectedService.max_participants || 4;
+  
+    // 4. Çakışan Randevuları Hesapla
+    const isConflictingAppointment = (apt: Appointment) => {
       const sameDateTime = apt.date === date && formatTime(apt.time) === normalizedTime;
       const sameTrainer = apt.trainer_id === selectedTrainerId;
       const isScheduled = apt.status === "scheduled";
-
-      return sameDateTime && sameTrainer && isScheduled;
-    });
-
-    // Diğer seanslarda aynı tarih ve saat seçilmiş mi kontrol et
-    const conflictingSessions = sessions.filter((session, index) => 
-      index !== currentIndex && 
-      session.date === date && 
-      formatTime(session.time) === normalizedTime
+      const isNotCurrent = apt.id !== currentAppointmentId;
+  
+      return sameDateTime && sameTrainer && isScheduled && isNotCurrent;
+    };
+  
+    // 5. Filtreleme İşlemlerini Birleştir
+    const conflictingAppointments = appointments.filter(isConflictingAppointment);
+    const conflictingSessions = sessions.filter(
+      (session, index) => 
+        index !== currentIndex && 
+        session.date === date && 
+        formatTime(session.time) === normalizedTime
     );
-
-    // VIP randevuları bul
-    const vipAppointments = conflictingAppointments.filter(apt => {
-      const appointmentService = services.find(s => s.id === apt.service_id);
-      return appointmentService?.isVipOnly ?? false;
-    });
-
-    // Eğer bu bir VIP randevu ise
-    if (selectedService.isVipOnly) {
-      // VIP randevular için maksimum 1 kişi kuralı
-      // Eğer başka bir VIP randevu varsa veya herhangi bir standart randevu varsa çakışma var
-      return vipAppointments.length > 0 || conflictingAppointments.length > 0;
+  
+    // 6. VIP Kontrollerini Optimize Et
+    const vipServiceIds = new Set(
+      services.filter(s => s.isVipOnly).map(s => s.id)
+    );
+  
+    const hasVipConflict = conflictingAppointments.some(apt => 
+      vipServiceIds.has(apt.service_id)
+    );
+  
+    // 7. Mantığı Basitleştir
+    if (serviceIsVip) {
+      return conflictingAppointments.length > 0 || conflictingSessions.length > 0;
     }
-
-    // Eğer bu standart bir randevu ise
-    else {
-      // Eğer VIP randevu varsa, çakışma var
-      if (vipAppointments.length > 0) {
-        return true;
-      }
-
-      // Standart randevular için maksimum 4 kişi kontrolü
-      const totalStandardAppointments = conflictingAppointments.length + conflictingSessions.length;
-      const MAX_STANDARD_APPOINTMENTS = 4;
-      
-      return totalStandardAppointments >= MAX_STANDARD_APPOINTMENTS;
-    }
-
-  }, [selectedTrainerId, selectedService, appointments, appointment, sessions, formatTime, services]);
-
+  
+    // 8. Standart Kapasite Hesaplaması
+    const totalParticipants = conflictingAppointments.length + conflictingSessions.length;
+    const hasStandardConflict = totalParticipants >= MAX_STANDARD_CAPACITY;
+  
+    return hasVipConflict || hasStandardConflict;
+  }, [
+    selectedTrainerId, 
+    selectedService,  // selectedService.id yerine direkt selectedService
+    appointments, 
+    appointment?.id,  // Sadece id'yi takip et
+    sessions, 
+    formatTime, 
+    services
+  ]);
   // Önerilen zamanı tutan state
   const [suggestedSlot, setSuggestedSlot] = React.useState<{ date: Date; time: string } | null>(null);
 
