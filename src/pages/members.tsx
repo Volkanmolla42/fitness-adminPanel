@@ -25,6 +25,8 @@ import { MemberDetail } from "@/components/members/MemberDetail";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
+type MemberFormData = Omit<Member, "id" | "created_at">;
+
 const MembersPage = () => {
   const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
@@ -32,7 +34,7 @@ const MembersPage = () => {
   const [trainers, setTrainers] = useState<{ [key: string]: Database["public"]["Tables"]["trainers"]["Row"] }>({});
   const [appointments, setAppointments] = useState<Database["public"]["Tables"]["appointments"]["Row"][]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [membershipFilter, setMembershipFilter] = useState<Member["membership_type"] | "all">("all");
+  const [membershipFilter, setMembershipFilter] = useState<"all" | "basic" | "vip">("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [addingMember, setAddingMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,6 +61,8 @@ const MembersPage = () => {
         description: "Üyeler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     } finally {
       setIsLoading(false);
     }
@@ -78,6 +82,8 @@ const MembersPage = () => {
         description: "Paketler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
@@ -100,6 +106,8 @@ const MembersPage = () => {
         description: "Eğitmenler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
@@ -119,6 +127,8 @@ const MembersPage = () => {
         description: "Randevular yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
@@ -143,7 +153,7 @@ const MembersPage = () => {
     };
   };
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: MemberFormData) => {
     try {
       await createMember(data);
       setAddingMember(false);
@@ -157,10 +167,12 @@ const MembersPage = () => {
         description: "Üye eklenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
-  const handleUpdate = async (data: any) => {
+  const handleUpdate = async (data: MemberFormData) => {
     if (!editingMember?.id) return;
 
     try {
@@ -176,6 +188,8 @@ const MembersPage = () => {
         description: "Üye güncellenirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
@@ -193,6 +207,8 @@ const MembersPage = () => {
         description: "Üye silinirken bir hata oluştu.",
         variant: "destructive",
       });
+      console.error(error)
+
     }
   };
 
@@ -226,7 +242,11 @@ const MembersPage = () => {
         </Dialog>
       </div>
 
-      <MemberStats stats={stats} onFilterChange={setMembershipFilter} />
+      <MemberStats 
+        stats={stats} 
+        activeFilter={membershipFilter} 
+        onFilterChange={setMembershipFilter} 
+      />
 
       <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
         <MemberList
@@ -262,6 +282,8 @@ const MembersPage = () => {
                     description: "Paket tamamlanırken bir hata oluştu.",
                     variant: "destructive",
                   });
+                  console.error(error)
+
                 }
               }}
             />
