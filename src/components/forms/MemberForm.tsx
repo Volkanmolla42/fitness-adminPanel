@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 import { formatPhoneNumber } from "./TrainerForm";
 
@@ -39,6 +41,20 @@ interface MemberFormProps {
 export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
   const [services, setServices] = useState<Service[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [paymentData, setPaymentData] = useState({
+    credit_card_paid: "",
+    cash_paid: "",
+  });
+
+  // Seçili paketlerin toplam tutarını hesapla
+  const totalAmount = selectedServices.reduce(
+    (total, service) => total + (service.price || 0),
+    0
+  );
+  const remainingAmount =
+    totalAmount -
+    (Number(paymentData.credit_card_paid) + Number(paymentData.cash_paid));
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -62,7 +78,11 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       phone: member?.phone || "",
       avatar_url:
         member?.avatar_url ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random().toString(36).substring(2)}&options[style]=female&options[top]=longHair&options[accessories]=none`,
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()
+          .toString(36)
+          .substring(
+            2
+          )}&options[style]=female&options[top]=longHair&options[accessories]=none`,
       membership_type: member?.membership_type || "basic",
       subscribed_services: member?.subscribed_services || [],
       start_date: member?.start_date || new Date().toISOString().split("T")[0],
@@ -75,8 +95,42 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       <form
         onSubmit={form.handleSubmit(async (data) => {
           setIsSubmitting(true);
+
+          // Ödeme bilgilerini kontrol et
+          if (
+            !paymentData.credit_card_paid &&
+            !paymentData.cash_paid &&
+            selectedServices.length > 0
+          ) {
+            toast.error("Lütfen nakit veya kredi kartı ile ödeme alınız.", {
+              description: "Ödeme bilgileri boş bırakılamaz.",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+
           try {
+            // Üye kaydını oluştur
             await onSubmit(data);
+
+            // Ödeme kaydını oluştur
+            if (selectedServices.length > 0) {
+              const { error: paymentError } = await supabase
+                .from("member_payments")
+                .insert({
+                  member_name: `${data.first_name} ${data.last_name}`,
+                  credit_card_paid: Number(paymentData.credit_card_paid) || 0,
+                  cash_paid: Number(paymentData.cash_paid) || 0,
+                  created_at: data.start_date,
+                });
+
+              if (paymentError) {
+                toast.error("Ödeme kaydı oluşturulurken bir hata oluştu", {
+                  description: "Lütfen tekrar deneyin",
+                });
+                console.error(paymentError);
+              }
+            }
           } finally {
             setIsSubmitting(false);
           }
@@ -85,7 +139,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
       >
         {/* Kişisel Bilgiler */}
         <div className="space-y-2 mb-4">
-          <div className="text-xs font-medium text-muted-foreground px-1">Kişisel Bilgiler</div>
+          <div className="text-xs font-medium text-muted-foreground px-1">
+            Kişisel Bilgiler
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-sm">
             <FormField
               control={form.control}
@@ -93,10 +149,10 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input 
-                      placeholder="Ad" 
+                    <Input
+                      placeholder="Ad"
                       {...field}
-                      className="border-2 focus-visible:border-primary" 
+                      className="border-2 focus-visible:border-primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -110,13 +166,13 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input 
-                      placeholder="Soyad" 
+                    <Input
+                      placeholder="Soyad"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e.target.value.toUpperCase());
                       }}
-                      className="border-2 focus-visible:border-primary" 
+                      className="border-2 focus-visible:border-primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -132,11 +188,11 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input 
-                      placeholder="E-posta" 
-                      type="email" 
+                    <Input
+                      placeholder="E-posta"
+                      type="email"
                       {...field}
-                      className="border-2 focus-visible:border-primary" 
+                      className="border-2 focus-visible:border-primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -150,14 +206,14 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input 
+                    <Input
                       placeholder="Telefon"
-                      {...field} 
+                      {...field}
                       onChange={(e) => {
                         const formatted = formatPhoneNumber(e.target.value);
                         field.onChange(formatted);
                       }}
-                      className="border-2 focus-visible:border-primary" 
+                      className="border-2 focus-visible:border-primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -169,14 +225,15 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
         {/* Üyelik Bilgileri */}
         <div className="space-y-2">
-      
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-sm">
             <FormField
               control={form.control}
               name="membership_type"
               render={({ field }) => (
                 <FormItem>
-                   <FormLabel className="text-xs text-muted-foreground">Üyelik Tipi</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    Üyelik Tipi
+                  </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="border-2 focus-visible:border-primary">
@@ -198,12 +255,14 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               name="start_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground">Başlangıç Tarihi</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    Başlangıç Tarihi
+                  </FormLabel>
                   <FormControl>
-                    <Input 
-                      type="date" 
+                    <Input
+                      type="date"
                       {...field}
-                      className="border-2 focus-visible:border-primary" 
+                      className="border-2 focus-visible:border-primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -215,7 +274,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
         {/* Paket Seçimi */}
         <div className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground px-1">Paket Seçimi</div>
+          <div className="text-xs font-medium text-muted-foreground px-1">
+            Paket Seçimi
+          </div>
           <FormField
             control={form.control}
             name="subscribed_services"
@@ -223,15 +284,23 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               <FormItem className="max-w-sm">
                 <Select
                   onValueChange={(value) => {
-                    const currentServices = field.value || [];
-                    field.onChange([...currentServices, value]);
+                    const service = services.find((s) => s.id === value);
+                    if (service) {
+                      const currentServices = [...selectedServices];
+                      currentServices.push(service);
+                      setSelectedServices(currentServices);
+                      const currentValues = field.value || [];
+                      field.onChange([...currentValues, value]);
+                    }
                   }}
                   value=""
                 >
                   <FormControl>
                     <SelectTrigger className="w-full border-2 focus-visible:border-primary">
                       <SelectValue placeholder="Paket seçin">
-                        {field.value?.length > 0 ? `${field.value.length} paket seçildi` : "Paket seçin"}
+                        {field.value?.length > 0
+                          ? `${field.value.length} paket seçildi`
+                          : "Paket seçin"}
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
@@ -243,25 +312,31 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                         return a.name.localeCompare(b.name);
                       })
                       .map((service) => {
-                        const isDisabled = service.isVipOnly && form.watch("membership_type") !== "vip";
-                        
+                        const isDisabled =
+                          service.isVipOnly &&
+                          form.watch("membership_type") !== "vip";
+
                         return (
                           <SelectItem
                             key={service.id}
                             value={service.id}
                             disabled={isDisabled}
                             className={`${
-                              service.isVipOnly ? 'border-l-2 border-rose-500' : ''
-                            } ${isDisabled ? 'opacity-50' : ''}`}
+                              service.isVipOnly
+                                ? "border-l-2 border-rose-500"
+                                : ""
+                            } ${isDisabled ? "opacity-50" : ""}`}
                           >
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span>{service.name}</span>
                               <div className="flex items-center gap-2">
                                 <span className="text-muted-foreground text-sm">
-                                  {service.price?.toLocaleString('tr-TR')} ₺
+                                  {service.price?.toLocaleString("tr-TR")} ₺
                                 </span>
                                 {service.isVipOnly && (
-                                  <Badge variant="destructive" className="ml-2">VIP</Badge>
+                                  <Badge variant="destructive" className="ml-2">
+                                    VIP
+                                  </Badge>
                                 )}
                               </div>
                             </div>
@@ -285,38 +360,26 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                         >
                           <span>{service.name}</span>
                           <span className="text-muted-foreground text-sm">
-                            {service.price?.toLocaleString('tr-TR')} ₺
+                            {service.price?.toLocaleString("tr-TR")} ₺
                           </span>
                           <button
                             type="button"
-                            className="ml-1 hover:text-destructive"
+                            className="ml-1  text-destructive"
                             onClick={() => {
                               const newServices = [...field.value];
+                              const newSelectedServices = [...selectedServices];
                               newServices.splice(index, 1);
+                              newSelectedServices.splice(index, 1);
                               field.onChange(newServices);
+                              setSelectedServices(newSelectedServices);
                             }}
                           >
-                            ×
+                            x
                           </button>
                         </Badge>
                       );
                     })}
                   </div>
-
-                  {/* Toplam Tutar */}
-                  {field.value?.length > 0 && (
-                    <div className="flex justify-end text-sm">
-                      <div className="bg-muted/30 px-2 py-1 rounded flex items-center gap-1">
-                        <span className="text-muted-foreground">Toplam:</span>
-                        <span className="font-medium">
-                          {field.value.reduce((total, serviceId) => {
-                            const service = services.find((s) => s.id === serviceId);
-                            return total + (service?.price || 0);
-                          }, 0).toLocaleString('tr-TR')} ₺
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <FormMessage />
               </FormItem>
@@ -324,19 +387,82 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           />
         </div>
 
+        {/* Ödeme Bilgileri */}
+        {selectedServices.length > 0 && (
+          <div className="flex flex-col">
+            <div className="border-t border-blue-600 p-2 pb-0 font-bold ">
+              <div className="flex justify-between items-center ">
+                <span className="text-sm ">Toplam Kalan Tutar:</span>
+                <span
+                  className={`text-sm ${
+                    remainingAmount > 0
+                      ? "text-destructive"
+                      : remainingAmount < 0
+                      ? "text-yellow-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  {remainingAmount.toLocaleString("tr-TR")} ₺
+                </span>
+              </div>
+            </div>
+            <div className="p-4 mx-auto rounded-lg space-y-4">
+              {/* Ödeme Detayları */}
+              <div className="flex justify-center gap-2 items-center">
+                <div>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    Banka Kartı ile Ödenen
+                  </FormLabel>
+                  <Input
+                    type="number"
+                    value={paymentData.credit_card_paid}
+                    onChange={(e) =>
+                      setPaymentData({
+                        ...paymentData,
+                        credit_card_paid: e.target.value,
+                      })
+                    }
+                    className="border-2 focus-visible:border-primary"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    Nakit Ödenen
+                  </FormLabel>
+                  <Input
+                    type="number"
+                    value={paymentData.cash_paid}
+                    onChange={(e) =>
+                      setPaymentData({
+                        ...paymentData,
+                        cash_paid: e.target.value,
+                      })
+                    }
+                    className="border-2 focus-visible:border-primary"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Notlar */}
         <div>
-          <div className="text-xs font-medium text-muted-foreground pb-2">Ek Bilgiler</div>
+          <div className="text-xs font-medium text-muted-foreground pb-2">
+            Ek Bilgiler
+          </div>
           <FormField
             control={form.control}
             name="notes"
             render={({ field }) => (
               <FormItem className="max-w-sm">
                 <FormControl>
-                  <Input 
-                    placeholder="Ödeme yöntemi, notlar..." 
+                  <Input
+                    placeholder="Ödeme yöntemi, notlar..."
                     {...field}
-                    className="border-2 focus-visible:border-primary" 
+                    className="border-2 focus-visible:border-primary"
                   />
                 </FormControl>
                 <FormMessage />
@@ -346,11 +472,16 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             İptal
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Kaydediliyor..." : member ? "Güncelle" : "Ekle"}
+            {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
           </Button>
         </DialogFooter>
       </form>

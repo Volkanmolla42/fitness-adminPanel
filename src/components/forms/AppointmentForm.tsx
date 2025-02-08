@@ -30,7 +30,7 @@ import { SessionsDialog } from "./SessionsDialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Session } from "@/types/sessions";
-
+import { WORKING_HOURS } from "@/constants/timeSlots";
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -66,7 +66,6 @@ export function AppointmentForm({
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [hasConflict, setHasConflict] = useState(false);
   const [searchMembers, setSearchMembers] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
 
@@ -153,13 +152,12 @@ export function AppointmentForm({
     const time = form.watch("time");
     
     if (date && time) {
-      const conflict = checkConflict(date, time);
-      setHasConflict(conflict);
+      checkConflict(date, time);
 
       if (!checkBusinessHours(time)) {
         form.setError("time", {
           type: "manual",
-          message: "Randevular 10:00 - 20:00 saatleri arasında olmalıdır"
+          message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`
         });
       } else {
         form.clearErrors("time");
@@ -174,8 +172,6 @@ export function AppointmentForm({
       } else {
         form.clearErrors("date");
       }
-    } else {
-      setHasConflict(false);
     }
   }, [form.watch("date"), form.watch("time"), form.watch("trainer_id")]);
 

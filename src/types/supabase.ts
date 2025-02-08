@@ -112,6 +112,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      member_payments: {
+        Row: {
+          id: string;
+          member_name: string;
+          created_at: string;
+          credit_card_paid: number;
+          cash_paid: number;
+        };
+        Insert: {
+          id?: string;
+          member_name: string;
+          created_at?: string;
+          credit_card_paid?: number;
+          cash_paid?: number;
+        };
+        Update: {
+          id?: string;
+          member_name?: string;
+          created_at?: string;
+          credit_card_paid?: number;
+          cash_paid?: number;
+        };
+        Relationships: [];
+      };
       services: {
         Row: {
           id: string;

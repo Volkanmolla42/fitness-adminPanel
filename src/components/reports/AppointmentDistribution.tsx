@@ -10,23 +10,13 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Database } from "@/types/supabase";
+import TIME_SLOTS  from "@/constants/timeSlots";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 interface AppointmentDistributionProps {
   appointments: Appointment[];
 }
-
-const TIME_SLOTS = [
-  "10:00",
-  "11:30",
-  "13:00",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:00",
-  "19:00"
-];
 
 export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = ({
   appointments,
@@ -63,17 +53,10 @@ export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = (
       randevu: slotDistribution[saat]
     }));
   }, [appointments]);
-
-  // Calculate total appointments in these time slots
-  const totalAppointments = useMemo(() => 
-    data.reduce((sum, item) => sum + item.randevu, 0)
-  , [data]);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Saatlik Randevu Dağılımı</CardTitle>
-        <p className="text-sm text-muted-foreground">Toplam {totalAppointments} randevu</p>
       </CardHeader>
       <CardContent>
         <div className="h-[400px]">

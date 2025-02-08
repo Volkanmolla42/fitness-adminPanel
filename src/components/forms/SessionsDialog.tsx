@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
 
 interface SessionsDialogProps {
   open: boolean;
@@ -59,27 +60,9 @@ export function SessionsDialog({
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
-  // Çalışma saatleri ve kısıtlamalar için sabitler
-  const WORKING_HOURS = {
-    start: 10, // 10:00
-    end: 20,   // 20:00
-  } as const;
-
   const DATE_RESTRICTIONS = {
     excludedDays: [0] as number[], // 0: Pazar
   } as const;
-
-  // Sabit randevu saatleri
-  const timeSlots = [
-    "10:00",
-    "11:30",
-    "13:00",
-    "14:00",
-    "15:30",
-    "17:00",
-    "18:00",
-    "19:00"
-  ];
 
   // Zamanı HH:mm formatına çeviren yardımcı fonksiyon
   const formatTime = React.useCallback((time: string): string => {
@@ -122,9 +105,11 @@ export function SessionsDialog({
 
     // Çalışma saati kontrolü
     const hour = parseInt(time.split(':')[0]);
+    const workingStartHour = parseInt(WORKING_HOURS.start.split(':')[0]);
+    const workingEndHour = parseInt(WORKING_HOURS.end.split(':')[0]);
    
-    if (hour < WORKING_HOURS.start || hour >= WORKING_HOURS.end) {
-      return { isValid: false, error: `Randevular ${WORKING_HOURS.start}:00 - ${WORKING_HOURS.end}:00 arasında olmalıdır` };
+    if (hour < workingStartHour || hour >= workingEndHour) {
+      return { isValid: false, error: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} arasında olmalıdır` };
     }
     return { isValid: true };
   }, []);
@@ -377,7 +362,7 @@ export function SessionsDialog({
       if (date.getDay() === 0) continue;
 
       // Her saat için kontrol et
-      for (const timeSlot of timeSlots) {
+      for (const timeSlot of TIME_SLOTS) {
         // Eğer bugünse ve saat geçmişse, bu saati atla
         const [hour, minute] = timeSlot.split(':').map(Number);
         if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
@@ -655,7 +640,7 @@ export function SessionsDialog({
                           <SelectValue placeholder="Saat seçin" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[200px] overflow-y-auto" position="popper" side="bottom" align="start">
-                          {timeSlots.map((timeSlot) => {
+                          {TIME_SLOTS.map((timeSlot) => {
                             const isAvailable = !checkConflict(
                               session.date || "",
                               timeSlot,

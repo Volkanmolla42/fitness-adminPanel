@@ -33,7 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
+import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
 interface MonthlyViewProps {
   appointments: Appointment[];
   members: Member[];
@@ -41,23 +41,6 @@ interface MonthlyViewProps {
   services: Service[];
   onEdit: (appointment: Appointment) => void;
 }
-
-const WORKING_HOURS = {
-  start: "10:00",
-  end: "19:00",
-};
-
-// Sabit randevu saatleri
-const TIME_SLOTS = [
-  "10:00",
-  "11:30",
-  "13:00",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:00",
-  "19:00"
-];
 
 const MonthlyView: React.FC<MonthlyViewProps> = ({
   appointments,
@@ -86,18 +69,7 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
     const normalizedTime = normalizeTime(time);
     const [hours, minutes] = normalizedTime.split(':').map(Number);
     return hours * 60 + (minutes || 0);
-  };
-
-  // İki saat aralığının çakışıp çakışmadığını kontrol eden fonksiyon
-  const isTimeOverlapping = (start1: string, duration1: number, start2: string, duration2: number): boolean => {
-    const start1Minutes = timeToMinutes(start1);
-    const end1Minutes = start1Minutes + duration1;
-    const start2Minutes = timeToMinutes(start2);
-    const end2Minutes = start2Minutes + duration2;
-
-    return (start1Minutes < end2Minutes && end1Minutes > start2Minutes);
-  };
-
+  }; 
   // Randevu çakışmasını kontrol eden fonksiyon
   const checkTimeConflict = (time: string, appointments: Appointment[]): boolean => {
     if (!selectedTrainer || !services) return true;
@@ -178,7 +150,6 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
         
         // Sadece belirli randevu saatlerini kabul et
         const normalizedAppointmentTime = normalizeTime(appointment.time);
-        const isValidTimeSlot = TIME_SLOTS.some(slot => normalizeTime(slot) === normalizedAppointmentTime);
         const isTimeMatch = normalizedAppointmentTime >= timeRange.start && normalizedAppointmentTime <= timeRange.end;
 
         return isDateMatch && isTrainerMatch && isStatusMatch && isTimeMatch;

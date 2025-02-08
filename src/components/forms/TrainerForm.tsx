@@ -71,8 +71,8 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
       categories: trainer?.categories || [],
       start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
       working_hours: trainer?.working_hours || {
-        start: "09:00",
-        end: "17:00",
+        start: "10:00",
+        end: "19:00",
       },
     },
   });

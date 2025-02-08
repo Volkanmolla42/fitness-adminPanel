@@ -50,21 +50,26 @@ import { AppointmentDistribution } from "@/components/reports/AppointmentDistrib
 import { RevenueChart } from "@/components/reports/RevenueChart";
 import { PackageStats } from "@/components/reports/PackageStats";
 import { MemberActivityTable } from "@/components/reports/MemberActivityTable";
-
-const COLORS = [
-  "#0088FE",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
-  "#8884d8",
-  "#82ca9d",
-];
-
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
+interface MemberActivity {
+  memberId: string;
+  memberName: string;
+  startDate: Date;
+  packages: {
+    name: string;
+    totalSessions: number;
+    completedSessions: number;
+    startDate: Date;
+    status: "completed" | "active";
+    completionCount: number;
+  }[];
+}
+import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 
 const ReportsPage = () => {
+  
   const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
@@ -78,7 +83,7 @@ const ReportsPage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [memberActivities, setMemberActivities] = useState<any[]>([]);
+  const [memberActivities, setMemberActivities] = useState<MemberActivity[]>([]);
 
   // Advanced Filtering State
   const [filters, setFilters] = useState({
@@ -89,7 +94,6 @@ const ReportsPage = () => {
   });
 
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const filteredData = useMemo(() => {
     let dateRange;
@@ -175,9 +179,10 @@ const ReportsPage = () => {
     calculateMemberActivities();
   }, [appointments, members, selectedDateRange, customDateRange]);
 
+
+
   const fetchInitialData = async () => {
     setIsLoading(true);
-    setError(null);
     try {
       const [appointmentsData, membersData, servicesData] = await Promise.all([
         getAppointments(),
@@ -188,15 +193,10 @@ const ReportsPage = () => {
       setAppointments(appointmentsData);
       setMembers(membersData);
       setServices(servicesData);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Veriler yüklenirken bir hata oluştu.";
-      setError(errorMessage);
+    } catch {
       toast({
         title: "Hata",
-        description: errorMessage,
+        description: "Veriler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
     } finally {
@@ -213,7 +213,7 @@ const ReportsPage = () => {
     const now = new Date();
     
     // Tarih aralığı hesaplama
-    let dateRange = null;
+    let dateRange;
     if (selectedDateRange === "all") {
       dateRange = null;
     } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
@@ -354,7 +354,7 @@ const ReportsPage = () => {
         title: "Başarılı",
         description: "Rapor başarıyla PDF olarak indirildi.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Hata",
         description: "PDF oluşturulurken bir hata oluştu.",
@@ -476,13 +476,6 @@ const ReportsPage = () => {
           <div className="flex flex-col items-center gap-2">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <p className="text-muted-foreground">Veriler yükleniyor...</p>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-destructive text-center">
-            <p>Bir hata oluştu:</p>
-            <p className="font-medium">{error}</p>
           </div>
         </div>
       ) : (
@@ -698,6 +691,7 @@ const ReportsPage = () => {
               </Card>
             </div>
             <div className="grid  md:grid-cols-2  gap-4">
+              <MemberPaymentsCard/>
               <PackageStats
                 members={members}
                 services={services}

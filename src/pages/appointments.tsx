@@ -41,7 +41,6 @@ function AppointmentsPage() {
     updateAppointment,
     deleteAppointment,
     setAcknowledgedNotifications,
-    filteredAppointments,
     groupedAppointments,
     getFilteredCount,
   } = useAppointments();
@@ -368,7 +367,7 @@ function AppointmentsPage() {
 
           {viewMode === "monthly" && (
             <MonthlyView
-              appointments={filteredAppointments}
+              appointments={appointments}
               members={members}
               trainers={trainers}
               services={services}

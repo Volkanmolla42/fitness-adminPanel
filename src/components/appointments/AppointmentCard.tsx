@@ -318,7 +318,7 @@ const AppointmentCard = ({
                 <div className="flex items-center bg-yellow-50 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto">
                   <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 mr-1 sm:mr-1.5" />
                   <span className="text-xs sm:text-sm font-medium text-yellow-700">
-                    {remainingTime}dk
+                    {remainingTime}dk kaldı
                   </span>
                 </div>
               )}

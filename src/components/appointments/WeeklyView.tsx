@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ServiceAppointmentsDialog } from "./ServiceAppointmentsDialog";
+import TIME_SLOTS  from "@/constants/timeSlots";
 
 interface WeeklyViewProps {
   appointments: Appointment[];
@@ -37,8 +38,6 @@ export default function WeeklyView({
   onAppointmentClick,
   onAddAppointment,
 }: WeeklyViewProps) {
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
@@ -69,19 +68,7 @@ export default function WeeklyView({
     weekEnd: endOfWeek(selectedDate, { weekStartsOn: 1 })
   }), [selectedDate]);
 
-  // Zaman dilimlerini tanımla
-  const timeSlots = [
-    "10:00",
-    "11:30",
-    "13:00",
-    "14:00",
-    "15:30",
-    "17:00",
-    "18:00",
-    "19:00"
-  ];
-
-  // Randevuları ve hizmetleri grupla ve önbelleğe al
+// Randevuları ve hizmetleri grupla ve önbelleğe al
   const appointmentsByDayAndHour = useMemo(() => {
     const result = new Map();
     
@@ -89,7 +76,7 @@ export default function WeeklyView({
       const currentDate = weekDates[dayIndex];
       const dateStr = format(currentDate, 'yyyy-MM-dd');
       
-      for (const timeSlot of timeSlots) {
+      for (const timeSlot of TIME_SLOTS) {
         const hour = timeSlot.split(":")[0];
         const minute = timeSlot.split(":")[1];
         const key = `${dayIndex}-${timeSlot}`;
@@ -236,7 +223,7 @@ export default function WeeklyView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {timeSlots.map((timeSlot) => (
+            {TIME_SLOTS.map((timeSlot) => (
               <TableRow key={timeSlot}>
                 <TableCell className="font-medium text-sm p-1.5 bg-muted/50 border-r-2 border-gray-300">
                   {timeSlot}

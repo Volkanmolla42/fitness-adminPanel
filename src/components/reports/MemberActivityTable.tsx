@@ -191,8 +191,6 @@ export const MemberActivityTable: React.FC<MemberActivityTableProps> = ({ data }
                   <TableCell>
                     <div className="space-y-3">
                       {activity.packages.map((pkg, index) => {
-                        const progress = (pkg.completedSessions / pkg.totalSessions) * 100;
-                        
                         return (
                           <div key={index} className="space-y-2 p-3 rounded-md bg-muted/30">
                             <div className="flex items-center justify-between">

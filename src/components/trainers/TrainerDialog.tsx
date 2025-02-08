@@ -20,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trainer } from "@/types";
-import { useState } from "react";
+import React,{ useState } from "react";
 import { DeleteTrainerDialog } from "./DeleteTrainerDialog";
 import { TrainerAppointmentHistoryDialog } from "./TrainerAppointmentHistoryDialog";
 
@@ -110,8 +110,8 @@ export const TrainerDialog = ({
                   <div className="flex items-center text-xs">
                     <Clock className="w-3 h-3 mr-1.5 text-purple-500" />
                     <span>
-                      {trainer.working_hours?.start || "09:00"} -{" "}
-                      {trainer.working_hours?.end || "17:00"}
+                      {trainer.working_hours?.start || "10:00"} -{" "}
+                      {trainer.working_hours?.end || "19:00"}
                     </span>
                   </div>
                   <div className="flex items-center text-xs">

@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -40,20 +40,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      toast({
-        title: "Çıkış yapıldı",
+      
+      toast.success( "Çıkış yapıldı", {
         description: "Başarıyla çıkış yaptınız.",
-        variant: "default",
-        duration: 3000,
-      });
+      })
       navigate('/login');
     } catch (error) {
-      toast({
-        title: "Hata",
+      toast.error( "Hata", {
         description: "Çıkış yapılırken bir hata oluştu.",
-        variant: "destructive",
-        duration: 3000,
-      });
+      })
+      console.error(error)
     }
   };
 
