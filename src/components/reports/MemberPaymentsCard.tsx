@@ -51,6 +51,7 @@ export function MemberPaymentsCard() {
   const [tableLoading, setTableLoading] = useState(true);
   const [packages, setPackages] = useState<Service[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMemberPackages, setSelectedMemberPackages] = useState<Service[]>([]);
 
   const [newPayment, setNewPayment] = useState({
     member_name: "",
@@ -103,6 +104,35 @@ export function MemberPaymentsCard() {
     }
 
     setMembers(data || []);
+  };
+
+  const fetchMemberPackages = async (memberName: string) => {
+    if (!memberName) {
+      setSelectedMemberPackages([]);
+      return;
+    }
+
+    const [firstName, lastName] = memberName.split(" ");
+    
+    const { data: memberData, error: memberError } = await supabase
+      .from("members")
+      .select("subscribed_services")
+      .eq("first_name", firstName)
+      .eq("last_name", lastName)
+      .single();
+
+    if (memberError || !memberData) {
+      toast.error("Üye bilgileri alınamadı");
+      return;
+    }
+
+    const subscribedServices = memberData.subscribed_services || [];
+    
+    const filteredPackages = packages.filter(pkg => 
+      subscribedServices.includes(pkg.id)
+    );
+
+    setSelectedMemberPackages(filteredPackages);
   };
 
   useEffect(() => {
@@ -386,15 +416,52 @@ export function MemberPaymentsCard() {
               <Label htmlFor="member_name" className="text-right">
                 Üye Adı
               </Label>
-              <Input
-                id="member_name"
+              <Select
                 value={formData.member_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, member_name: e.target.value })
-                }
-                className="col-span-3"
-              />
+                onValueChange={(value) => {
+                  setFormData({ ...formData, member_name: value, package_name: "" });
+                  fetchMemberPackages(value);
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Üye seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem 
+                      key={member.id} 
+                      value={`${member.first_name} ${member.last_name}`}
+                    >
+                      {`${member.first_name} ${member.last_name}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="package_name" className="text-right">
+                Paket Adı
+              </Label>
+              <Select
+                value={formData.package_name}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, package_name: value })
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Paket seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedMemberPackages.map((pkg) => (
+                    <SelectItem key={pkg.id} value={pkg.name}>
+                      {pkg.name} - {pkg.price}₺
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="credit_card_paid" className="text-right">
                 Kredi Kartı
@@ -402,6 +469,7 @@ export function MemberPaymentsCard() {
               <Input
                 id="credit_card_paid"
                 type="number"
+                placeholder="Kredi Kartı"
                 value={formData.credit_card_paid}
                 onChange={(e) =>
                   setFormData({ ...formData, credit_card_paid: e.target.value })
@@ -416,6 +484,7 @@ export function MemberPaymentsCard() {
               <Input
                 id="cash_paid"
                 type="number"
+                placeholder="Nakit"
                 value={formData.cash_paid}
                 onChange={(e) =>
                   setFormData({ ...formData, cash_paid: e.target.value })
@@ -430,22 +499,10 @@ export function MemberPaymentsCard() {
               <Input
                 id="created_at"
                 type="date"
+                placeholder="Ödeme Tarihi"
                 value={formData.created_at}
                 onChange={(e) =>
                   setFormData({ ...formData, created_at: e.target.value })
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="package_name" className="text-right">
-                Paket Adı
-              </Label>
-              <Input
-                id="package_name"
-                value={formData.package_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, package_name: e.target.value })
                 }
                 className="col-span-3"
               />
@@ -512,9 +569,10 @@ export function MemberPaymentsCard() {
               </Label>
               <Select
                 value={newPayment.member_name}
-                onValueChange={(value) =>
-                  setNewPayment({ ...newPayment, member_name: value })
-                }
+                onValueChange={(value) => {
+                  setNewPayment({ ...newPayment, member_name: value, package_name: "" });
+                  fetchMemberPackages(value);
+                }}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Üye seçin" />
@@ -545,9 +603,9 @@ export function MemberPaymentsCard() {
                   <SelectValue placeholder="Paket seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {packages.map((pkg) => (
+                  {selectedMemberPackages.map((pkg) => (
                     <SelectItem key={pkg.id} value={pkg.name}>
-                      {pkg.name}
+                      {pkg.name} - {pkg.price}₺
                     </SelectItem>
                   ))}
                 </SelectContent>
