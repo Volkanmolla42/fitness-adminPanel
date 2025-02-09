@@ -476,10 +476,14 @@ export function MemberPaymentsCard() {
               <Input
                 id="credit_card_paid"
                 type="number"
+                min="0"
                 placeholder="Kredi Kartı"
                 value={formData.credit_card_paid}
                 onChange={(e) =>
-                  setFormData({ ...formData, credit_card_paid: e.target.value })
+                  setFormData({
+                    ...formData,
+                    credit_card_paid: e.target.value === "" ? "0" : e.target.value,
+                  })
                 }
                 className="col-span-3"
               />
@@ -491,10 +495,14 @@ export function MemberPaymentsCard() {
               <Input
                 id="cash_paid"
                 type="number"
+                min="0"
                 placeholder="Nakit"
                 value={formData.cash_paid}
                 onChange={(e) =>
-                  setFormData({ ...formData, cash_paid: e.target.value })
+                  setFormData({
+                    ...formData,
+                    cash_paid: e.target.value === "" ? "0" : e.target.value,
+                  })
                 }
                 className="col-span-3"
               />
@@ -625,12 +633,13 @@ export function MemberPaymentsCard() {
               <Input
                 id="credit_card_paid"
                 type="number"
+                min="0"
                 placeholder="Kredi Kartı"
                 value={newPayment.credit_card_paid}
                 onChange={(e) =>
                   setNewPayment({
                     ...newPayment,
-                    credit_card_paid: e.target.value,
+                    credit_card_paid: e.target.value === "" ? "0" : e.target.value,
                   })
                 }
                 className="col-span-3"
@@ -643,10 +652,14 @@ export function MemberPaymentsCard() {
               <Input
                 id="cash_paid"
                 type="number"
+                min="0"
                 placeholder="Nakit"
                 value={newPayment.cash_paid}
                 onChange={(e) =>
-                  setNewPayment({ ...newPayment, cash_paid: e.target.value })
+                  setNewPayment({
+                    ...newPayment,
+                    cash_paid: e.target.value === "" ? "0" : e.target.value,
+                  })
                 }
                 className="col-span-3"
               />
