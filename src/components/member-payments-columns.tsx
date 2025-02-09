@@ -29,6 +29,10 @@ export const columns = ({
     header: "Üye Adı",
   },
   {
+    accessorKey: "package_name",
+    header: "Paket Adı",
+  },
+  {
     accessorKey: "created_at",
     header: "Ödeme Tarihi",
     cell: ({ row }) => {

@@ -119,6 +119,7 @@ export type Database = {
           created_at: string;
           credit_card_paid: number;
           cash_paid: number;
+          package_name: string;
         };
         Insert: {
           id?: string;
@@ -126,6 +127,7 @@ export type Database = {
           created_at?: string;
           credit_card_paid?: number;
           cash_paid?: number;
+          package_name: string;
         };
         Update: {
           id?: string;
@@ -133,6 +135,7 @@ export type Database = {
           created_at?: string;
           credit_card_paid?: number;
           cash_paid?: number;
+          package_name?: string;
         };
         Relationships: [];
       };

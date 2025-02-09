@@ -16,25 +16,49 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { DateRange } from "react-day-picker";
+import { addDays, format, isWithinInterval, parseISO } from "date-fns";
+import { Calendar as CalendarIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
+type Service = Database["public"]["Tables"]["services"]["Row"];
+type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export function MemberPaymentsCard() {
-  const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(
-    null
-  );
-  const [deletingPayment, setDeletingPayment] = useState<MemberPayment | null>(
-    null
-  );
+  const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(null);
+  const [deletingPayment, setDeletingPayment] = useState<MemberPayment | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<MemberPayment[]>([]);
   const [isAddingPayment, setIsAddingPayment] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchField, setSearchField] = useState<"member_name" | "package_name">("member_name");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [tableLoading, setTableLoading] = useState(true);
+  const [packages, setPackages] = useState<Service[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+
   const [newPayment, setNewPayment] = useState({
     member_name: "",
     credit_card_paid: "",
     cash_paid: "",
     created_at: new Date().toISOString().split('T')[0],
+    package_name: "",
   });
-  const [tableLoading, setTableLoading] = useState(true);
 
   const fetchMemberPayments = async () => {
     setTableLoading(true);
@@ -49,18 +73,85 @@ export function MemberPaymentsCard() {
     }
 
     setMemberPayments(data);
+    setFilteredPayments(data);
     setTableLoading(false);
+  };
+
+  const fetchPackages = async () => {
+    const { data, error } = await supabase
+      .from("services")
+      .select("*")
+      .order("name");
+
+    if (error) {
+      toast.error("Paketler yüklenirken bir hata oluştu");
+      return;
+    }
+
+    setPackages(data || []);
+  };
+
+  const fetchMembers = async () => {
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .order("first_name");
+
+    if (error) {
+      toast.error("Üyeler yüklenirken bir hata oluştu");
+      return;
+    }
+
+    setMembers(data || []);
   };
 
   useEffect(() => {
     fetchMemberPayments();
+    fetchPackages();
+    fetchMembers();
   }, []);
+
+  // Filtreleme işlemi
+  useEffect(() => {
+    let filtered = [...memberPayments];
+
+    // Metin araması
+    if (searchTerm) {
+      filtered = filtered.filter((payment) => {
+        const searchValue = payment[searchField]?.toLowerCase() || "";
+        return searchValue.includes(searchTerm.toLowerCase());
+      });
+    }
+
+    // Tarih aralığı filtresi
+    if (dateRange?.from) {
+      filtered = filtered.filter((payment) => {
+        const paymentDate = parseISO(payment.created_at);
+        const fromDate = dateRange.from;
+        const toDate = dateRange.to || fromDate;
+        
+        return isWithinInterval(paymentDate, {
+          start: fromDate,
+          end: addDays(toDate, 1),
+        });
+      });
+    }
+
+    setFilteredPayments(filtered);
+  }, [searchTerm, searchField, dateRange, memberPayments]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSearchField("member_name");
+    setDateRange(undefined);
+  };
 
   const [formData, setFormData] = useState({
     member_name: "",
     credit_card_paid: "",
     cash_paid: "",
     created_at: "",
+    package_name: "",
   });
 
   const handleEdit = (payment: MemberPayment) => {
@@ -70,6 +161,7 @@ export function MemberPaymentsCard() {
       credit_card_paid: payment.credit_card_paid.toString(),
       cash_paid: payment.cash_paid.toString(),
       created_at: payment.created_at.split('T')[0],
+      package_name: payment.package_name,
     });
   };
 
@@ -89,6 +181,7 @@ export function MemberPaymentsCard() {
           credit_card_paid: parseFloat(formData.credit_card_paid),
           cash_paid: parseFloat(formData.cash_paid),
           created_at: formData.created_at,
+          package_name: formData.package_name,
         })
         .eq("id", editingPayment.id);
 
@@ -142,6 +235,7 @@ export function MemberPaymentsCard() {
           credit_card_paid: parseFloat(newPayment.credit_card_paid) || 0,
           cash_paid: parseFloat(newPayment.cash_paid) || 0,
           created_at: newPayment.created_at,
+          package_name: newPayment.package_name,
         });
 
       if (error) throw error;
@@ -156,6 +250,7 @@ export function MemberPaymentsCard() {
         credit_card_paid: "",
         cash_paid: "",
         created_at: new Date().toISOString().split('T')[0],
+        package_name: "",
       });
     } catch (error) {
       toast.error("Ödeme eklenirken bir hata oluştu", {
@@ -168,8 +263,8 @@ export function MemberPaymentsCard() {
   };
 
   return (
-    <>
-      <Card className="col-span-2">
+    <div className="col-span-2">
+      <Card >
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Üye Ödemeleri</CardTitle>
@@ -179,14 +274,99 @@ export function MemberPaymentsCard() {
           </div>
         </CardHeader>
         <CardContent>
-          <MemberPaymentsTable
-            columns={columns({
-              onEdit: handleEdit,
-              onDelete: handleDelete,
-            })}
-            data={memberPayments}
-            isLoading={tableLoading}
-          />
+          <div className="space-y-4">
+            {/* Arama ve Filtreleme */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 flex gap-2">
+                <Select
+                  value={searchField}
+                  onValueChange={(value: "member_name" | "package_name") =>
+                    setSearchField(value)
+                  }
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Arama alanı" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member_name">Üye Adı</SelectItem>
+                    <SelectItem value="package_name">Paket Adı</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder={searchField === "member_name" ? "Üye adı ara..." : "Paket adı ara..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal w-[220px]",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "dd.MM.yyyy")} -{" "}
+                            {format(dateRange.to, "dd.MM.yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "dd.MM.yyyy")
+                        )
+                      ) : (
+                        "Tarih seç"
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {(searchTerm || dateRange) && (
+                  <Button
+                    variant="ghost"
+                    onClick={clearFilters}
+                    className="px-3"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Tablo */}
+            <MemberPaymentsTable
+              columns={columns({
+                onEdit: handleEdit,
+                onDelete: handleDelete,
+              })}
+              data={filteredPayments}
+              isLoading={tableLoading}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -257,6 +437,19 @@ export function MemberPaymentsCard() {
                 className="col-span-3"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="package_name" className="text-right">
+                Paket Adı
+              </Label>
+              <Input
+                id="package_name"
+                value={formData.package_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, package_name: e.target.value })
+                }
+                className="col-span-3"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setEditingPayment(null)} variant="outline">
@@ -317,14 +510,48 @@ export function MemberPaymentsCard() {
               <Label htmlFor="member_name" className="text-right">
                 Üye adı
               </Label>
-              <Input
-                id="member_name"
+              <Select
                 value={newPayment.member_name}
-                onChange={(e) =>
-                  setNewPayment({ ...newPayment, member_name: e.target.value })
+                onValueChange={(value) =>
+                  setNewPayment({ ...newPayment, member_name: value })
                 }
-                className="col-span-3"
-              />
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Üye seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members.map((member) => (
+                    <SelectItem 
+                      key={member.id} 
+                      value={`${member.first_name} ${member.last_name}`}
+                    >
+                      {`${member.first_name} ${member.last_name}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="package_name" className="text-right">
+                Paket Adı
+              </Label>
+              <Select
+                value={newPayment.package_name}
+                onValueChange={(value) =>
+                  setNewPayment({ ...newPayment, package_name: value })
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Paket seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {packages.map((pkg) => (
+                    <SelectItem key={pkg.id} value={pkg.name}>
+                      {pkg.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="credit_card_paid" className="text-right">
@@ -333,6 +560,7 @@ export function MemberPaymentsCard() {
               <Input
                 id="credit_card_paid"
                 type="number"
+                placeholder="Kredi Kartı"
                 value={newPayment.credit_card_paid}
                 onChange={(e) =>
                   setNewPayment({
@@ -350,6 +578,7 @@ export function MemberPaymentsCard() {
               <Input
                 id="cash_paid"
                 type="number"
+                placeholder="Nakit"
                 value={newPayment.cash_paid}
                 onChange={(e) =>
                   setNewPayment({ ...newPayment, cash_paid: e.target.value })
@@ -364,6 +593,7 @@ export function MemberPaymentsCard() {
               <Input
                 id="created_at"
                 type="date"
+                placeholder="Ödeme Tarihi"
                 value={newPayment.created_at}
                 onChange={(e) =>
                   setNewPayment({ ...newPayment, created_at: e.target.value })
@@ -371,6 +601,7 @@ export function MemberPaymentsCard() {
                 className="col-span-3"
               />
             </div>
+                 
           </div>
           <DialogFooter>
             <Button
@@ -383,6 +614,6 @@ export function MemberPaymentsCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

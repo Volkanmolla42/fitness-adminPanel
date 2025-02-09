@@ -122,6 +122,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                   credit_card_paid: Number(paymentData.credit_card_paid) || 0,
                   cash_paid: Number(paymentData.cash_paid) || 0,
                   created_at: data.start_date,
+                  package_name: selectedServices.map((service) => service.name).join(", "),
                 });
 
               if (paymentError) {

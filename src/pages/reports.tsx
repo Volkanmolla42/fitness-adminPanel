@@ -48,8 +48,11 @@ import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import { ServiceUsageStats } from "@/components/reports/ServiceUsageStats";
 import { AppointmentDistribution } from "@/components/reports/AppointmentDistribution";
 import { RevenueChart } from "@/components/reports/RevenueChart";
-import { PackageStats } from "@/components/reports/PackageStats";
+//import { PackageStats } from "@/components/reports/PackageStats";
 import { MemberActivityTable } from "@/components/reports/MemberActivityTable";
+import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
+import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
+
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -66,10 +69,8 @@ interface MemberActivity {
     completionCount: number;
   }[];
 }
-import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 
 const ReportsPage = () => {
-  
   const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
@@ -179,8 +180,6 @@ const ReportsPage = () => {
     calculateMemberActivities();
   }, [appointments, members, selectedDateRange, customDateRange]);
 
-
-
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
@@ -211,7 +210,6 @@ const ReportsPage = () => {
 
   const calculateMetrics = () => {
     const now = new Date();
-    
     // Tarih aralığı hesaplama
     let dateRange;
     if (selectedDateRange === "all") {
@@ -692,7 +690,8 @@ const ReportsPage = () => {
             </div>
             <div className="grid  md:grid-cols-2  gap-4">
               <MemberPaymentsCard/>
-              <PackageStats
+              <PackageIncomeCard />
+             {/*  <PackageStats
                 members={members}
                 services={services}
                 selectedDateRange={selectedDateRange}
@@ -701,7 +700,7 @@ const ReportsPage = () => {
                     ? { from: customDateRange.from, to: customDateRange.to }
                     : undefined
                 }
-              />
+              />*/}
               <ServiceUsageStats data={serviceUsageData} />
             </div>
 

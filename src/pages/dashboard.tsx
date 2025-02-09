@@ -10,9 +10,9 @@ import {
   getTrainers,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
-import { useToast } from "@/components/ui/use-toast";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 // Type Definitions
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -27,20 +27,9 @@ interface Stats {
   monthlyAppointments: number;
 }
 
-// Custom hook for error handling - moved outside component
-const useErrorHandler = (error: unknown, entityName: string, toast: any) => {
-  React.useEffect(() => {
-    if (error) {
-      toast({
-        title: "Hata",
-        variant: "destructive",
-      });
-    }
-  }, [error, entityName, toast]);
-};
+
 
 const DashboardPage: React.FC = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Data fetching with react-query
@@ -80,11 +69,17 @@ const DashboardPage: React.FC = () => {
     queryFn: getTrainers,
   });
 
-  // Error handling
-  useErrorHandler(appointmentsError, "Randevular", toast);
-  useErrorHandler(membersError, "Üyeler", toast);
-  useErrorHandler(servicesError, "Paketler", toast);
-  useErrorHandler(trainersError, "Eğitmenler", toast);
+  const errorMessages = {
+    appointmentsError: "Randevular yüklenirken bir hata oluştu!",
+    membersError: "Üyeler yüklenirken bir hata oluştu!",
+    servicesError: "Hizmetler yüklenirken bir hata oluştu!",
+    trainersError: "Eğitmenler yüklenirken bir hata oluştu!",
+  };
+  
+  Object.entries({ appointmentsError, membersError, servicesError, trainersError }).forEach(([key, error]) => {
+    if (error) toast.error(errorMessages[key] || error.message);
+  });
+  
 
   // Realtime updates setup
   React.useEffect(() => {
@@ -184,15 +179,15 @@ const DashboardPage: React.FC = () => {
         icon: <Calendar className="h-6 w-6 text-primary" />,
       },
       {
-        title: "Aylık Gelir",
-        value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
-        icon: <DollarSign className="h-6 w-6 text-primary" />,
-      },
-      {
         title: "Aylık Randevular",
         value: stats.monthlyAppointments.toString(),
         icon: <TrendingUp className="h-6 w-6 text-primary" />,
       },
+      {
+        title: "Aylık Gelir",
+        value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
+        icon: <DollarSign className="h-6 w-6 text-primary" />,
+      }
     ],
     [stats]
   );
