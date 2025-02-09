@@ -11,5 +11,5 @@
 export default TIME_SLOTS;
 export const WORKING_HOURS = {
   start: "10:00",
-  end: "19:00",
+  end: "20:00",
 };
