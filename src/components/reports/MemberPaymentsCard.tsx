@@ -188,12 +188,19 @@ export function MemberPaymentsCard() {
     setEditingPayment(payment);
     setFormData({
       member_name: payment.member_name,
+      package_name: payment.package_name,
       credit_card_paid: payment.credit_card_paid.toString(),
       cash_paid: payment.cash_paid.toString(),
       created_at: payment.created_at.split('T')[0],
-      package_name: payment.package_name,
     });
+    fetchMemberPackages(payment.member_name);
   };
+
+  useEffect(() => {
+    if (editingPayment) {
+      fetchMemberPackages(editingPayment.member_name);
+    }
+  }, [editingPayment]);
 
   const handleDelete = (payment: MemberPayment) => {
     setDeletingPayment(payment);
