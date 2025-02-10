@@ -8,6 +8,7 @@ import {
   getMembers,
   getServices,
   getTrainers,
+  getMemberPayments,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
@@ -19,6 +20,7 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 
 interface Stats {
   activeMembers: number;
@@ -26,8 +28,6 @@ interface Stats {
   monthlyRevenue: number;
   monthlyAppointments: number;
 }
-
-
 
 const DashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -69,17 +69,32 @@ const DashboardPage: React.FC = () => {
     queryFn: getTrainers,
   });
 
+  const {
+    data: memberPayments = [],
+    isLoading: isLoadingMemberPayments,
+    error: memberPaymentsError,
+  } = useQuery<MemberPayment[]>({
+    queryKey: ["memberPayments"],
+    queryFn: getMemberPayments,
+  });
+
   const errorMessages = {
     appointmentsError: "Randevular yüklenirken bir hata oluştu!",
     membersError: "Üyeler yüklenirken bir hata oluştu!",
     servicesError: "Hizmetler yüklenirken bir hata oluştu!",
     trainersError: "Eğitmenler yüklenirken bir hata oluştu!",
+    memberPaymentsError: "Üye ödemeleri yüklenirken bir hata oluştu!",
   };
-  
-  Object.entries({ appointmentsError, membersError, servicesError, trainersError }).forEach(([key, error]) => {
+
+  Object.entries({
+    appointmentsError,
+    membersError,
+    servicesError,
+    trainersError,
+    memberPaymentsError,
+  }).forEach(([key, error]) => {
     if (error) toast.error(errorMessages[key] || error.message);
   });
-  
 
   // Realtime updates setup
   React.useEffect(() => {
@@ -105,7 +120,8 @@ const DashboardPage: React.FC = () => {
     (
       members: Member[],
       appointments: Appointment[],
-      services: Service[]
+      services: Service[],
+      memberPayments: MemberPayment[]
     ): Stats => {
       const today = new Date().toISOString().split("T")[0];
       const now = new Date();
@@ -119,28 +135,16 @@ const DashboardPage: React.FC = () => {
       ).length;
 
       const calculateMonthRevenue = (month: number, year: number) =>
-        members
-          .filter((member) => {
-            const startDate = new Date(member.start_date);
+        memberPayments
+          .filter((payment) => {
+            const paymentDate = new Date(payment.created_at);
             return (
-              startDate.getMonth() === month && startDate.getFullYear() === year
+              paymentDate.getMonth() === month && paymentDate.getFullYear() === year
             );
           })
           .reduce(
-            (sum, member) => {
-              // Aktif paketlerin gelirlerini hesapla
-              const activePackagesRevenue = member.subscribed_services.reduce((serviceSum, serviceId) => {
-                const service = services.find((s) => s.id === serviceId);
-                return serviceSum + (service?.price || 0);
-              }, 0);
-
-              // Tamamlanan paketlerin gelirlerini hesapla
-              const completedPackagesRevenue = (member.completed_packages || []).reduce((packageSum, completedPackage) => {
-                const service = services.find((s) => s.id === completedPackage.package_id);
-                return packageSum + ((service?.price || 0) * completedPackage.completion_count);
-              }, 0);
-
-              return sum + activePackagesRevenue + completedPackagesRevenue;
+            (sum, payment) => {
+              return sum + (payment.credit_card_paid || 0) + (payment.cash_paid || 0);
             },
             0
           );
@@ -162,8 +166,8 @@ const DashboardPage: React.FC = () => {
   );
 
   const stats = React.useMemo(
-    () => calculateStats(members, appointments, services),
-    [members, appointments, services, calculateStats]
+    () => calculateStats(members, appointments, services, memberPayments),
+    [members, appointments, services, memberPayments, calculateStats]
   );
 
   const statsForGrid = React.useMemo(
@@ -196,7 +200,8 @@ const DashboardPage: React.FC = () => {
     isLoadingAppointments ||
     isLoadingMembers ||
     isLoadingServices ||
-    isLoadingTrainers;
+    isLoadingTrainers ||
+    isLoadingMemberPayments;
 
   if (isLoading) {
     return (
