@@ -143,6 +143,17 @@ export const deleteService = async (id: string) => {
   if (error) throw error;
 };
 
+// Member Payments
+export const getMemberPayments = async () => {
+  const { data, error } = await supabase
+    .from("member_payments")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
 // Appointments
 export const getAppointments = async () => {
   console.log('Fetching appointments...');

@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Download,
-  Filter,
   Calendar,
   DollarSign,
   Package2,
@@ -31,24 +30,20 @@ import {
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { getAppointments, getMembers, getServices } from "@/lib/queries";
-import type { Database } from "@/types/supabase";
-import { useToast } from "@/components/ui/use-toast";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  getAppointments,
+  getMembers,
+  getServices,
+  getMemberPayments,
+} from "@/lib/queries";
+import type { Database } from "@/types/supabase";
+import { toast } from "sonner";
+
 import { DateRange } from "react-day-picker";
 import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import { ServiceUsageStats } from "@/components/reports/ServiceUsageStats";
 import { AppointmentDistribution } from "@/components/reports/AppointmentDistribution";
 import { RevenueChart } from "@/components/reports/RevenueChart";
-//import { PackageStats } from "@/components/reports/PackageStats";
 import { MemberActivityTable } from "@/components/reports/MemberActivityTable";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
@@ -56,6 +51,7 @@ import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
+type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 interface MemberActivity {
   memberId: string;
   memberName: string;
@@ -71,7 +67,6 @@ interface MemberActivity {
 }
 
 const ReportsPage = () => {
-  const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
     "all" | "week" | "month" | "year" | "custom"
@@ -84,16 +79,10 @@ const ReportsPage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [memberActivities, setMemberActivities] = useState<MemberActivity[]>([]);
-
-  // Advanced Filtering State
-  const [filters, setFilters] = useState({
-    serviceType: "all",
-    membershipType: "all",
-    minRevenue: "",
-    maxRevenue: "",
-  });
-
+  const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
+  const [memberActivities, setMemberActivities] = useState<MemberActivity[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const filteredData = useMemo(() => {
@@ -136,39 +125,9 @@ const ReportsPage = () => {
           })
         : true;
 
-      const service = services.find((s) => s.id === appointment.service_id);
-      const member = members.find((m) => m.id === appointment.member_id);
-
-      const matchesServiceType =
-        filters.serviceType === "all" ||
-        appointment.service_id.toString() === filters.serviceType;
-
-      const matchesMembershipType =
-        filters.membershipType === "all" ||
-        member?.membership_type === filters.membershipType;
-
-      const appointmentRevenue = service?.price || 0;
-      const matchesRevenue =
-        (!filters.minRevenue ||
-          appointmentRevenue >= Number(filters.minRevenue)) &&
-        (!filters.maxRevenue ||
-          appointmentRevenue <= Number(filters.maxRevenue));
-
-      return (
-        withinDateRange &&
-        matchesServiceType &&
-        matchesMembershipType &&
-        matchesRevenue
-      );
+      return withinDateRange;
     });
-  }, [
-    appointments,
-    selectedDateRange,
-    customDateRange,
-    filters,
-    services,
-    members,
-  ]);
+  }, [appointments, selectedDateRange, customDateRange]);
 
   // İlk veri yüklemesi
   useEffect(() => {
@@ -183,21 +142,20 @@ const ReportsPage = () => {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const [appointmentsData, membersData, servicesData] = await Promise.all([
-        getAppointments(),
-        getMembers(),
-        getServices(),
-      ]);
+      const [appointmentsData, membersData, servicesData, memberPaymentsData] =
+        await Promise.all([
+          getAppointments(),
+          getMembers(),
+          getServices(),
+          getMemberPayments(),
+        ]);
 
       setAppointments(appointmentsData);
       setMembers(membersData);
       setServices(servicesData);
+      setMemberPayments(memberPaymentsData);
     } catch {
-      toast({
-        title: "Hata",
-        description: "Veriler yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
+      toast.error("Veriler yüklenirken bir hata oluştu.");
     } finally {
       setIsLoading(false);
     }
@@ -214,7 +172,11 @@ const ReportsPage = () => {
     let dateRange;
     if (selectedDateRange === "all") {
       dateRange = null;
-    } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+    } else if (
+      selectedDateRange === "custom" &&
+      customDateRange?.from &&
+      customDateRange?.to
+    ) {
       dateRange = {
         start: customDateRange.from,
         end: customDateRange.to,
@@ -240,97 +202,29 @@ const ReportsPage = () => {
       });
     };
 
-    // Paket ve gelir hesaplamaları
     let totalRevenue = 0;
     let totalPackages = 0;
 
-    // Filtrelenmiş üyeler
-    const filteredMembers = members.filter((member) => {
-      const memberDate = new Date(member.created_at);
-      const matchesMembershipType =
-        filters.membershipType === "all" ||
-        member.membership_type === filters.membershipType;
-      
-      return isInDateRange(memberDate) && matchesMembershipType;
+    // Üye ödemelerinden gelir hesaplama
+    memberPayments.forEach((payment) => {
+      const paymentDate = new Date(payment.created_at);
+      if (isInDateRange(paymentDate)) {
+        const revenue =
+          Number(payment.credit_card_paid) + Number(payment.cash_paid);
+        totalRevenue += revenue;
+        totalPackages += 1;
+      }
     });
 
-    filteredMembers.forEach((member) => {
-      // Aktif paketlerin gelirlerini ve sayılarını hesapla
-      member.subscribed_services?.forEach((serviceId) => {
-        const service = services.find((s) => s.id === serviceId);
-        if (service) {
-          const matchesServiceType =
-            filters.serviceType === "all" ||
-            service.id.toString() === filters.serviceType;
-
-          if (matchesServiceType) {
-            const revenue = service.price;
-            if (!filters.minRevenue || revenue >= Number(filters.minRevenue)) {
-              if (!filters.maxRevenue || revenue <= Number(filters.maxRevenue)) {
-                totalRevenue += revenue;
-                totalPackages += 1;
-              }
-            }
-          }
-        }
-      });
-
-      // Tamamlanan paketlerin gelirlerini ve sayılarını hesapla
-      member.completed_packages?.forEach((completedPackage) => {
-        const service = services.find((s) => s.id === completedPackage.package_id);
-        if (service) {
-          const matchesServiceType =
-            filters.serviceType === "all" ||
-            service.id.toString() === filters.serviceType;
-
-          if (matchesServiceType) {
-            const revenue = service.price * completedPackage.completion_count;
-            if (!filters.minRevenue || revenue >= Number(filters.minRevenue)) {
-              if (!filters.maxRevenue || revenue <= Number(filters.maxRevenue)) {
-                totalRevenue += revenue;
-                totalPackages += completedPackage.completion_count;
-              }
-            }
-          }
-        }
-      });
-    });
-
-    // Filtrelenmiş randevular
-    const filteredAppointments = appointments.filter((appointment) => {
-      const appointmentDate = new Date(appointment.date);
-      const service = services.find((s) => s.id === appointment.service_id);
-      const member = members.find((m) => m.id === appointment.member_id);
-
-      const matchesServiceType =
-        filters.serviceType === "all" ||
-        appointment.service_id.toString() === filters.serviceType;
-
-      const matchesMembershipType =
-        filters.membershipType === "all" ||
-        member?.membership_type === filters.membershipType;
-
-      const appointmentRevenue = service?.price || 0;
-      const matchesRevenue =
-        (!filters.minRevenue || appointmentRevenue >= Number(filters.minRevenue)) &&
-        (!filters.maxRevenue || appointmentRevenue <= Number(filters.maxRevenue));
-
-      return (
-        isInDateRange(appointmentDate) &&
-        matchesServiceType &&
-        matchesMembershipType &&
-        matchesRevenue
-      );
-    });
-
-    // Ortalama gelir hesaplama
-    const averageRevenuePerPackage = totalPackages > 0 ? totalRevenue / totalPackages : 0;
+    // Ortalama gelir/paket hesapla
+    const averageRevenuePerPackage =
+      totalPackages > 0 ? totalRevenue / totalPackages : 0;
 
     return {
       totalRevenue,
       totalPackages,
-      uniqueMembers: filteredMembers.length,
-      totalAppointments: filteredAppointments.length,
+      uniqueMembers: members.length,
+      totalAppointments: appointments.length,
       averageRevenuePerPackage,
     };
   };
@@ -348,16 +242,9 @@ const ReportsPage = () => {
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`fitness-report-${format(new Date(), "yyyy-MM-dd")}.pdf`);
 
-      toast({
-        title: "Başarılı",
-        description: "Rapor başarıyla PDF olarak indirildi.",
-      });
+      toast.success("Rapor başarıyla PDF olarak indirildi.");
     } catch {
-      toast({
-        title: "Hata",
-        description: "PDF oluşturulurken bir hata oluştu.",
-        variant: "destructive",
-      });
+      toast.error("PDF oluşturulurken bir hata oluştu.");
     }
   };
 
@@ -374,39 +261,44 @@ const ReportsPage = () => {
 
   // Prepare data for RevenueChart
   const revenueChartData = useMemo(() => {
-    const monthlyRevenue = members.reduce(
-      (acc: { [key: string]: number }, member) => {
-        const memberStartMonth = format(new Date(member.start_date), "MMMM", {
+    const monthlyRevenue = memberPayments.reduce(
+      (acc: { [key: string]: number }, payment) => {
+        const paymentMonth = format(new Date(payment.created_at), "MMMM", {
           locale: tr,
         });
 
-        // Aktif paketlerin gelirlerini hesapla
-        member.subscribed_services.forEach((serviceId) => {
-          const service = services.find((s) => s.id === serviceId);
-          if (service) {
-            acc[memberStartMonth] = (acc[memberStartMonth] || 0) + service.price;
-          }
-        });
-
-        // Tamamlanan paketlerin gelirlerini hesapla
-        member.completed_packages?.forEach((completedPackage) => {
-          const service = services.find((s) => s.id === completedPackage.package_id);
-          if (service) {
-            const totalCompletedRevenue = service.price * completedPackage.completion_count;
-            acc[memberStartMonth] = (acc[memberStartMonth] || 0) + totalCompletedRevenue;
-          }
-        });
-
+        acc[paymentMonth] =
+          (acc[paymentMonth] || 0) +
+          payment.credit_card_paid +
+          payment.cash_paid;
         return acc;
       },
       {}
     );
 
-    return Object.entries(monthlyRevenue).map(([month, gelir]) => ({
-      month,
-      gelir: Math.round(gelir),
-    }));
-  }, [members, services]);
+    return Object.entries(monthlyRevenue)
+      .map(([month, gelir]) => ({
+        month,
+        gelir: Math.round(gelir),
+      }))
+      .sort((a, b) => {
+        const months = [
+          "Ocak",
+          "Şubat",
+          "Mart",
+          "Nisan",
+          "Mayıs",
+          "Haziran",
+          "Temmuz",
+          "Ağustos",
+          "Eylül",
+          "Ekim",
+          "Kasım",
+          "Aralık",
+        ];
+        return months.indexOf(a.month) - months.indexOf(b.month);
+      });
+  }, [memberPayments]);
 
   const calculateMemberActivities = () => {
     const activities = members.map((member) => {
@@ -433,17 +325,24 @@ const ReportsPage = () => {
             );
 
             // Paketin başlangıç tarihini bulalım (ilk randevu tarihi veya üyelik başlangıç tarihi)
-            const packageAppointments = memberAppointments.filter(
-              (app) => app.service_id === serviceId
-            ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const packageAppointments = memberAppointments
+              .filter((app) => app.service_id === serviceId)
+              .sort(
+                (a, b) =>
+                  new Date(a.date).getTime() - new Date(b.date).getTime()
+              );
 
-            const startDate = packageAppointments.length > 0
-              ? new Date(packageAppointments[0].date)
-              : new Date(member.start_date);
+            const startDate =
+              packageAppointments.length > 0
+                ? new Date(packageAppointments[0].date)
+                : new Date(member.start_date);
 
             // Paketin durumunu belirleyelim
-            const isCompleted = completedAppointments.length >= service.session_count;
-            const status: 'active' | 'completed' = isCompleted ? 'completed' : 'active';
+            const isCompleted =
+              completedAppointments.length >= service.session_count;
+            const status: "active" | "completed" = isCompleted
+              ? "completed"
+              : "active";
 
             return {
               name: service.name,
@@ -451,7 +350,7 @@ const ReportsPage = () => {
               completedSessions: completedAppointments.length,
               startDate,
               status,
-              completionCount: completedPackage?.completion_count || 0
+              completionCount: completedPackage?.completion_count || 0,
             };
           })
           .filter((pkg): pkg is NonNullable<typeof pkg> => pkg !== null) || [];
@@ -468,7 +367,7 @@ const ReportsPage = () => {
   };
 
   return (
-    <div className="container mt-4 p-0 mx-auto">
+    <div className="container my-4 p-0 mx-auto">
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-2">
@@ -481,98 +380,6 @@ const ReportsPage = () => {
           <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
             <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
             <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full md:w-auto">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filtrele
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Rapor Filtreleri</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Paket Tipi</Label>
-                      <Select
-                        value={filters.serviceType}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            serviceType: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Paket seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
-                          {services.map((service) => (
-                            <SelectItem
-                              key={service.id}
-                              value={service.id.toString()}
-                            >
-                              {service.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Üyelik Tipi</Label>
-                      <Select
-                        value={filters.membershipType}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            membershipType: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Üyelik seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
-                          <SelectItem value="monthly">Aylık</SelectItem>
-                          <SelectItem value="yearly">Yıllık</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="grid gap-2">
-                        <Label>Min. Gelir</Label>
-                        <Input
-                          type="number"
-                          value={filters.minRevenue}
-                          onChange={(e) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              minRevenue: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Max. Gelir</Label>
-                        <Input
-                          type="number"
-                          value={filters.maxRevenue}
-                          onChange={(e) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              maxRevenue: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
               <Select
                 value={selectedDateRange}
                 onValueChange={(
@@ -688,30 +495,14 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </div>
-            <div className="grid  md:grid-cols-2  gap-4">
-              <MemberPaymentsCard/>
-              <PackageIncomeCard />
-             {/*  <PackageStats
-                members={members}
-                services={services}
-                selectedDateRange={selectedDateRange}
-                customDateRange={
-                  customDateRange?.from && customDateRange?.to
-                    ? { from: customDateRange.from, to: customDateRange.to }
-                    : undefined
-                }
-              />*/}
-              <ServiceUsageStats data={serviceUsageData} />
-            </div>
 
-            {/* Paket ve Randevu İstatistikleri */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <PackageIncomeCard />
+              <ServiceUsageStats data={serviceUsageData} />
               <AppointmentDistribution appointments={filteredData} />
-              {/*  Gelir Analizi */}
               <RevenueChart data={revenueChartData} />
             </div>
-
-            {/* Üye İstatistikleri */}
+            <MemberPaymentsCard />
             <MemberActivityTable data={memberActivities} />
           </div>
         </>

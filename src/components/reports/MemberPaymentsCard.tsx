@@ -39,25 +39,33 @@ type Service = Database["public"]["Tables"]["services"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export function MemberPaymentsCard() {
-  const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(null);
-  const [deletingPayment, setDeletingPayment] = useState<MemberPayment | null>(null);
+  const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(
+    null
+  );
+  const [deletingPayment, setDeletingPayment] = useState<MemberPayment | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<MemberPayment[]>([]);
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchField, setSearchField] = useState<"member_name" | "package_name">("member_name");
+  const [searchField, setSearchField] = useState<
+    "member_name" | "package_name"
+  >("member_name");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [tableLoading, setTableLoading] = useState(true);
   const [packages, setPackages] = useState<Service[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [selectedMemberPackages, setSelectedMemberPackages] = useState<Service[]>([]);
+  const [selectedMemberPackages, setSelectedMemberPackages] = useState<
+    Service[]
+  >([]);
 
   const [newPayment, setNewPayment] = useState({
     member_name: "",
     credit_card_paid: "",
     cash_paid: "",
-    created_at: new Date().toISOString().split('T')[0],
+    created_at: new Date().toISOString().split("T")[0],
     package_name: "",
   });
 
@@ -113,7 +121,7 @@ export function MemberPaymentsCard() {
     }
 
     const [firstName, lastName] = memberName.split(" ");
-    
+
     const { data: memberData, error: memberError } = await supabase
       .from("members")
       .select("subscribed_services")
@@ -127,8 +135,8 @@ export function MemberPaymentsCard() {
     }
 
     const subscribedServices = memberData.subscribed_services || [];
-    
-    const filteredPackages = packages.filter(pkg => 
+
+    const filteredPackages = packages.filter((pkg) =>
       subscribedServices.includes(pkg.id)
     );
 
@@ -159,7 +167,7 @@ export function MemberPaymentsCard() {
         const paymentDate = parseISO(payment.created_at);
         const fromDate = dateRange.from;
         const toDate = dateRange.to || fromDate;
-        
+
         return isWithinInterval(paymentDate, {
           start: fromDate,
           end: addDays(toDate, 1),
@@ -191,7 +199,7 @@ export function MemberPaymentsCard() {
       package_name: payment.package_name,
       credit_card_paid: payment.credit_card_paid.toString(),
       cash_paid: payment.cash_paid.toString(),
-      created_at: payment.created_at.split('T')[0],
+      created_at: payment.created_at.split("T")[0],
     });
     fetchMemberPackages(payment.member_name);
   };
@@ -265,15 +273,13 @@ export function MemberPaymentsCard() {
   const handleAddPayment = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from("member_payments")
-        .insert({
-          member_name: newPayment.member_name,
-          credit_card_paid: parseFloat(newPayment.credit_card_paid) || 0,
-          cash_paid: parseFloat(newPayment.cash_paid) || 0,
-          created_at: newPayment.created_at,
-          package_name: newPayment.package_name,
-        });
+      const { error } = await supabase.from("member_payments").insert({
+        member_name: newPayment.member_name,
+        credit_card_paid: parseFloat(newPayment.credit_card_paid) || 0,
+        cash_paid: parseFloat(newPayment.cash_paid) || 0,
+        created_at: newPayment.created_at,
+        package_name: newPayment.package_name,
+      });
 
       if (error) throw error;
 
@@ -286,7 +292,7 @@ export function MemberPaymentsCard() {
         member_name: "",
         credit_card_paid: "",
         cash_paid: "",
-        created_at: new Date().toISOString().split('T')[0],
+        created_at: new Date().toISOString().split("T")[0],
         package_name: "",
       });
     } catch (error) {
@@ -300,8 +306,8 @@ export function MemberPaymentsCard() {
   };
 
   return (
-    <div className="col-span-2">
-      <Card >
+    <div className="col-span-2 relative">
+      <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Üye Ödemeleri</CardTitle>
@@ -331,7 +337,11 @@ export function MemberPaymentsCard() {
                 </Select>
                 <div className="flex-1 relative">
                   <Input
-                    placeholder={searchField === "member_name" ? "Üye adı ara..." : "Paket adı ara..."}
+                    placeholder={
+                      searchField === "member_name"
+                        ? "Üye adı ara..."
+                        : "Paket adı ara..."
+                    }
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full"
@@ -426,7 +436,11 @@ export function MemberPaymentsCard() {
               <Select
                 value={formData.member_name}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, member_name: value, package_name: "" });
+                  setFormData({
+                    ...formData,
+                    member_name: value,
+                    package_name: "",
+                  });
                   fetchMemberPackages(value);
                 }}
               >
@@ -435,8 +449,8 @@ export function MemberPaymentsCard() {
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((member) => (
-                    <SelectItem 
-                      key={member.id} 
+                    <SelectItem
+                      key={member.id}
                       value={`${member.first_name} ${member.last_name}`}
                     >
                       {`${member.first_name} ${member.last_name}`}
@@ -482,7 +496,8 @@ export function MemberPaymentsCard() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    credit_card_paid: e.target.value === "" ? "0" : e.target.value,
+                    credit_card_paid:
+                      e.target.value === "" ? "0" : e.target.value,
                   })
                 }
                 className="col-span-3"
@@ -585,7 +600,11 @@ export function MemberPaymentsCard() {
               <Select
                 value={newPayment.member_name}
                 onValueChange={(value) => {
-                  setNewPayment({ ...newPayment, member_name: value, package_name: "" });
+                  setNewPayment({
+                    ...newPayment,
+                    member_name: value,
+                    package_name: "",
+                  });
                   fetchMemberPackages(value);
                 }}
               >
@@ -594,8 +613,8 @@ export function MemberPaymentsCard() {
                 </SelectTrigger>
                 <SelectContent>
                   {members.map((member) => (
-                    <SelectItem 
-                      key={member.id} 
+                    <SelectItem
+                      key={member.id}
                       value={`${member.first_name} ${member.last_name}`}
                     >
                       {`${member.first_name} ${member.last_name}`}
@@ -639,7 +658,8 @@ export function MemberPaymentsCard() {
                 onChange={(e) =>
                   setNewPayment({
                     ...newPayment,
-                    credit_card_paid: e.target.value === "" ? "0" : e.target.value,
+                    credit_card_paid:
+                      e.target.value === "" ? "0" : e.target.value,
                   })
                 }
                 className="col-span-3"
@@ -679,7 +699,6 @@ export function MemberPaymentsCard() {
                 className="col-span-3"
               />
             </div>
-                 
           </div>
           <DialogFooter>
             <Button
