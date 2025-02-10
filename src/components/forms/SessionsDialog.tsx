@@ -11,7 +11,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, addDays } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
+import {
+  CalendarDays,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+} from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Appointment, Service, Member } from "@/types/appointments";
@@ -72,123 +78,144 @@ export function SessionsDialog({
   }, []);
 
   // Tarih ve saat validasyonu
-  const validateDateTime = React.useCallback((date: string, time: string): { isValid: boolean; error?: string } => {
-    // Eğer zaman seçilmemişse sadece tarih validasyonunu yap
-    if (!time || time === "00:00") {
-      const selectedDate = new Date(`${date}T00:00:00`);
+  const validateDateTime = React.useCallback(
+    (date: string, time: string): { isValid: boolean; error?: string } => {
+      // Eğer zaman seçilmemişse sadece tarih validasyonunu yap
+      if (!time || time === "00:00") {
+        const selectedDate = new Date(`${date}T00:00:00`);
+        const now = new Date();
+
+        // Geçmiş tarih kontrolü - sadece gün bazında kontrol
+        if (selectedDate.setHours(0, 0, 0, 0) < now.setHours(0, 0, 0, 0)) {
+          return { isValid: false, error: "Geçmiş tarih seçilemez" };
+        }
+
+        // Çalışma günü kontrolü
+        if (DATE_RESTRICTIONS.excludedDays.includes(selectedDate.getDay())) {
+          return { isValid: false, error: "Bu gün randevu alınamaz" };
+        }
+
+        return { isValid: true };
+      }
+
+      // Hem tarih hem saat için tam validasyon
+      const selectedDateTime = new Date(`${date}T${time}`);
       const now = new Date();
-      
-      // Geçmiş tarih kontrolü - sadece gün bazında kontrol
-      if (selectedDate.setHours(0,0,0,0) < now.setHours(0,0,0,0)) {
-        return { isValid: false, error: "Geçmiş tarih seçilemez" };
+
+      // Geçmiş zaman kontrolü - tam tarih ve saat kontrolü
+      if (selectedDateTime < now) {
+        return { isValid: false, error: "Geçmiş zaman seçilemez" };
       }
 
       // Çalışma günü kontrolü
-      if (DATE_RESTRICTIONS.excludedDays.includes(selectedDate.getDay())) {
+      if (DATE_RESTRICTIONS.excludedDays.includes(selectedDateTime.getDay())) {
         return { isValid: false, error: "Bu gün randevu alınamaz" };
       }
 
+      // Çalışma saati kontrolü
+      const hour = parseInt(time.split(":")[0]);
+      const workingStartHour = parseInt(WORKING_HOURS.start.split(":")[0]);
+      const workingEndHour = parseInt(WORKING_HOURS.end.split(":")[0]);
+
+      if (hour < workingStartHour || hour >= workingEndHour) {
+        return {
+          isValid: false,
+          error: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} arasında olmalıdır`,
+        };
+      }
       return { isValid: true };
-    }
+    },
+    []
+  );
 
-    // Hem tarih hem saat için tam validasyon
-    const selectedDateTime = new Date(`${date}T${time}`);
-    const now = new Date();
-    
-    // Geçmiş zaman kontrolü - tam tarih ve saat kontrolü
-    if (selectedDateTime < now) {
-      return { isValid: false, error: "Geçmiş zaman seçilemez" };
-    }
+  const checkConflict = React.useCallback(
+    (date: string, time: string, currentIndex: number): boolean => {
+      // 1. Erken Çıkış Koşullarını Optimize Et
+      if (!selectedTrainerId || !selectedService?.id || !services?.length)
+        return false;
 
-    // Çalışma günü kontrolü
-    if (DATE_RESTRICTIONS.excludedDays.includes(selectedDateTime.getDay())) {
-      return { isValid: false, error: "Bu gün randevu alınamaz" };
-    }
+      // 2. Zaman Formatlama İşlemini Merkezileştir
+      const normalizedTime = formatTime(time);
+      const currentAppointmentId = appointment?.id;
 
-    // Çalışma saati kontrolü
-    const hour = parseInt(time.split(':')[0]);
-    const workingStartHour = parseInt(WORKING_HOURS.start.split(':')[0]);
-    const workingEndHour = parseInt(WORKING_HOURS.end.split(':')[0]);
-   
-    if (hour < workingStartHour || hour >= workingEndHour) {
-      return { isValid: false, error: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} arasında olmalıdır` };
-    }
-    return { isValid: true };
-  }, []);
+      // 3. Önbelleklenmiş Verileri Kullan
+      const serviceIsVip = selectedService.isVipOnly;
+      const MAX_STANDARD_CAPACITY = selectedService.max_participants || 4;
 
-  const checkConflict = React.useCallback((date: string, time: string, currentIndex: number): boolean => {
-    // 1. Erken Çıkış Koşullarını Optimize Et
-    if (!selectedTrainerId || !selectedService?.id || !services?.length) return false;
-  
-    // 2. Zaman Formatlama İşlemini Merkezileştir
-    const normalizedTime = formatTime(time);
-    const currentAppointmentId = appointment?.id;
-  
-    // 3. Önbelleklenmiş Verileri Kullan
-    const serviceIsVip = selectedService.isVipOnly;
-    const MAX_STANDARD_CAPACITY = selectedService.max_participants || 4;
-  
-    // 4. Çakışan Randevuları Hesapla
-    const isConflictingAppointment = (apt: Appointment) => {
-      const sameDateTime = apt.date === date && formatTime(apt.time) === normalizedTime;
-      const sameTrainer = apt.trainer_id === selectedTrainerId;
-      const isScheduled = apt.status === "scheduled";
-      const isNotCurrent = apt.id !== currentAppointmentId;
-  
-      return sameDateTime && sameTrainer && isScheduled && isNotCurrent;
-    };
-  
-    // 5. Filtreleme İşlemlerini Birleştir
-    const conflictingAppointments = appointments.filter(isConflictingAppointment);
-    const conflictingSessions = sessions.filter(
-      (session, index) => 
-        index !== currentIndex && 
-        session.date === date && 
-        formatTime(session.time) === normalizedTime
-    );
-  
-    // 6. VIP Kontrollerini Optimize Et
-    const vipServiceIds = new Set(
-      services.filter(s => s.isVipOnly).map(s => s.id)
-    );
-  
-    const hasVipConflict = conflictingAppointments.some(apt => 
-      vipServiceIds.has(apt.service_id)
-    );
-  
-    // 7. Mantığı Basitleştir
-    if (serviceIsVip) {
-      return conflictingAppointments.length > 0 || conflictingSessions.length > 0;
-    }
-  
-    // 8. Standart Kapasite Hesaplaması
-    const totalParticipants = conflictingAppointments.length + conflictingSessions.length;
-    const hasStandardConflict = totalParticipants >= MAX_STANDARD_CAPACITY;
-  
-    return hasVipConflict || hasStandardConflict;
-  }, [
-    selectedTrainerId, 
-    selectedService,  // selectedService.id yerine direkt selectedService
-    appointments, 
-    appointment?.id,  // Sadece id'yi takip et
-    sessions, 
-    formatTime, 
-    services
-  ]);
+      // 4. Çakışan Randevuları Hesapla
+      const isConflictingAppointment = (apt: Appointment) => {
+        const sameDateTime =
+          apt.date === date && formatTime(apt.time) === normalizedTime;
+        const sameTrainer = apt.trainer_id === selectedTrainerId;
+        const isScheduled = apt.status === "scheduled";
+        const isNotCurrent = apt.id !== currentAppointmentId;
+
+        return sameDateTime && sameTrainer && isScheduled && isNotCurrent;
+      };
+
+      // 5. Filtreleme İşlemlerini Birleştir
+      const conflictingAppointments = appointments.filter(
+        isConflictingAppointment
+      );
+      const conflictingSessions = sessions.filter(
+        (session, index) =>
+          index !== currentIndex &&
+          session.date === date &&
+          formatTime(session.time) === normalizedTime
+      );
+
+      // 6. VIP Kontrollerini Optimize Et
+      const vipServiceIds = new Set(
+        services.filter((s) => s.isVipOnly).map((s) => s.id)
+      );
+
+      const hasVipConflict = conflictingAppointments.some((apt) =>
+        vipServiceIds.has(apt.service_id)
+      );
+
+      // 7. Mantığı Basitleştir
+      if (serviceIsVip) {
+        return (
+          conflictingAppointments.length > 0 || conflictingSessions.length > 0
+        );
+      }
+
+      // 8. Standart Kapasite Hesaplaması
+      const totalParticipants =
+        conflictingAppointments.length + conflictingSessions.length;
+      const hasStandardConflict = totalParticipants >= MAX_STANDARD_CAPACITY;
+
+      return hasVipConflict || hasStandardConflict;
+    },
+    [
+      selectedTrainerId,
+      selectedService, // selectedService.id yerine direkt selectedService
+      appointments,
+      appointment?.id, // Sadece id'yi takip et
+      sessions,
+      formatTime,
+      services,
+    ]
+  );
   // Önerilen zamanı tutan state
-  const [suggestedSlot, setSuggestedSlot] = React.useState<{ date: Date; time: string } | null>(null);
+  const [suggestedSlot, setSuggestedSlot] = React.useState<{
+    date: Date;
+    time: string;
+  } | null>(null);
 
   // Dialog açıldığında ve hiç seans seçilmemişse önerilen zamanı hesapla
   React.useEffect(() => {
     if (open && selectedTrainerId && selectedService) {
       // Hiç seans seçilmemiş mi kontrol et
-      const hasNoSelectedSessions = sessions.every(session => !session.date && !session.time);
+      const hasNoSelectedSessions = sessions.every(
+        (session) => !session.date && !session.time
+      );
       if (hasNoSelectedSessions) {
         if (defaultDate && defaultTime) {
           // Eğer varsayılan tarih ve saat varsa, bunları kullan
           setSuggestedSlot({
             date: new Date(defaultDate),
-            time: defaultTime
+            time: defaultTime,
           });
         } else {
           // Yoksa bir sonraki müsait zamanı bul
@@ -199,85 +226,98 @@ export function SessionsDialog({
         setSuggestedSlot(null);
       }
     }
-  }, [open, selectedTrainerId, selectedService, sessions, defaultDate, defaultTime]);
+  }, [
+    open,
+    selectedTrainerId,
+    selectedService,
+    sessions,
+    defaultDate,
+    defaultTime,
+  ]);
 
-  const handleSessionChange = React.useCallback((
-    index: number,
-    field: "date" | "time",
-    value: string,
-  ) => {
-    const newSessions = [...sessions];
-    const currentSession = newSessions[index];
-    
-    // Zamanı HH:mm formatında tut
-    const formattedValue = field === "time" ? formatTime(value) : value;
-    
-    // Tarih ve saat validasyonu
-    if (field === "date") {
-      // Sadece tarih değiştiğinde, saati kontrol etmeden tarih validasyonu yap
-      const validation = validateDateTime(formattedValue, "");
-      if (!validation.isValid) {
-        newSessions[index] = {
-          ...currentSession,
-          [field]: "",
-          hasError: validation.error
-        };
-        onSessionsChange(newSessions);
-        return;
+  const handleSessionChange = React.useCallback(
+    (index: number, field: "date" | "time", value: string) => {
+      const newSessions = [...sessions];
+      const currentSession = newSessions[index];
+
+      // Zamanı HH:mm formatında tut
+      const formattedValue = field === "time" ? formatTime(value) : value;
+
+      // Tarih ve saat validasyonu
+      if (field === "date") {
+        // Sadece tarih değiştiğinde, saati kontrol etmeden tarih validasyonu yap
+        const validation = validateDateTime(formattedValue, "");
+        if (!validation.isValid) {
+          newSessions[index] = {
+            ...currentSession,
+            [field]: "",
+            hasError: validation.error,
+          };
+          onSessionsChange(newSessions);
+          return;
+        }
+      } else if (field === "time" && currentSession.date) {
+        // Saat değiştiğinde ve tarih varsa tam validasyon yap
+        const validation = validateDateTime(
+          currentSession.date,
+          formattedValue
+        );
+        if (!validation.isValid) {
+          newSessions[index] = {
+            ...currentSession,
+            [field]: "",
+            hasError: validation.error,
+          };
+          onSessionsChange(newSessions);
+          return;
+        }
       }
-    } else if (field === "time" && currentSession.date) {
-      // Saat değiştiğinde ve tarih varsa tam validasyon yap
-      const validation = validateDateTime(currentSession.date, formattedValue);
-      if (!validation.isValid) {
-        newSessions[index] = {
-          ...currentSession,
-          [field]: "",
-          hasError: validation.error
-        };
-        onSessionsChange(newSessions);
-        return;
+
+      // Değeri güncelle ve hata mesajını temizle
+      newSessions[index] = {
+        ...currentSession,
+        [field]: formattedValue,
+        hasError: undefined,
+      };
+
+      // Eğer hem tarih hem saat seçiliyse çakışma kontrolü yap
+      if (newSessions[index].date && newSessions[index].time) {
+        const conflict = checkConflict(
+          newSessions[index].date,
+          newSessions[index].time,
+          index
+        );
+        newSessions[index].hasConflict = conflict;
       }
-    }
 
-    // Değeri güncelle ve hata mesajını temizle
-    newSessions[index] = {
-      ...currentSession,
-      [field]: formattedValue,
-      hasError: undefined
-    };
-
-    // Eğer hem tarih hem saat seçiliyse çakışma kontrolü yap
-    if (newSessions[index].date && newSessions[index].time) {
-      const conflict = checkConflict(
-        newSessions[index].date,
-        newSessions[index].time,
-        index
-      );
-      newSessions[index].hasConflict = conflict;
-    }
-
-    onSessionsChange(newSessions);
-  }, [sessions, formatTime, validateDateTime, checkConflict, onSessionsChange]);
+      onSessionsChange(newSessions);
+    },
+    [sessions, formatTime, validateDateTime, checkConflict, onSessionsChange]
+  );
 
   const handleAutoFill = React.useCallback(() => {
-    const selectedSessions = sessions.filter(session => session.date && session.time);
+    const selectedSessions = sessions.filter(
+      (session) => session.date && session.time
+    );
     if (selectedSessions.length === 0) return;
 
     // Seçilmiş günleri ve saatleri topla
-    const selectedDays = selectedSessions.map(session => ({
+    const selectedDays = selectedSessions.map((session) => ({
       dayOfWeek: new Date(session.date).getDay(),
       time: session.time,
-      date: new Date(session.date)
+      date: new Date(session.date),
     }));
 
     // Seçilmemiş seansları bul
     const unselectedIndices = sessions
       .map((session, index) => (!session.date || !session.time ? index : -1))
-      .filter(index => index !== -1);
+      .filter((index) => index !== -1);
 
     // Yeni seansları oluştur
     const newSessions = [...sessions];
-    let lastDate = new Date(Math.max(...selectedDays.map(d => d.date.getTime())));
+    let lastDate = new Date(
+      Math.max(...selectedDays.map((d) => d.date.getTime()))
+    );
 
     unselectedIndices.forEach((index) => {
       const targetDayIndex = index % selectedDays.length;
@@ -289,14 +329,14 @@ export function SessionsDialog({
       // Uygun bir tarih bulana kadar dene
       while (attempts < maxAttempts) {
         nextDate.setDate(nextDate.getDate() + 1);
-        
+
         // Hedef güne ulaşana kadar ilerle
         while (nextDate.getDay() !== targetDay.dayOfWeek) {
           nextDate.setDate(nextDate.getDate() + 1);
         }
 
-        const dateStr = format(nextDate, 'yyyy-MM-dd');
-        
+        const dateStr = format(nextDate, "yyyy-MM-dd");
+
         // Tarih validasyonu yap
         const validation = validateDateTime(dateStr, targetDay.time);
         const hasConflict = checkConflict(dateStr, targetDay.time, index);
@@ -306,7 +346,9 @@ export function SessionsDialog({
             date: dateStr,
             time: targetDay.time,
             hasConflict: hasConflict,
-            hasError: hasConflict ? "Bu tarih ve saatte eğitmen müsait değil" : undefined
+            hasError: hasConflict
+              ? "Bu tarih ve saatte eğitmen müsait değil"
+              : undefined,
           };
           lastDate = nextDate;
           break;
@@ -349,11 +391,14 @@ export function SessionsDialog({
   };
 
   // Bir sonraki müsait zaman aralığını bulan fonksiyon
-  const findNextAvailableSlot = React.useCallback((): { date: Date; time: string } | null => {
+  const findNextAvailableSlot = React.useCallback((): {
+    date: Date;
+    time: string;
+  } | null => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    
+
     // 30 gün içinde uygun slot ara
     for (let day = 0; day < 30; day++) {
       const date = addDays(now, day);
@@ -366,20 +411,25 @@ export function SessionsDialog({
       // Her saat için kontrol et
       for (const timeSlot of TIME_SLOTS) {
         // Eğer bugünse ve saat geçmişse, bu saati atla
-        const [hour, minute] = timeSlot.split(':').map(Number);
-        if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
+        const [hour, minute] = timeSlot.split(":").map(Number);
+        if (
+          isToday &&
+          (hour < currentHour ||
+            (hour === currentHour && minute <= currentMinute))
+        ) {
           continue;
         }
 
         // Bu slot müsait mi kontrol et
-        const isAvailable = !sessions.some(session => 
-          session.date === dateStr && session.time === timeSlot
-        ) && !checkConflict(dateStr, timeSlot, -1);
+        const isAvailable =
+          !sessions.some(
+            (session) => session.date === dateStr && session.time === timeSlot
+          ) && !checkConflict(dateStr, timeSlot, -1);
 
         if (isAvailable) {
           return {
             date,
-            time: timeSlot
+            time: timeSlot,
           };
         }
       }
@@ -392,25 +442,27 @@ export function SessionsDialog({
     // Üye ID'sini appointment'dan veya prop'dan al
     const currentMemberId = appointment?.member_id || memberId;
     if (!currentMemberId || !selectedService?.id || !member) return 0;
-    
+
     // Bu servis için tamamlanan randevuları bul
-    
-    const completedAppointments = appointments.filter(apt => 
-      apt.member_id === currentMemberId && 
-      apt.service_id === selectedService.id && 
-      apt.status === "completed"
+
+    const completedAppointments = appointments.filter(
+      (apt) =>
+        apt.member_id === currentMemberId &&
+        apt.service_id === selectedService.id &&
+        apt.status === "completed"
     );
 
     // Bu servisin tamamlanmış paket sayısını bul
     const completedPackageInfo = member.completed_packages?.find(
-      pkg => pkg.package_id === selectedService.id
+      (pkg) => pkg.package_id === selectedService.id
     );
 
     // Servisin seans sayısını bul
-    const serviceSessionCount = services.find(s => s.id === selectedService.id)?.session_count || 0;
-    
+    const serviceSessionCount =
+      services.find((s) => s.id === selectedService.id)?.session_count || 0;
+
     // Tamamlanmış paketlerin toplam seans sayısını hesapla
-    const completedPackageSessionCount = completedPackageInfo 
+    const completedPackageSessionCount = completedPackageInfo
       ? serviceSessionCount * completedPackageInfo.completion_count
       : 0;
 
@@ -418,34 +470,49 @@ export function SessionsDialog({
     const currentPackageCompletedSessions = completedAppointments.length;
 
     // Tamamlanan seanslardan, tamamlanmış paketlerin seans sayısını çıkar
-    return Math.max(0, currentPackageCompletedSessions - completedPackageSessionCount);
-  }, [appointments, appointment?.member_id, memberId, selectedService?.id, member, services]);
+    return Math.max(
+      0,
+      currentPackageCompletedSessions - completedPackageSessionCount
+    );
+  }, [
+    appointments,
+    appointment?.member_id,
+    memberId,
+    selectedService?.id,
+    member,
+    services,
+  ]);
 
   const calculateScheduledSessions = React.useCallback(() => {
     // Üye ID'sini appointment'dan veya prop'dan al
     const currentMemberId = appointment?.member_id || memberId;
-    
+
     if (!currentMemberId || !selectedService?.id) return 0;
-    
+
     // Bu servis için planlanan randevuları bul
-    const scheduledAppointments = appointments.filter(apt => 
-      apt.member_id === currentMemberId && 
-      apt.service_id === selectedService.id && 
-      apt.status === "scheduled"
+    const scheduledAppointments = appointments.filter(
+      (apt) =>
+        apt.member_id === currentMemberId &&
+        apt.service_id === selectedService.id &&
+        apt.status === "scheduled"
     );
 
     return scheduledAppointments.length;
   }, [appointments, appointment?.member_id, memberId, selectedService?.id]);
 
-  const isComplete = sessions.every((session) => 
-    session.date && session.time && !session.hasConflict
+  const isComplete = sessions.every(
+    (session) => session.date && session.time && !session.hasConflict
   );
   const completedSessions = sessions.filter(
     (s) => s.date && s.time && !s.hasConflict
   ).length;
 
-  const [openTimeSelect, setOpenTimeSelect] = React.useState<number | null>(null);
-  const [openDatePicker, setOpenDatePicker] = React.useState<number | null>(null);
+  const [openTimeSelect, setOpenTimeSelect] = React.useState<number | null>(
+    null
+  );
+  const [openDatePicker, setOpenDatePicker] = React.useState<number | null>(
+    null
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -483,12 +550,17 @@ export function SessionsDialog({
                 </div>
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Toplam: {sessionCount}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Toplam: {sessionCount}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Kalan: {sessionCount - (calculateCompletedSessions() + calculateScheduledSessions())}
+                    Kalan:{" "}
+                    {sessionCount -
+                      (calculateCompletedSessions() +
+                        calculateScheduledSessions())}
                   </span>
                 </div>
               </div>
@@ -551,50 +623,67 @@ export function SessionsDialog({
                 <div
                   key={index}
                   className={`p-4 border rounded-lg relative transition-all ${
-                    hasConflict 
-                      ? "border-destructive bg-destructive/5" 
-                      : isSessionComplete 
-                        ? "border-primary/20 bg-primary/5" 
-                        : "border-input bg-muted/30"
+                    hasConflict
+                      ? "border-destructive bg-destructive/5"
+                      : isSessionComplete
+                      ? "border-primary/20 bg-primary/5"
+                      : "border-input bg-muted/30"
                   }`}
                 >
                   {/* İlk seans için önerilen tarih ve saat */}
-                  {index === 0 && suggestedSlot && !session.date && !session.time && (
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Önerilen:</span>{" "}
-                        {format(suggestedSlot.date, 'd MMMM yyyy, EEEE', { locale: tr })} - {suggestedSlot.time}
+                  {index === 0 &&
+                    suggestedSlot &&
+                    !session.date &&
+                    !session.time && (
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium">Önerilen:</span>{" "}
+                          {format(suggestedSlot.date, "d MMMM yyyy, EEEE", {
+                            locale: tr,
+                          })}{" "}
+                          - {suggestedSlot.time}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            const newSessions = [...sessions];
+                            const dateStr = format(
+                              suggestedSlot.date,
+                              "yyyy-MM-dd"
+                            );
+
+                            // Tarih ve saati aynı anda güncelle
+                            newSessions[index] = {
+                              ...newSessions[index],
+                              date: dateStr,
+                              time: suggestedSlot.time,
+                              hasError: undefined,
+                              hasConflict: checkConflict(
+                                dateStr,
+                                suggestedSlot.time,
+                                index
+                              ),
+                            };
+
+                            onSessionsChange(newSessions);
+                          }}
+                        >
+                          Seç
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => {
-                          const newSessions = [...sessions];
-                          const dateStr = format(suggestedSlot.date, "yyyy-MM-dd");
-                          
-                          // Tarih ve saati aynı anda güncelle
-                          newSessions[index] = {
-                            ...newSessions[index],
-                            date: dateStr,
-                            time: suggestedSlot.time,
-                            hasError: undefined,
-                            hasConflict: checkConflict(dateStr, suggestedSlot.time, index)
-                          };
-                          
-                          onSessionsChange(newSessions);
-                        }}
-                      >
-                        Seç
-                      </Button>
-                    </div>
-                  )}
+                    )}
 
                   {/* Seans Numarası */}
                   {!appointment && sessionCount && sessionCount > 1 && (
                     <div className="absolute -top-2 -left-2 w-6 h-6">
                       <div
-                        className={`absolute inset-0 rounded-full ${isSessionComplete ? "bg-primary" : "bg-muted-foreground"} text-primary-foreground flex items-center justify-center text-sm font-medium`}
+                        className={`absolute inset-0 rounded-full ${
+                          isSessionComplete
+                            ? "bg-primary"
+                            : "bg-muted-foreground"
+                        } text-primary-foreground flex items-center justify-center text-sm font-medium`}
                       >
                         {index + 1}
                       </div>
@@ -608,7 +697,13 @@ export function SessionsDialog({
                         <span>Tarih</span>
                       </div>
                       <DatePicker
-                        selected={session.date ? new Date(`${session.date}T${session.time || '00:00'}`) : null}
+                        selected={
+                          session.date
+                            ? new Date(
+                                `${session.date}T${session.time || "00:00"}`
+                              )
+                            : null
+                        }
                         onChange={(date: Date) => {
                           if (date) {
                             handleSessionChange(
@@ -628,7 +723,9 @@ export function SessionsDialog({
                         locale={tr}
                         placeholderText={"Tarih seçin"}
                         className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                          hasConflict || hasError ? "border-destructive" : "border-input"
+                          hasConflict || hasError
+                            ? "border-destructive"
+                            : "border-input"
                         }`}
                       />
                       {hasError && (
@@ -655,17 +752,27 @@ export function SessionsDialog({
                         }}
                         disabled={!session.date}
                       >
-                        <SelectTrigger className={`w-full ${hasConflict ? "border-destructive" : ""}`}>
+                        <SelectTrigger
+                          className={`w-full ${
+                            hasConflict ? "border-destructive" : ""
+                          }`}
+                        >
                           <SelectValue placeholder="Saat seçin" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[200px] overflow-y-auto" position="popper" side="bottom" align="start">
+                        <SelectContent
+                          className="max-h-[200px] overflow-y-auto"
+                          position="popper"
+                          side="bottom"
+                          align="start"
+                        >
                           {TIME_SLOTS.map((timeSlot) => {
                             const isAvailable = !checkConflict(
                               session.date || "",
                               timeSlot,
                               index
                             );
-                            const isSuggested = suggestedSlot && timeSlot === suggestedSlot.time;
+                            const isSuggested =
+                              suggestedSlot && timeSlot === suggestedSlot.time;
 
                             return (
                               <SelectItem
@@ -673,8 +780,8 @@ export function SessionsDialog({
                                 value={timeSlot}
                                 disabled={!isAvailable}
                                 className={`
-                                  ${!isAvailable ? 'text-muted-foreground' : ''}
-                                  ${isSuggested ? 'bg-primary/10' : ''}
+                                  ${!isAvailable ? "text-muted-foreground" : ""}
+                                  ${isSuggested ? "bg-primary/10" : ""}
                                 `}
                               >
                                 <div className="flex items-center justify-between w-full">
@@ -710,7 +817,6 @@ export function SessionsDialog({
           </div>
         </ScrollArea>
 
-
         <div className="flex items-center justify-between gap-4  pt-4 border-t">
           <div className="flex items-center gap-2">
             <Badge variant={isComplete ? "default" : "secondary"}>
@@ -745,7 +851,8 @@ export function SessionsDialog({
           <DialogHeader>
             <DialogTitle>Seansları Temizle</DialogTitle>
             <DialogDescription className="pt-3">
-              Tüm seansları temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              Tüm seansları temizlemek istediğinizden emin misiniz? Bu işlem
+              geri alınamaz.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
@@ -755,10 +862,7 @@ export function SessionsDialog({
             >
               İptal
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmClearSessions}
-            >
+            <Button variant="destructive" onClick={confirmClearSessions}>
               Temizle
             </Button>
           </div>

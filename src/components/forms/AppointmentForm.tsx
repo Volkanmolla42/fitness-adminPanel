@@ -25,7 +25,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/types/supabase";
-import React,{ useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { SessionsDialog } from "./SessionsDialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -73,7 +73,10 @@ export function AppointmentForm({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowMemberDropdown(false);
       }
     }
@@ -101,11 +104,13 @@ export function AppointmentForm({
     form.setValue("service_id", serviceId);
 
     if (!appointment) {
-      setSessions([{ 
-        date: defaultDate || "", 
-        time: defaultTime || "", 
-        hasConflict: false 
-      }]);
+      setSessions([
+        {
+          date: defaultDate || "",
+          time: defaultTime || "",
+          hasConflict: false,
+        },
+      ]);
       setShowSessionsDialog(true);
     }
   };
@@ -119,8 +124,8 @@ export function AppointmentForm({
   };
 
   const checkBusinessHours = (time: string): boolean => {
-    const [hours] = time.split(':').map(Number);
-    return hours >= 10 && hours < 20; 
+    const [hours] = time.split(":").map(Number);
+    return hours >= 10 && hours < 20;
   };
 
   const checkConflict = (date: string, time: string): boolean => {
@@ -132,17 +137,18 @@ export function AppointmentForm({
 
     const selectedDate = new Date(date);
     if (selectedDate.getDay() === 0) {
-      return true; 
+      return true;
     }
 
-    return appointments.some(apt => {
+    return appointments.some((apt) => {
       if (apt.id === appointment?.id) return false;
 
-      const isSameDateTime = apt.date === date && 
-                           apt.time === time &&
-                           apt.trainer_id === form.watch("trainer_id") &&
-                           apt.status === "scheduled";
-                           
+      const isSameDateTime =
+        apt.date === date &&
+        apt.time === time &&
+        apt.trainer_id === form.watch("trainer_id") &&
+        apt.status === "scheduled";
+
       return isSameDateTime;
     });
   };
@@ -150,14 +156,14 @@ export function AppointmentForm({
   useEffect(() => {
     const date = form.watch("date");
     const time = form.watch("time");
-    
+
     if (date && time) {
       checkConflict(date, time);
 
       if (!checkBusinessHours(time)) {
         form.setError("time", {
           type: "manual",
-          message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`
+          message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`,
         });
       } else {
         form.clearErrors("time");
@@ -167,7 +173,7 @@ export function AppointmentForm({
       if (selectedDate.getDay() === 0) {
         form.setError("date", {
           type: "manual",
-          message: "Pazar günleri randevu alınamaz"
+          message: "Pazar günleri randevu alınamaz",
         });
       } else {
         form.clearErrors("date");
@@ -177,18 +183,22 @@ export function AppointmentForm({
 
   useEffect(() => {
     if (appointment) {
-      setSessions([{ 
-        date: appointment.date, 
-        time: appointment.time,
-        hasConflict: false
-      }]);
-      setSelectedService(services.find(s => s.id === appointment.service_id) || null);
+      setSessions([
+        {
+          date: appointment.date,
+          time: appointment.time,
+          hasConflict: false,
+        },
+      ]);
+      setSelectedService(
+        services.find((s) => s.id === appointment.service_id) || null
+      );
     }
   }, [appointment, services]);
 
   useEffect(() => {
     if (appointment?.member_id) {
-      const member = members.find(m => m.id === appointment.member_id);
+      const member = members.find((m) => m.id === appointment.member_id);
       if (member) {
         setSearchMembers(`${member.first_name} ${member.last_name}`);
       }
@@ -196,10 +206,10 @@ export function AppointmentForm({
   }, [appointment, members]);
 
   const selectedMember = members.find(
-    (member) => member.id === form.watch("member_id"),
+    (member) => member.id === form.watch("member_id")
   );
   const availableServices = services.filter((service) =>
-    selectedMember?.subscribed_services?.includes(service.id),
+    selectedMember?.subscribed_services?.includes(service.id)
   );
 
   const handleSubmit = async (data: AppointmentInput) => {
@@ -220,7 +230,7 @@ export function AppointmentForm({
   useEffect(() => {
     if (form.watch("member_id") && form.watch("service_id")) {
       const isServiceAvailable = selectedMember?.subscribed_services?.includes(
-        form.watch("service_id"),
+        form.watch("service_id")
       );
       if (!isServiceAvailable) {
         form.setValue("service_id", "");
@@ -230,7 +240,10 @@ export function AppointmentForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 max-w-full">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-4 max-w-full"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -277,20 +290,29 @@ export function AppointmentForm({
                               key={member.id}
                               onClick={() => {
                                 form.setValue("member_id", member.id);
-                                setSearchMembers(`${member.first_name} ${member.last_name}`);
+                                setSearchMembers(
+                                  `${member.first_name} ${member.last_name}`
+                                );
                                 setShowMemberDropdown(false);
                               }}
                               className={cn(
                                 "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                member.id === field.value && "bg-accent text-accent-foreground"
+                                member.id === field.value &&
+                                  "bg-accent text-accent-foreground"
                               )}
                             >
                               <div className="flex items-center gap-2">
-                                <CheckIcon className={cn(
-                                  "h-4 w-4",
-                                  member.id === field.value ? "opacity-100" : "opacity-0"
-                                )} />
-                                <span>{member.first_name} {member.last_name}</span>
+                                <CheckIcon
+                                  className={cn(
+                                    "h-4 w-4",
+                                    member.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                <span>
+                                  {member.first_name} {member.last_name}
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -309,10 +331,7 @@ export function AppointmentForm({
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel>Eğitmen</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Eğitmen seçin" />
@@ -327,7 +346,6 @@ export function AppointmentForm({
                   </SelectContent>
                 </Select>
                 <FormMessage />
-               
               </FormItem>
             )}
           />
@@ -344,13 +362,16 @@ export function AppointmentForm({
                   <Select
                     onValueChange={handleServiceChange}
                     value={field.value}
-                    disabled={!form.watch("member_id") || !form.watch("trainer_id")}
+                    disabled={
+                      !form.watch("member_id") || !form.watch("trainer_id")
+                    }
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue
                           placeholder={
-                            !form.watch("member_id") || !form.watch("trainer_id")
+                            !form.watch("member_id") ||
+                            !form.watch("trainer_id")
                               ? "Önce üye ve eğitmen seçin"
                               : "Paket seçin"
                           }
@@ -367,25 +388,32 @@ export function AppointmentForm({
                   </Select>
                 </div>
               </div>
-             
+
               {selectedService && (
                 <div className="flex items-center justify-evenly outline outline-2  outline-green-400 p-2">
-                  {sessions.length > 0 && sessions[0].date && sessions[0].time && (
-                    <div className="text-sm text-muted-foreground break-words">
-                      {appointment ? "Randevu" : "İlk seans"}: {format(new Date(`${sessions[0].date}T${sessions[0].time}`), "d MMMM, EEEE HH:mm", { locale: tr })}
-                    </div>
-                  )}
+                  {sessions.length > 0 &&
+                    sessions[0].date &&
+                    sessions[0].time && (
+                      <div className="text-sm text-muted-foreground break-words">
+                        {appointment ? "Randevu" : "İlk seans"}:{" "}
+                        {format(
+                          new Date(`${sessions[0].date}T${sessions[0].time}`),
+                          "d MMMM, EEEE HH:mm",
+                          { locale: tr }
+                        )}
+                      </div>
+                    )}
                   <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  className="shrink-0 h-10"
-                  onClick={() => setShowSessionsDialog(true)}
-                >
-                  {sessions.length > 0 && sessions[0].date && sessions[0].time
-                    ? "Düzenle"
-                    : "Tarih Seç"}
-                </Button>
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="shrink-0 h-10"
+                    onClick={() => setShowSessionsDialog(true)}
+                  >
+                    {sessions.length > 0 && sessions[0].date && sessions[0].time
+                      ? "Düzenle"
+                      : "Tarih Seç"}
+                  </Button>
                 </div>
               )}
             </FormItem>
@@ -442,8 +470,8 @@ export function AppointmentForm({
           >
             İptal
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}
             className="w-full sm:w-auto"
           >
