@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Appointment, Service } from "@/types/appointments";
+import { Appointment, Service, Member } from "@/types/appointments";
 import { Session } from "@/types/sessions";
 import {
   Select,
@@ -40,6 +40,7 @@ interface SessionsDialogProps {
   defaultDate?: string;
   defaultTime?: string;
   memberId?: string;
+  member?: Member;
 }
 
 export function SessionsDialog({
@@ -57,6 +58,7 @@ export function SessionsDialog({
   defaultDate,
   defaultTime,
   memberId,
+  member,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
@@ -389,18 +391,35 @@ export function SessionsDialog({
   const calculateCompletedSessions = React.useCallback(() => {
     // Üye ID'sini appointment'dan veya prop'dan al
     const currentMemberId = appointment?.member_id || memberId;
-    
-    if (!currentMemberId || !selectedService?.id) return 0;
+    if (!currentMemberId || !selectedService?.id || !member) return 0;
     
     // Bu servis için tamamlanan randevuları bul
+    
     const completedAppointments = appointments.filter(apt => 
       apt.member_id === currentMemberId && 
       apt.service_id === selectedService.id && 
       apt.status === "completed"
     );
 
-    return completedAppointments.length;
-  }, [appointments, appointment?.member_id, memberId, selectedService?.id]);
+    // Bu servisin tamamlanmış paket sayısını bul
+    const completedPackageInfo = member.completed_packages?.find(
+      pkg => pkg.package_id === selectedService.id
+    );
+
+    // Servisin seans sayısını bul
+    const serviceSessionCount = services.find(s => s.id === selectedService.id)?.session_count || 0;
+    
+    // Tamamlanmış paketlerin toplam seans sayısını hesapla
+    const completedPackageSessionCount = completedPackageInfo 
+      ? serviceSessionCount * completedPackageInfo.completion_count
+      : 0;
+
+    // Aktif paketteki tamamlanan seans sayısı
+    const currentPackageCompletedSessions = completedAppointments.length;
+
+    // Tamamlanan seanslardan, tamamlanmış paketlerin seans sayısını çıkar
+    return Math.max(0, currentPackageCompletedSessions - completedPackageSessionCount);
+  }, [appointments, appointment?.member_id, memberId, selectedService?.id, member, services]);
 
   const calculateScheduledSessions = React.useCallback(() => {
     // Üye ID'sini appointment'dan veya prop'dan al

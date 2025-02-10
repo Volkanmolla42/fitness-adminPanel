@@ -14,7 +14,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isToday } from "date-fns";
 import { tr } from "date-fns/locale";
 
 import {
@@ -306,10 +306,17 @@ const AppointmentCard = ({
                       )}
                   </div>
                   <span className="text-xs sm:text-sm text-gray-500">
-                    {format(new Date(appointment.date), "d MMMM", {
-                      locale: tr,
-                    })}{" "}
-                    - {weekDay}
+                    {(() => {
+                      const appointmentDate = new Date(appointment.date);
+                      const isAppointmentToday = isToday(appointmentDate);
+                      const formattedDate = format(appointmentDate, "d MMMM", {
+                        locale: tr,
+                      });
+
+                      return isAppointmentToday
+                        ? "Bugün"
+                        : `${formattedDate} ${weekDay}`;
+                    })()}
                   </span>
                 </div>
               </div>

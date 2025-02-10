@@ -467,6 +467,7 @@ export function AppointmentForm({
         defaultDate={defaultDate}
         defaultTime={defaultTime}
         memberId={form.watch("member_id")}
+        member={selectedMember}
       />
     </Form>
   );
