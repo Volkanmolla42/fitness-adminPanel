@@ -18,17 +18,17 @@ import {
   updateTrainer,
   deleteTrainer,
 } from "@/lib/queries";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Trainer, Appointment, TrainerInput } from "@/types";
 import { TrainerForm } from "@/components/forms/TrainerForm";
 import { Database } from "@/types/supabase";
 import { TrainerList } from "@/components/trainers/TrainerList";
 import { TrainerDialog } from "@/components/trainers/TrainerDialog";
+import { LoadingSpinner } from "@/App";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
 const TrainersPage = () => {
-  const { toast } = useToast();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -67,7 +67,7 @@ const TrainersPage = () => {
             "completed",
             "cancelled",
           ].includes(appointment.status)
-            ? appointment.status as Appointment["status"]
+            ? (appointment.status as Appointment["status"])
             : "scheduled";
 
           return {
@@ -82,18 +82,14 @@ const TrainersPage = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch data. Please try again.",
-      });
+      toast.error("Failed to fetch data. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const setupRealtimeSubscription = () => {
-    const trainersChannel = supabase
+    supabase
       .channel("trainers")
       .on(
         "postgres_changes",
@@ -102,7 +98,7 @@ const TrainersPage = () => {
       )
       .subscribe();
 
-    const appointmentsChannel = supabase
+    supabase
       .channel("appointments")
       .on(
         "postgres_changes",
@@ -116,16 +112,10 @@ const TrainersPage = () => {
     try {
       await createTrainer(data);
       setIsAddDialogOpen(false);
-      toast({
-        title: "Başarılı",
-        description: "Eğitmen başarıyla eklendi.",
-      });
+      toast.success("Eğitmen başarıyla eklendi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Eğitmen eklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
+      console.error("Eğitmen eklenirken hata:", error);
+      toast.error("Eğitmen eklenirken bir hata oluştu.");
     }
   };
 
@@ -135,16 +125,10 @@ const TrainersPage = () => {
     try {
       await updateTrainer(editingTrainer.id, data);
       setEditingTrainer(null);
-      toast({
-        title: "Başarılı",
-        description: "Eğitmen başarıyla güncellendi.",
-      });
+      toast.success("Eğitmen başarıyla güncellendi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Eğitmen güncellenirken bir hata oluştu.",
-        variant: "destructive",
-      });
+      console.error("Eğitmen güncellenirken hata:", error);
+      toast.error("Eğitmen güncellenirken bir hata oluştu.");
     }
   };
 
@@ -152,38 +136,28 @@ const TrainersPage = () => {
     try {
       await deleteTrainer(id);
       setSelectedTrainer(null);
-      toast({
-        title: "Başarılı",
-        description: "Eğitmen başarıyla silindi.",
-      });
+      toast.success("Eğitmen başarıyla silindi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Eğitmen silinirken bir hata oluştu.",
-        variant: "destructive",
-      });
+      console.error("Eğitmen silinirken hata:", error);
+      toast.error("Eğitmen silinirken bir hata oluştu.");
     }
   };
 
   const getTrainerAppointments = (trainerId: string) => {
-    return appointments.filter((appointment) => appointment.trainer_id === trainerId);
+    return appointments.filter(
+      (appointment) => appointment.trainer_id === trainerId
+    );
   };
-
-  const calculateEndTime = (startTime: string, durationMinutes: number = 60) => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const totalMinutes = hours * 60 + minutes + durationMinutes;
-    const endHours = Math.floor(totalMinutes / 60) % 24; // Ensure hours don't exceed 24
-    const endMinutes = totalMinutes % 60;
-    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
-  };
-
-  const getRemainingMinutes = (startTime: string, durationMinutes: number = 60) => {
+  const getRemainingMinutes = (
+    startTime: string,
+    durationMinutes: number = 60
+  ) => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTotalMinutes = currentHour * 60 + currentMinute;
 
-    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = startTotalMinutes + durationMinutes;
 
@@ -200,20 +174,23 @@ const TrainersPage = () => {
 
   const isTrainerBusy = (trainerId: string) => {
     // Find the trainer
-    const trainer = trainers.find(t => t.id === trainerId);
+    const trainer = trainers.find((t) => t.id === trainerId);
     if (!trainer) return false;
 
     // Check both hasOngoingAppointment status and active appointments
-    return trainer.hasOngoingAppointment || appointments.some(
-      (appointment) => 
-        appointment.trainer_id === trainerId && 
-        appointment.status === "in-progress"
+    return (
+      trainer.hasOngoingAppointment ||
+      appointments.some(
+        (appointment) =>
+          appointment.trainer_id === trainerId &&
+          appointment.status === "in-progress"
+      )
     );
   };
 
   const getCurrentAppointment = (trainerId: string) => {
     const now = new Date();
-    const currentDate = now.toISOString().split('T')[0];
+    const currentDate = now.toISOString().split("T")[0];
     return appointments.find(
       (appointment) =>
         appointment.trainer_id === trainerId &&
@@ -232,11 +209,19 @@ const TrainersPage = () => {
     );
   });
 
-  const busyTrainers = filteredTrainers.filter((trainer) => isTrainerBusy(trainer.id));
-  const availableTrainers = filteredTrainers.filter((trainer) => !isTrainerBusy(trainer.id));
+  const busyTrainers = filteredTrainers.filter((trainer) =>
+    isTrainerBusy(trainer.id)
+  );
+  const availableTrainers = filteredTrainers.filter(
+    (trainer) => !isTrainerBusy(trainer.id)
+  );
+
+  if (isLoading) {
+    return <LoadingSpinner text="Eğitmenler yükleniyor..." />;
+  }
 
   return (
-    <div className="container mt-4 p-0 mx-auto py-6 space-y-6">
+    <div className="space-y-4 mt-4 container m-0 p-0">
       <div className="flex flex-col md:flex-row gap-4 md:justify-between md:items-center">
         <div className="space-y-1">
           <h2 className="text-3xl font-bold tracking-tight">Eğitmenler</h2>
@@ -303,7 +288,10 @@ const TrainersPage = () => {
       />
 
       {editingTrainer && (
-        <Dialog open={!!editingTrainer} onOpenChange={() => setEditingTrainer(null)}>
+        <Dialog
+          open={!!editingTrainer}
+          onOpenChange={() => setEditingTrainer(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Eğitmen Düzenle</DialogTitle>

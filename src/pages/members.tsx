@@ -17,24 +17,32 @@ import {
   getServices,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { MemberForm } from "@/components/forms/MemberForm";
 import { MemberStats } from "@/components/members/MemberStats";
 import { MemberList } from "@/components/members/MemberList";
 import { MemberDetail } from "@/components/members/MemberDetail";
+import { LoadingSpinner } from "@/App";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
 type MemberFormData = Omit<Member, "id" | "created_at">;
 
 const MembersPage = () => {
-  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
-  const [services, setServices] = useState<{ [key: string]: Database["public"]["Tables"]["services"]["Row"] }>({});
-  const [trainers, setTrainers] = useState<{ [key: string]: Database["public"]["Tables"]["trainers"]["Row"] }>({});
-  const [appointments, setAppointments] = useState<Database["public"]["Tables"]["appointments"]["Row"][]>([]);
+  const [services, setServices] = useState<{
+    [key: string]: Database["public"]["Tables"]["services"]["Row"];
+  }>({});
+  const [trainers, setTrainers] = useState<{
+    [key: string]: Database["public"]["Tables"]["trainers"]["Row"];
+  }>({});
+  const [appointments, setAppointments] = useState<
+    Database["public"]["Tables"]["appointments"]["Row"][]
+  >([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [membershipFilter, setMembershipFilter] = useState<"all" | "basic" | "vip">("all");
+  const [membershipFilter, setMembershipFilter] = useState<
+    "all" | "basic" | "vip"
+  >("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [addingMember, setAddingMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,13 +64,8 @@ const MembersPage = () => {
       const data = await getMembers();
       setMembers(data);
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Üyeler yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Üyeler yüklenirken hata:", error);
+      toast.error("Üyeler yüklenirken bir hata oluştu.");
     } finally {
       setIsLoading(false);
     }
@@ -71,19 +74,22 @@ const MembersPage = () => {
   const fetchServices = async () => {
     try {
       const servicesData = await getServices();
-      const servicesMap = servicesData.reduce((acc: { [key: string]: Database["public"]["Tables"]["services"]["Row"] }, service) => {
-        acc[service.id] = service;
-        return acc;
-      }, {});
+      const servicesMap = servicesData.reduce(
+        (
+          acc: {
+            [key: string]: Database["public"]["Tables"]["services"]["Row"];
+          },
+          service
+        ) => {
+          acc[service.id] = service;
+          return acc;
+        },
+        {}
+      );
       setServices(servicesMap);
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Paketler yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Paketler yüklenirken hata:", error);
+      toast.error("Paketler yüklenirken bir hata oluştu.");
     }
   };
 
@@ -92,22 +98,25 @@ const MembersPage = () => {
       const { data: trainersData } = await supabase
         .from("trainers")
         .select("*");
-      
+
       if (trainersData) {
-        const trainersMap = trainersData.reduce((acc: { [key: string]: Database["public"]["Tables"]["trainers"]["Row"] }, trainer) => {
-          acc[trainer.id] = trainer;
-          return acc;
-        }, {});
+        const trainersMap = trainersData.reduce(
+          (
+            acc: {
+              [key: string]: Database["public"]["Tables"]["trainers"]["Row"];
+            },
+            trainer
+          ) => {
+            acc[trainer.id] = trainer;
+            return acc;
+          },
+          {}
+        );
         setTrainers(trainersMap);
       }
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Eğitmenler yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Eğitmenler yüklenirken hata:", error);
+      toast.error("Eğitmenler yüklenirken bir hata oluştu.");
     }
   };
 
@@ -117,18 +126,13 @@ const MembersPage = () => {
         .from("appointments")
         .select("*")
         .order("date", { ascending: true });
-      
+
       if (appointmentsData) {
         setAppointments(appointmentsData);
       }
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Randevular yüklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Randevular yüklenirken hata:", error);
+      toast.error("Randevular yüklenirken bir hata oluştu.");
     }
   };
 
@@ -157,18 +161,10 @@ const MembersPage = () => {
     try {
       await createMember(data);
       setAddingMember(false);
-      toast({
-        title: "Başarılı",
-        description: "Üye başarıyla eklendi.",
-      });
+      toast.success("Üye başarıyla eklendi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Üye eklenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Üye eklenirken hata:", error);
+      toast.error("Üye eklenirken bir hata oluştu.");
     }
   };
 
@@ -178,37 +174,21 @@ const MembersPage = () => {
     try {
       await updateMember(editingMember.id, data);
       setEditingMember(null);
-      toast({
-        title: "Başarılı",
-        description: "Üye başarıyla güncellendi.",
-      });
+      toast.success("Üye başarıyla güncellendi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Üye güncellenirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Üye güncellenirken hata:", error);
+      toast.error("Üye güncellenirken bir hata oluştu.");
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMember(id);
-      setSelectedMember(null); // Close the member detail dialog
-      toast({
-        title: "Başarılı",
-        description: "Üye başarıyla silindi.",
-      });
+      setSelectedMember(null);
+      toast.success("Üye başarıyla silindi.");
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Üye silinirken bir hata oluştu.",
-        variant: "destructive",
-      });
-      console.error(error)
-
+      console.error("Üye silinirken hata:", error);
+      toast.error("Üye silinirken bir hata oluştu.");
     }
   };
 
@@ -219,7 +199,7 @@ const MembersPage = () => {
   };
 
   if (isLoading) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner text="Üyeler yükleniyor..." />;
   }
 
   return (
@@ -237,18 +217,24 @@ const MembersPage = () => {
             <DialogHeader>
               <DialogTitle>Yeni Üye</DialogTitle>
             </DialogHeader>
-            <MemberForm onSubmit={handleCreate} onCancel={() => setAddingMember(false)} />
+            <MemberForm
+              onSubmit={handleCreate}
+              onCancel={() => setAddingMember(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
-      <MemberStats 
-        stats={stats} 
-        activeFilter={membershipFilter} 
-        onFilterChange={setMembershipFilter} 
+      <MemberStats
+        stats={stats}
+        activeFilter={membershipFilter}
+        onFilterChange={setMembershipFilter}
       />
 
-      <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
+      <Dialog
+        open={!!selectedMember}
+        onOpenChange={(open) => !open && setSelectedMember(null)}
+      >
         <MemberList
           members={members}
           services={services}
@@ -260,7 +246,6 @@ const MembersPage = () => {
 
         {selectedMember && (
           <DialogContent>
-            
             <MemberDetail
               member={selectedMember}
               services={services}
@@ -272,18 +257,10 @@ const MembersPage = () => {
                 try {
                   await updateMember(updatedMember.id, updatedMember);
                   setSelectedMember(updatedMember);
-                  toast({
-                    title: "Başarılı",
-                    description: "Paket başarıyla tamamlandı.",
-                  });
+                  toast.success("Paket başarıyla tamamlandı.");
                 } catch (error) {
-                  toast({
-                    title: "Hata",
-                    description: "Paket tamamlanırken bir hata oluştu.",
-                    variant: "destructive",
-                  });
-                  console.error(error)
-
+                  console.error("Paket tamamlanırken hata:", error);
+                  toast.error("Paket tamamlanırken bir hata oluştu.");
                 }
               }}
             />
@@ -292,7 +269,10 @@ const MembersPage = () => {
       </Dialog>
 
       {editingMember && (
-        <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+        <Dialog
+          open={!!editingMember}
+          onOpenChange={(open) => !open && setEditingMember(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Üye Düzenle</DialogTitle>

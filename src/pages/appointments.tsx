@@ -17,6 +17,7 @@ import { useAppointments } from "@/hooks/useAppointments";
 import { Notification } from "@/components/ui/notification";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
+import { LoadingSpinner } from "@/App";
 
 type AppointmentType = Database["public"]["Tables"]["appointments"]["Row"];
 
@@ -46,11 +47,13 @@ function AppointmentsPage() {
   } = useAppointments();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "weekly" | "monthly">("list");
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentType | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "weekly" | "monthly">(
+    "list"
+  );
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentType | null>(null);
   const [defaultDate, setDefaultDate] = useState<string | undefined>();
   const [defaultTime, setDefaultTime] = useState<string | undefined>();
-
 
   const handleFormSubmit = async (
     data: Omit<AppointmentType, "id" | "created_at" | "status">
@@ -79,7 +82,7 @@ function AppointmentsPage() {
         description: "Randevu kaydedilirken bir hata oluştu.",
         variant: "destructive",
       });
-      console.error(error)
+      console.error(error);
     }
   };
 
@@ -91,9 +94,10 @@ function AppointmentsPage() {
         const currentDate = `${now.getFullYear()}-${String(
           now.getMonth() + 1
         ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
-          now.getMinutes()
-        ).padStart(2, "0")}`;
+        const currentTime = `${String(now.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(now.getMinutes()).padStart(2, "0")}`;
 
         await updateAppointment(id, {
           status,
@@ -114,8 +118,7 @@ function AppointmentsPage() {
         description: "Randevu durumu güncellenirken bir hata oluştu.",
         variant: "destructive",
       });
-      console.error(error)
-
+      console.error(error);
     }
   };
 
@@ -132,24 +135,16 @@ function AppointmentsPage() {
         description: "Randevu silinirken bir hata oluştu.",
         variant: "destructive",
       });
-      console.error(error)
-
+      console.error(error);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Randevular yükleniyor...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner text="Randevular yükleniyor..." />;
   }
 
   return (
-    <div className="container p-0 mt-4 md:mt-0 space-y-6">
+    <div className="space-y-4 container m-0 p-0">
       {/* Bildirimler */}
       <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
         {activeNotifications.map((notification, index) => (
@@ -168,15 +163,14 @@ function AppointmentsPage() {
           />
         ))}
       </div>
-      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center p-4">
-        <div className="flex flex-col space-y-2">
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-end ">
+        <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Randevular</h2>
+            <h2 className="text-3xl font-bold">Randevular</h2>
             <p className="text-sm md:text-base text-muted-foreground">
               Randevuları görüntüle, düzenle ve yönet
             </p>
           </div>
-
           <div className="flex items-center flex-wrap gap-2">
             <div className="text-sm md:text-base font-bold bg-muted px-3 py-1 rounded-md">
               {currentTime.toLocaleDateString("tr-TR", {
@@ -192,7 +186,6 @@ function AppointmentsPage() {
             </div>
           </div>
         </div>
-        
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 rounded-lg">
             <Button

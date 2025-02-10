@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Crown, Mail, Phone } from "lucide-react";
 import type { Database } from "@/types/supabase";
-
+import React from "react"
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 

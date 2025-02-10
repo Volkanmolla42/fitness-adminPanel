@@ -12,19 +12,26 @@ import Login from "@/pages/login";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+
+export function LoadingSpinner({ text }: { text: string }) {
+  return (
+    <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+        <p className="text-muted-foreground">{text}</p>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Yükleniyor...
-      </div>
-    );
+    return <LoadingSpinner text="Yükleniyor..." />;
   }
 
   if (!session) {
@@ -36,13 +43,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
-  
+
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        Yükleniyor...
-      </div>
-    );
+    return <LoadingSpinner text="Yükleniyor..." />;
   }
 
   if (session) {
@@ -86,19 +89,13 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Suspense
-            fallback={
-              <div className="flex h-screen items-center justify-center">
-                Yükleniyor...
-              </div>
-            }
-          >
-            <AppRoutes />
-          </Suspense>
-          <Toaster />
-          <Analytics />
-        </AuthProvider>
+      <AuthProvider>
+        <Suspense fallback={<LoadingSpinner text="Sayfa yükleniyor..." />}>
+          <AppRoutes />
+        </Suspense>
+        <Toaster />
+        <Analytics />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

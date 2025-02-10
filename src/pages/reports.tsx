@@ -47,6 +47,7 @@ import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberActivityTable } from "@/components/reports/MemberActivityTable";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
+import { LoadingSpinner } from "@/App";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -369,12 +370,7 @@ const ReportsPage = () => {
   return (
     <div className="container my-4 p-0 mx-auto">
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-muted-foreground">Veriler yükleniyor...</p>
-          </div>
-        </div>
+        <LoadingSpinner text="Veriler yükleniyor..." />
       ) : (
         <>
           <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">

@@ -1,4 +1,13 @@
-import { Award, Clock, FileText, User2, Phone } from "lucide-react";
+import React from "react";
+import {
+  Award,
+  Clock,
+  FileText,
+  User2,
+  Phone,
+  Star,
+  Dumbbell,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trainer } from "@/types";
@@ -24,94 +33,123 @@ export const TrainerCard = ({
   return (
     <Card
       className={cn(
-        "p-4 cursor-pointer hover:shadow-md hover:-translate-y-1 hover:shadow-black/50 transition-all bg-white relative group overflow-hidden",
-        isBusy && "animate-pulse-border border-2 border-primary"
+        "relative cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
+        "hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/20",
+        "dark:from-gray-900 dark:to-gray-800 dark:hover:shadow-gray-950",
+        isBusy && "border-l-4 border-primary"
       )}
       onClick={onClick}
     >
-      {/* Durum Badge'i */}
+      {/* Durum Şeridi */}
       {isBusy && (
-        <div className="absolute -top-2 -right-2">
-          <Badge className="bg-primary text-primary-foreground">
-            <Clock className="w-3 h-3 mr-1" />
-            Randevuda
-          </Badge>
+        <div className="absolute -right-8 top-4 w-32 rotate-45 bg-primary py-1 text-center text-xs font-bold text-white shadow">
+          RANDEVUDA
         </div>
       )}
 
-      {/* Arkaplan Deseni */}
-      <div className="absolute top-0 right-0 w-32 h-32 opacity-5 transform rotate-45">
-        {isBusy && <Clock className="w-full h-full text-primary" />}
-      </div>
-
-      <div className="flex flex-col items-center text-center relative">
-        {/* Avatar ve İsim */}
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center mb-3 text-xl font-semibold text-primary ring-2 ring-primary/20 ring-offset-2">
-          {trainer.first_name && trainer.last_name ? (
-            <span>
-              {trainer.first_name.charAt(0).toUpperCase()}
-              {trainer.last_name.charAt(0).toUpperCase()}
-            </span>
-          ) : (
-            <Award className="w-10 h-10 text-primary" />
-          )}
-        </div>
-
-        <h3 className="font-semibold text-lg mb-2">
-          {trainer.first_name} {trainer.last_name}
-        </h3>
-
-        {/* Randevu Bilgileri */}
-        {isBusy && currentAppointment && (
-          <div className="space-y-2 w-full p-2 bg-muted/30 rounded-lg mb-3">
-            <div className="flex items-center justify-center gap-2 text-sm">
-              <User2 className="w-4 h-4 text-blue-500" />
-              <span className="text-muted-foreground font-medium">
-                {currentAppointment.member?.first_name}{" "}
-                {currentAppointment.member?.last_name}
-              </span>
-            </div>
-            <div className="flex items-center justify-center gap-2 text-sm">
-              <FileText className="w-4 h-4 text-emerald-500" />
-              <span className="text-muted-foreground">
-                {currentAppointment.service?.name}
-              </span>
-            </div>
-            {getRemainingMinutes && (
-              <Badge
-                variant="outline"
-                className="w-full justify-center border-primary/30"
-              >
-                <Clock className="w-3 h-3 mr-1 text-primary" />
-                {(() => {
-                  const service = services?.find(
-                    (s) => s.id === currentAppointment.service_id
-                  );
-                  const duration = service?.duration || 60;
-                  const remainingMinutes = getRemainingMinutes(
-                    currentAppointment.time,
-                    duration
-                  );
-                  return remainingMinutes > 0
-                    ? `${remainingMinutes} dakika kaldı`
-                    : "Randevu süresi doldu";
-                })()}
-              </Badge>
+      <div className="flex items-start gap-5">
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          <div
+            className={cn(
+              "h-16 w-16 rounded-2xl border-4 border-white bg-gradient-to-tr",
+              "from-primary/20 to-primary/40 p-2 shadow-lg dark:border-gray-800",
+              isBusy ? "grayscale-[40%]" : "grayscale-0"
+            )}
+          >
+            {trainer.first_name && trainer.last_name ? (
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-white/80 text-xl font-bold text-primary dark:bg-gray-800/80">
+                {trainer.first_name.charAt(0)}
+                {trainer.last_name.charAt(0)}
+              </div>
+            ) : (
+              <Award className="h-full w-full text-primary/80" />
             )}
           </div>
-        )}
+        </div>
 
-        {/* Alt Bilgiler */}
-        <div className="w-full space-y-2 pt-2 border-t">
-          <div className="flex items-center text-sm text-muted-foreground justify-center">
-            <Phone className="w-4 h-4 mr-1.5 text-indigo-500" />
-            <span>{trainer.phone}</span>
+        {/* Ana İçerik */}
+        <div className="flex-1 space-y-3">
+          {/* İsim ve Puan */}
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              {trainer.first_name} {trainer.last_name}
+              <span className="ml-2 text-sm font-medium text-primary">
+                <Star className="mb-1 mr-1 inline h-4 w-4 fill-yellow-400 stroke-yellow-400" />
+                4.9
+              </span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="border-emerald-500/30 bg-emerald-500/10 px-2 text-emerald-600 dark:text-emerald-400"
+              >
+                <Dumbbell className="mr-1 h-4 w-4" />
+                Fitness Uzmanı
+              </Badge>
+            </div>
+          </div>
+
+          {/* Randevu Bilgileri */}
+          {isBusy && currentAppointment && (
+            <div className="space-y-2 rounded-lg bg-primary/5 p-3 dark:bg-primary/10">
+              <div className="flex items-center gap-2 text-sm">
+                <User2 className="h-5 w-5 text-primary" />
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {currentAppointment.member?.first_name}{" "}
+                  {currentAppointment.member?.last_name}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="h-5 w-5 text-primary" />
+                <span className="text-gray-600 dark:text-gray-400">
+                  {currentAppointment.service?.name}
+                </span>
+                {getRemainingMinutes && (
+                  <Badge
+                    variant="outline"
+                    className="ml-2 border-primary/20 bg-white px-2 dark:bg-gray-800"
+                  >
+                    <Clock className="mr-1 h-4 w-4" />
+                    {(() => {
+                      const service = services?.find(
+                        (s) => s.id === currentAppointment.service_id
+                      );
+                      const duration = service?.duration || 60;
+                      const remainingMinutes = getRemainingMinutes(
+                        currentAppointment.time,
+                        duration
+                      );
+                      return remainingMinutes > 0
+                        ? `${remainingMinutes}dk kaldı`
+                        : "Süre doldu";
+                    })()}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* İletişim ve Çalışma Saatleri */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+              <Phone className="h-4 w-4 text-primary" />
+              <span>{trainer.phone}</span>
+            </div>
+            <div className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
+            <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+              <Clock className="h-4 w-4 text-primary" />
+              <span>
+                {" "}
+                {trainer.working_hours.start} - {trainer.working_hours.end}{" "}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Hover Efekti */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
     </Card>
   );
 };
