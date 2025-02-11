@@ -5,8 +5,6 @@ import {
   FileText,
   User2,
   Phone,
-  Star,
-  Dumbbell,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,16 +31,16 @@ export const TrainerCard = ({
   return (
     <Card
       className={cn(
-        "relative cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
+        "relative sm:w-[500px] cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
         "hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/20",
         "dark:from-gray-900 dark:to-gray-800 dark:hover:shadow-gray-950",
-        isBusy && "border-l-4 border-primary"
+        isBusy && "border-l-4 border-yellow-400"
       )}
       onClick={onClick}
     >
       {/* Durum Şeridi */}
       {isBusy && (
-        <div className="absolute -right-8 top-4 w-32 rotate-45 bg-primary py-1 text-center text-xs font-bold text-white shadow">
+        <div className="absolute -right-8 top-4 w-32 rotate-45 bg-yellow-400 py-1 text-center text-xs font-bold shadow">
           RANDEVUDA
         </div>
       )}
@@ -74,20 +72,7 @@ export const TrainerCard = ({
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               {trainer.first_name} {trainer.last_name}
-              <span className="ml-2 text-sm font-medium text-primary">
-                <Star className="mb-1 mr-1 inline h-4 w-4 fill-yellow-400 stroke-yellow-400" />
-                4.9
-              </span>
             </h3>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 px-2 text-emerald-600 dark:text-emerald-400"
-              >
-                <Dumbbell className="mr-1 h-4 w-4" />
-                Fitness Uzmanı
-              </Badge>
-            </div>
           </div>
 
           {/* Randevu Bilgileri */}
@@ -100,17 +85,18 @@ export const TrainerCard = ({
                   {currentAppointment.member?.last_name}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex  gap-2 text-sm">
                 <FileText className="h-5 w-5 text-primary" />
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600  dark:text-gray-400">
                   {currentAppointment.service?.name}
                 </span>
                 {getRemainingMinutes && (
                   <Badge
                     variant="outline"
-                    className="ml-2 border-primary/20 bg-white px-2 dark:bg-gray-800"
+                    className="ml-2 shrink-0 border-primary/20 bg-white px-2 dark:bg-gray-800"
                   >
                     <Clock className="mr-1 h-4 w-4" />
+                
                     {(() => {
                       const service = services?.find(
                         (s) => s.id === currentAppointment.service_id
@@ -121,7 +107,7 @@ export const TrainerCard = ({
                         duration
                       );
                       return remainingMinutes > 0
-                        ? `${remainingMinutes}dk kaldı`
+                        ? `${remainingMinutes} dk kaldı`
                         : "Süre doldu";
                     })()}
                   </Badge>
