@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User2 } from "lucide-react";
 import { Trainer, Appointment } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import React from "react";
 interface TrainerAppointmentHistoryDialogProps {
   trainer: Trainer;
   appointments: Appointment[];

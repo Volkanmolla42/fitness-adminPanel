@@ -17,7 +17,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-
+import React from "react";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -226,9 +226,9 @@ export const AppointmentHistory = ({
   const tabs = useMemo(() => [
     { value: "all", label: "Tümü", count: filteredAppointments.all.length },
     { value: "scheduled", label: "Planlanan", count: filteredAppointments.scheduled.length },
-    { value: "in-progress", label: "Devam Eden", count: filteredAppointments["in-progress"].length },
     { value: "completed", label: "Tamamlanan", count: filteredAppointments.completed.length },
     { value: "cancelled", label: "İptal Edilen", count: filteredAppointments.cancelled.length },
+    { value: "in-progress", label: "Devam Eden", count: filteredAppointments["in-progress"].length },
   ], [filteredAppointments]);
 
   const groupedAppointments = useMemo(() => {

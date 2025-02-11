@@ -43,6 +43,7 @@ const MembersPage = () => {
   const [membershipFilter, setMembershipFilter] = useState<
     "all" | "basic" | "vip"
   >("all");
+  const [selectedTrainerId, setSelectedTrainerId] = useState<string>("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [addingMember, setAddingMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +98,8 @@ const MembersPage = () => {
     try {
       const { data: trainersData } = await supabase
         .from("trainers")
-        .select("*");
+        .select("*")
+        .order("first_name", { ascending: true });
 
       if (trainersData) {
         const trainersMap = trainersData.reduce(
@@ -204,26 +206,26 @@ const MembersPage = () => {
 
   return (
     <div className="container p-0 mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Üyeler</h1>
-        <Dialog open={addingMember} onOpenChange={setAddingMember}>
-          <DialogTrigger asChild>
-            <Button>
+          <Dialog open={addingMember} onOpenChange={setAddingMember}>
+            <DialogTrigger asChild>
+              <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Yeni Üye
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
+                Yeni Üye
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
               <DialogTitle>Yeni Üye</DialogTitle>
-            </DialogHeader>
-            <MemberForm
-              onSubmit={handleCreate}
+              </DialogHeader>
+              <MemberForm
+                onSubmit={handleCreate}
               onCancel={() => setAddingMember(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
 
       <MemberStats
         stats={stats}
@@ -235,57 +237,61 @@ const MembersPage = () => {
         open={!!selectedMember}
         onOpenChange={(open) => !open && setSelectedMember(null)}
       >
-        <MemberList
-          members={members}
-          services={services}
-          searchTerm={searchTerm}
-          membershipFilter={membershipFilter}
-          onSearch={setSearchTerm}
-          onMemberClick={setSelectedMember}
-        />
-
-        {selectedMember && (
-          <DialogContent>
-            <MemberDetail
-              member={selectedMember}
+            <MemberList
+              members={members}
               services={services}
-              trainers={trainers}
+              trainers={Object.values(trainers)}
               appointments={appointments}
-              onEdit={setEditingMember}
-              onDelete={handleDelete}
-              onUpdate={async (updatedMember) => {
-                try {
-                  await updateMember(updatedMember.id, updatedMember);
-                  setSelectedMember(updatedMember);
-                  toast.success("Paket başarıyla tamamlandı.");
-                } catch (error) {
-                  console.error("Paket tamamlanırken hata:", error);
-                  toast.error("Paket tamamlanırken bir hata oluştu.");
-                }
-              }}
+              searchTerm={searchTerm}
+              membershipFilter={membershipFilter}
+              selectedTrainerId={selectedTrainerId}
+              onSearch={setSearchTerm}
+              onMemberClick={setSelectedMember}
+              onTrainerFilterChange={setSelectedTrainerId}
             />
-          </DialogContent>
-        )}
+
+          {selectedMember && (
+            <DialogContent>
+              <MemberDetail
+                member={selectedMember}
+                services={services}
+                trainers={trainers}
+                appointments={appointments}
+                onEdit={setEditingMember}
+                onDelete={handleDelete}
+                onUpdate={async (updatedMember) => {
+                  try {
+                    await updateMember(updatedMember.id, updatedMember);
+                    setSelectedMember(updatedMember);
+                    toast.success("Paket başarıyla tamamlandı.");
+                  } catch (error) {
+                    console.error("Paket tamamlanırken hata:", error);
+                    toast.error("Paket tamamlanırken bir hata oluştu.");
+                  }
+                }}
+              />
+            </DialogContent>
+          )}
       </Dialog>
 
-      {editingMember && (
-        <Dialog
-          open={!!editingMember}
-          onOpenChange={(open) => !open && setEditingMember(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Üye Düzenle</DialogTitle>
-            </DialogHeader>
-            <MemberForm
-              member={editingMember}
-              onSubmit={handleUpdate}
-              onCancel={() => setEditingMember(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+        {editingMember && (
+          <Dialog
+            open={!!editingMember}
+            onOpenChange={(open) => !open && setEditingMember(null)}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Üye Düzenle</DialogTitle>
+              </DialogHeader>
+              <MemberForm
+                member={editingMember}
+                onSubmit={handleUpdate}
+                onCancel={() => setEditingMember(null)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
   );
 };
 
