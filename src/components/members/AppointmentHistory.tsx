@@ -22,6 +22,7 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type AppointmentStatus = "completed" | "cancelled" | "scheduled" | "in-progress";
+type Member = Database["public"]["Tables"]["members"]["Row"];
 
 interface AppointmentHistoryProps {
   open: boolean;
@@ -29,6 +30,7 @@ interface AppointmentHistoryProps {
   appointments: Appointment[];
   services: { [key: string]: Service };
   trainers: { [key: string]: Trainer };
+  member: Member;
 }
 
 interface StatusConfig {
@@ -210,6 +212,7 @@ export const AppointmentHistory = ({
   appointments,
   services,
   trainers,
+  member,
 }: AppointmentHistoryProps) => {
   const filteredAppointments = useMemo(() => {
     const filterAndSort = (appointments: Appointment[]) => sortAppointments(appointments);
@@ -264,46 +267,46 @@ export const AppointmentHistory = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-[80vh] max-w-3xl overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Randevu Geçmişi</DialogTitle>
+          <DialogTitle>  {member.first_name} {member.last_name} - Randevu Geçmişi</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
-          <Tabs defaultValue="scheduled" className="w-full">
-            <TabsList className="w-full">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {tab.count}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <Tabs defaultValue="scheduled" className="w-full">
+              <TabsList className="w-full">
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {tab.count}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {tabs.map((tab) => (
-              <TabsContent key={tab.value} value={tab.value} className="mt-4">
-                <div className="space-y-6">
-                  {Object.entries(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments])
-                    .sort(([a], [b]) => a.localeCompare(b))
-                    .map(([serviceName, appointments]) => (
-                      <ServiceGroup
-                        key={serviceName}
-                        serviceName={serviceName}
-                        appointments={appointments}
-                        services={services}
-                        trainers={trainers}
-                      />
-                    ))}
-                  {Object.keys(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments]).length === 0 && (
-                    <div className="text-center text-muted-foreground py-8">
-                      Bu kategoride randevu bulunmuyor
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              {tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value} className="mt-4">
+                  <div className="space-y-6">
+                    {Object.entries(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments])
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([serviceName, appointments]) => (
+                        <ServiceGroup
+                          key={serviceName}
+                          serviceName={serviceName}
+                          appointments={appointments}
+                          services={services}
+                          trainers={trainers}
+                        />
+                      ))}
+                    {Object.keys(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments]).length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">
+                        Bu kategoride randevu bulunmuyor
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
         </div>
       </DialogContent>
     </Dialog>

@@ -422,8 +422,9 @@ export const MemberDetail = ({
           open={showAppointments}
           onOpenChange={setShowAppointments}
           appointments={memberAppointments}
-          trainers={trainers}
           services={services}
+          trainers={trainers}
+          member={member}
         />
       )}
     </div>
