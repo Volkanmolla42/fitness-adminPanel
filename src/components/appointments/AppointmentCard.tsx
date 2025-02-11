@@ -105,7 +105,7 @@ const getRemainingTime = (
   );
 
   if (status === "scheduled" && minutesUntilStart <= -duration) {
-    // Eğer randevu süresi dolmuşsa ve hala "scheduled" durumundaysa
+    // Eğer seans süresi dolmuşsa ve hala "scheduled" durumundaysa
     return -1; // Özel durum kodu
   }
 

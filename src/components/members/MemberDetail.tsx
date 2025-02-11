@@ -1,9 +1,21 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Crown, Pencil, Phone, Mail, Calendar, ListChecks, History, Trash2, CheckCircle2, CalendarHeart, Notebook } from "lucide-react";
+import {
+  Crown,
+  Pencil,
+  Phone,
+  Mail,
+  Calendar,
+  History,
+  Trash2,
+  CheckCircle2,
+  Notebook,
+  Package2,
+  ChevronDown,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { AppointmentHistory } from "./AppointmentHistory";
 import {
   Dialog,
@@ -13,6 +25,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Progress } from "../ui/progress";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -36,49 +54,55 @@ export const MemberDetail = ({
   appointments,
   onEdit,
   onDelete,
-  onUpdate
+  onUpdate,
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPackagesDialog, setShowPackagesDialog] = useState(false);
-  const [completingPackage, setCompletingPackage] = useState<string | null>(null);
+  const [completingPackage, setCompletingPackage] = useState<string | null>(
+    null
+  );
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const isVip = member.membership_type === "vip";
 
   // Filter appointments for this member
-  const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
+  const memberAppointments = appointments.filter(
+    (apt) => apt.member_id === member.id
+  );
 
   // Calculate total package amount
-  const totalPackageAmount = member.subscribed_services.reduce((total, serviceId) => {
-    const service = services[serviceId];
-    return total + (service?.price || 0);
-  }, 0) + (member.completed_packages || []).reduce((total, completedPackage) => {
-    const service = services[completedPackage.package_id];
-    return total + ((service?.price || 0) * completedPackage.completion_count);
-  }, 0);
+  const totalPackageAmount = member.subscribed_services.reduce(
+    (total, serviceId) => {
+      const service = services[serviceId];
+      return total + (service?.price || 0);
+    },
+    0
+  );
+
+  // Paketleri grupla ve say
+  const groupedServices = useMemo(() => {
+    return member.subscribed_services.reduce(
+      (acc: { [key: string]: number }, serviceId) => {
+        acc[serviceId] = (acc[serviceId] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
+  }, [member.subscribed_services]);
 
   // Calculate used sessions for each service
   const usedSessions = member.subscribed_services.reduce((acc, serviceId) => {
     // Bu servis için tamamlanan randevuları bul
     const serviceAppointments = memberAppointments.filter(
-      apt => apt.service_id === serviceId && apt.status === 'completed'
+      (apt) => apt.service_id === serviceId && apt.status === "completed"
     );
-
-    // Bu servisin tamamlanmış paket sayısını bul
-    const completedPackageInfo = member.completed_packages?.find(
-      pkg => pkg.package_id === serviceId
-    );
-    
-    // Tamamlanmış paketlerin toplam seans sayısını hesapla
-    const completedPackageSessionCount = completedPackageInfo 
-      ? (services[serviceId]?.session_count || 0) * completedPackageInfo.completion_count
-      : 0;
 
     // Aktif paketteki tamamlanan seans sayısı
     const currentPackageCompletedSessions = serviceAppointments.length;
 
-    // Tamamlanan seanslardan, tamamlanmış paketlerin seans sayısını çıkar
-    acc[serviceId] = Math.max(0, currentPackageCompletedSessions - completedPackageSessionCount);
-    
+    acc[serviceId] = currentPackageCompletedSessions;
+
     return acc;
   }, {} as { [key: string]: number });
 
@@ -92,40 +116,15 @@ export const MemberDetail = ({
   const handleCompletePackage = async (serviceId: string) => {
     if (!onUpdate) return;
 
-    // Mevcut completed_packages'ı kopyala veya boş array oluştur
-    const currentCompletedPackages = member.completed_packages || [];
-    
-    // Bu paket daha önce tamamlanmış mı kontrol et
-    const existingPackageIndex = currentCompletedPackages.findIndex(
-      pkg => pkg.package_id === serviceId
-    );
-
-    let newCompletedPackages;
-    if (existingPackageIndex !== -1) {
-      // Paket daha önce tamamlanmışsa sayısını artır
-      newCompletedPackages = [...currentCompletedPackages];
-      newCompletedPackages[existingPackageIndex] = {
-        ...newCompletedPackages[existingPackageIndex],
-        completion_count: newCompletedPackages[existingPackageIndex].completion_count + 1
-      };
-    } else {
-      // Paket ilk kez tamamlanıyorsa yeni ekle
-      newCompletedPackages = [
-        ...currentCompletedPackages,
-        { package_id: serviceId, completion_count: 1 }
-      ];
-    }
-
-    // subscribed_services'den paketi kaldır
+    // Mevcut subscribed_services'den paketi kaldır
     const newSubscribedServices = member.subscribed_services.filter(
-      id => id !== serviceId
+      (id) => id !== serviceId
     );
 
     // Üyeyi güncelle
     const updatedMember = {
       ...member,
-      completed_packages: newCompletedPackages,
-      subscribed_services: newSubscribedServices
+      subscribed_services: newSubscribedServices,
     };
 
     await onUpdate(updatedMember);
@@ -133,134 +132,203 @@ export const MemberDetail = ({
 
   return (
     <div className="p-3 relative">
-      {/* Profile Header & Contact Info */}
-      <div className="flex flex-col gap-2 mb-3">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar className="w-14 h-14 shrink-0">
-              <AvatarImage src={member.avatar_url || ""} />
-              <AvatarFallback className="bg-primary/10">
-                {`${member.first_name[0]}${member.last_name[0]}`}
+      {/* Services Summary */}
+      <div className="space-y-3">
+        {/* Üst Bilgi Kartı */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden">
+          {/* Üst Kısım */}
+          <div className="p-4 flex items-center gap-3">
+            <Avatar className="h-12 w-12 border-2 border-primary/10">
+              <AvatarImage src={member.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary/10 text-base font-medium">
+                {member.first_name[0]}
+                {member.last_name[0]}
               </AvatarFallback>
             </Avatar>
-            {isVip && (
-              <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
-                <Crown className="w-6 h-6 text-yellow-400 animate-pulse" />
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold truncate">
+                  {member.first_name} {member.last_name}
+                </h2>
+                {isVip && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 shrink-0"
+                  >
+                    <Crown className="w-3 h-3 mr-1" />
+                    VIP
+                  </Badge>
+                )}
               </div>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-lg font-bold">{`${member.first_name} ${member.last_name}`}</h2>
-              <Badge
-                variant={isVip ? "destructive" : "secondary"}
-                className="shrink-0"
+              <p className="text-xs text-muted-foreground">
+                {member.membership_type === "vip" ? "VIP Üye" : "Standart Üye"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(member)}
+                className="h-8"
               >
-                {isVip ? "VIP Üye" : "Standart Üye"}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* İletişim Bilgileri */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">İletişim Bilgileri</h4>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="bg-muted/50 p-1.5 rounded-md">
-                      <Phone className="w-3.5 h-3.5 text-primary/70" />
-                    </div>
-                    <span>{member.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="bg-muted/50 p-1.5 rounded-md">
-                      <Mail className="w-3.5 h-3.5 text-primary/70" />
-                    </div>
-                    <span>{member.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="bg-muted/50 p-1.5 rounded-md">
-                      <Calendar className="w-3.5 h-3.5 text-primary/70" />
-                    </div>
-                    <span>{new Date(member.start_date).toLocaleDateString("tr-TR")}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notlar */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground mb-1">Notlar</h4>
-                <div className="bg-muted/30 p-2.5 rounded-lg min-h-[80px] text-sm">
-                  <div className="flex gap-2">
-                    <Notebook className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/70" />
-                    <span className="text-muted-foreground">{member.notes || "Not bulunmuyor"}</span>
-                  </div>
-                </div>
-              </div>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                className="h-8"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Services Summary */}
-      <div className="bg-muted/30 rounded-lg p-2.5 mb-3">
-        <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <h3 className="font-medium flex items-center gap-1.5 text-sm mb-1">
-              <ListChecks className="w-3.5 h-3.5" />
-              Aldığı Paketler
-            </h3>
-            <div className="text-sm text-muted-foreground">
-              {member.subscribed_services.length} aktif, {member.completed_packages?.length || 0} tamamlanan paket
+        {/* İletişim ve Not Kartı */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* İletişim Bilgileri */}
+          <Collapsible
+            open={isContactOpen}
+            onOpenChange={setIsContactOpen}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden"
+          >
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Phone className="w-4 h-4" />
+                İletişim Bilgileri
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  isContactOpen ? "transform rotate-180" : ""
+                }`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0 space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="w-4 h-4 text-primary" />
+                  <span>{member.phone}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span>{member.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span>
+                    {new Date(member.start_date).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Notlar */}
+          <Collapsible
+            open={isNotesOpen}
+            onOpenChange={setIsNotesOpen}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden"
+          >
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Notebook className="w-4 h-4" />
+                Notlar
+              </div>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  isNotesOpen ? "transform rotate-180" : ""
+                }`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="p-4 pt-0">
+                <p className="text-sm text-muted-foreground">
+                  {member.notes || "Not bulunmuyor"}
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
+        {/* Paketler Kartı */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Package2 className="w-4 h-4 text-primary" />
+              <h3 className="font-medium">Satın Alınan Paketler</h3>
             </div>
-          </div>
-          <div className="text-right">
             <div className="text-sm">
-              <span className="text-muted-foreground mr-1">Toplam:</span>
-              <span className="font-medium">{totalPackageAmount.toLocaleString('tr-TR')} ₺</span>
+              <span className="text-muted-foreground">Toplam: </span>
+              <span className="font-medium">
+                {totalPackageAmount.toLocaleString("tr-TR")} ₺
+              </span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPackagesDialog(true)}
-              className="mt-2"
-            >
-              <CalendarHeart className="w-3.5 h-3.5 mr-1.5" />
-              Paketleri Görüntüle
-            </Button>
+          </div>
+
+          <div className="grid gap-2">
+            {Object.entries(groupedServices).map(([serviceId, count]) => {
+              const service = services[serviceId];
+              if (!service) return null;
+              const totalSessions = service.session_count * count;
+              const completedSessions = usedSessions[serviceId] || 0;
+              const progress = (completedSessions / totalSessions) * 100;
+
+              return (
+                <div
+                  key={serviceId}
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-md">
+                      <Package2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {service.name}
+                        {count > 1 && (
+                          <span className="ml-1 text-muted-foreground">
+                            x{count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {service.price.toLocaleString("tr-TR")} ₺
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/5 border-primary/10"
+                      title="Tamamlanan Seans Sayısı"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary mr-1" />
+                      {completedSessions} / {totalSessions} Seans
+                    </Badge>
+                    <Progress value={progress} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex justify-between gap-2 pt-2 border-t">
+        {/* Randevu Geçmişi Butonu */}
         <Button
           variant="outline"
-          size="sm"
+          className="w-full"
           onClick={() => setShowAppointments(true)}
-          className="h-7"
         >
-          <History className="h-3 w-3 mr-1.5" />
+          <History className="mr-2 h-4 w-4" />
           Randevu Geçmişi
         </Button>
-        <div className="flex gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(member)}
-            className="h-7"
-          >
-            <Pencil className="h-3 w-3 mr-1.5" />
-            Düzenle
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            className="h-7"
-          >
-            <Trash2 className="h-3 w-3 mr-1.5" />
-            Sil
-          </Button>
-        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -269,11 +337,15 @@ export const MemberDetail = ({
           <DialogHeader>
             <DialogTitle>Üye Silme Onayı</DialogTitle>
             <DialogDescription>
-              {member.first_name} {member.last_name} isimli üyeyi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+              {member.first_name} {member.last_name} isimli üyeyi silmek
+              istediğinize emin misiniz? Bu işlem geri alınamaz.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
               İptal
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
@@ -284,20 +356,27 @@ export const MemberDetail = ({
       </Dialog>
 
       {/* Package Completion Dialog */}
-      <Dialog open={!!completingPackage} onOpenChange={() => setCompletingPackage(null)}>
+      <Dialog
+        open={!!completingPackage}
+        onOpenChange={() => setCompletingPackage(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Paket Tamamlama Onayı</DialogTitle>
             <DialogDescription>
-              {completingPackage && services[completingPackage]?.name} paketini tamamlamak istediğinize emin misiniz? 
-              Bu işlem geri alınamaz ve paket tamamlanan paketler listesine taşınacaktır.
+              {completingPackage && services[completingPackage]?.name} paketini
+              tamamlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve
+              paket tamamlanan paketler listesine taşınacaktır.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setCompletingPackage(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setCompletingPackage(null)}
+            >
               İptal
             </Button>
-            <Button 
+            <Button
               variant="default"
               onClick={() => {
                 if (completingPackage) {
@@ -318,98 +397,59 @@ export const MemberDetail = ({
           <DialogHeader>
             <DialogTitle>Paket Detayları</DialogTitle>
             <DialogDescription>
-              {member.first_name} {member.last_name} üyesinin aktif ve tamamlanmış paketleri
+              {member.first_name} {member.last_name} üyesinin aktif paketleri
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {/* Aktif Paketler */}
-            <div>
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <div className="bg-primary/10 p-1.5 rounded">
-                  <CalendarHeart className="w-4 h-4 text-primary" />
-                </div>
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-muted-foreground mb-1">
                 Aktif Paketler
               </h4>
-              <div className="space-y-2">
-                {member.subscribed_services.map((serviceId) => {
+              <div className="grid gap-2">
+                {Object.entries(groupedServices).map(([serviceId, count]) => {
                   const service = services[serviceId];
+                  if (!service) return null;
+                  const totalSessions = service.session_count * count;
                   return (
                     <div
                       key={serviceId}
-                      className="flex items-center justify-between gap-4 bg-muted/30 p-2.5 rounded-lg"
+                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium">{service?.name || "Yükleniyor..."}</div>
-                        <div className="text-sm text-muted-foreground mt-0.5">
-                          {service?.price?.toLocaleString('tr-TR')} ₺
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Package2 className="h-4 w-4 text-primary" />
+                        <span>
+                          {service.name}
+                          {count > 1 && (
+                            <span className="ml-1 text-muted-foreground">
+                              x{count}
+                            </span>
+                          )}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="px-2.5">
-                          {usedSessions[serviceId] || 0}/{service?.session_count} Seans
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-200"
-                          onClick={() => setCompletingPackage(serviceId)}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                          Tamamla
-                        </Button>
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className="ml-auto flex items-center gap-1"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                        <span>
+                          {usedSessions[serviceId] || 0} / {totalSessions} Seans
+                          Tamamlandı
+                        </span>
+                      </Badge>
                     </div>
                   );
                 })}
-                {member.subscribed_services.length === 0 && (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Aktif paket bulunmuyor
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Tamamlanan Paketler */}
-            <div>
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <div className="bg-green-100 p-1.5 rounded">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                </div>
-                Tamamlanan Paketler
-              </h4>
-              <div className="space-y-2">
-                {member.completed_packages && member.completed_packages.length > 0 ? (
-                  member.completed_packages.map((completedPackage) => {
-                    const service = services[completedPackage.package_id];
-                    return (
-                      <div
-                        key={`${completedPackage.package_id}-${completedPackage.completion_count}`}
-                        className="flex items-center justify-between gap-4 bg-muted/30 p-2.5 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium">{service?.name || "Yükleniyor..."}</div>
-                          <div className="text-sm text-muted-foreground mt-0.5">
-                            {(service?.price || 0) * completedPackage.completion_count} ₺
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="px-2.5">
-                          {completedPackage.completion_count} kez tamamlandı
-                        </Badge>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Henüz tamamlanan paket bulunmuyor
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPackagesDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowPackagesDialog(false)}
+            >
               Kapat
             </Button>
           </DialogFooter>
