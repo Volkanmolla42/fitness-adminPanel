@@ -65,7 +65,7 @@ export const MemberList = ({
 
   return (
     <div className="space-y-4">
-      <div className="relative space-y-4">
+      <div className="relative">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="İsim, email veya telefon ile ara..."
@@ -73,7 +73,9 @@ export const MemberList = ({
           onChange={(e) => onSearch(e.target.value)}
           className="pl-8"
         />
+      </div>
 
+      <div className="flex items-center space-x-2">
         <select
           value={selectedTrainerId}
           onChange={(e) => onTrainerFilterChange(e.target.value)}
@@ -86,6 +88,9 @@ export const MemberList = ({
             </option>
           ))}
         </select>
+        <p className="text-sm text-muted-foreground whitespace-nowrap">
+          {filteredMembers.length} üye listeleniyor
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
