@@ -61,40 +61,44 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
         <motion.div 
           className="grid grid-cols-1 sm:grid-cols-2 gap-4"
         >
-          {displayedAppointments.map((appointment) => (
-            <motion.div
-              key={appointment.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ 
-                duration: 0.2,
-                ease: "easeOut"
-              }}
-            >
-              <AppointmentCard
-                appointment={appointment}
-                member={{
-                  firstName: members.find((m) => m.id === appointment.member_id)?.first_name || "",
-                  lastName: members.find((m) => m.id === appointment.member_id)?.last_name || "",
-                  avatar: members.find((m) => m.id === appointment.member_id)?.avatar_url || "",
-                  membership_type: members.find((m) => m.id === appointment.member_id)?.membership_type || "",
-                  email: members.find((m) => m.id === appointment.member_id)?.email || "",
-                  phone_number: members.find((m) => m.id === appointment.member_id)?.phone || "",
+          {displayedAppointments.map((appointment) => {
+            const member = members.find((m) => m.id === appointment.member_id);
+            return (
+              <motion.div
+                key={appointment.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ 
+                  duration: 0.2,
+                  ease: "easeOut"
                 }}
-                trainer={{
-                  firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
-                  lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
-                }}
-                service={{
-                  name: services.find((s) => s.id === appointment.service_id)?.name || "",
-                  duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
-                }}
-                onStatusChange={onStatusChange}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            </motion.div>
-          ))}
+              >
+                <AppointmentCard
+                  appointment={appointment}
+                  member={{
+                    id: appointment.member_id,
+                    firstName: member?.first_name || "",
+                    lastName: member?.last_name || "",
+                    avatar: member?.avatar_url || "",
+                    membership_type: member?.membership_type || "",
+                    email: member?.email || "",
+                    phone_number: member?.phone || "",
+                  }}
+                  trainer={{
+                    firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",
+                    lastName: trainers.find((t) => t.id === appointment.trainer_id)?.last_name || "",
+                  }}
+                  service={{
+                    name: services.find((s) => s.id === appointment.service_id)?.name || "",
+                    duration: services.find((s) => s.id === appointment.service_id)?.duration || 0,
+                  }}
+                  onStatusChange={onStatusChange}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              </motion.div>
+            );
+          })}
         </motion.div>
         {hasMore && (
           <motion.div 

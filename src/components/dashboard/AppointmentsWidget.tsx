@@ -5,7 +5,7 @@ import { Clock, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Database } from "@/types/supabase";
-
+import React from "react";
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 interface AppointmentsWidgetProps {
@@ -94,6 +94,29 @@ const getElapsedTime = (date: string, time: string): number | null => {
   return diffInMinutes >= 0 ? diffInMinutes : null;
 };
 
+const getFormattedDate = (date: string) => {
+  const appointmentDate = new Date(date);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  // Tarihleri karşılaştırmak için saat bilgisini sıfırlayalım
+  const appointmentDay = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const tomorrowDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+
+  if (appointmentDay.getTime() === todayDay.getTime()) {
+    return "Bugün";
+  } else if (appointmentDay.getTime() === tomorrowDay.getTime()) {
+    return "Yarın";
+  } else {
+    return appointmentDate.toLocaleDateString('tr-TR', { 
+      day: 'numeric',
+      month: 'long'
+    });
+  }
+};
+
 const AppointmentsWidget = ({
   appointments,
   members,
@@ -104,15 +127,6 @@ const AppointmentsWidget = ({
   const navigate = useNavigate();
 
   const displayAppointments = getRelevantAppointments(appointments, showAll);
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('tr-TR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
   return (
     <Card className="w-full p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
@@ -136,7 +150,7 @@ const AppointmentsWidget = ({
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {displayAppointments.map((appointment) => {
           const member = members[appointment.member_id];
           const trainer = trainers[appointment.trainer_id];
@@ -146,24 +160,51 @@ const AppointmentsWidget = ({
             <div
               key={appointment.id}
               className={cn(
-                "flex flex-col p-4 rounded-lg border transition-all hover:shadow-md",
+                "group flex flex-col p-5 rounded-xl border transition-all duration-300 hover:shadow-lg cursor-pointer",
                 appointment.status === "in-progress"
-                  ? "border-2 border-yellow-500 bg-yellow-500/10 scale-105 shadow-lg animate-pulse-border"
+                  ? "border-2 border-yellow-500 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 scale-[1.02] shadow-lg animate-pulse-slow"
                   : getTimeUntilStart(appointment.date, appointment.time) !== null
-                  ? "border-2 border-orange-500 bg-orange-500/5 shadow-md"
-                  : "border-border hover:bg-accent"
+                  ? "border-2 border-orange-500 bg-gradient-to-br from-orange-500/10 to-orange-500/5 shadow-md"
+                  : "border-border hover:bg-accent/50 hover:scale-[1.01]"
               )}
               role="button"
               onClick={() => navigate("/appointments")}
             >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-medium text-foreground">
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
+                      <Clock className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-primary">
+                        {appointment.time.slice(0, 5)}
+                      </p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {getFormattedDate(appointment.date)}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-medium rounded-lg shadow-sm",
+                      getStatusColor(appointment.status)
+                    )}
+                  >
+                    {getStatusText(appointment.status)}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
                     {member?.first_name} {member?.last_name}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {service?.name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary/60" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {service?.name}
+                    </p>
+                  </div>
                   {(() => {
                     if (appointment.status === "in-progress") {
                       const elapsedTime = getElapsedTime(appointment.date, appointment.time);
@@ -172,43 +213,42 @@ const AppointmentsWidget = ({
                         const remainingTime = Math.max(0, duration - elapsedTime);
                         const isOvertime = elapsedTime > duration;
                         return (
-                          <p className="text-sm text-yellow-500 font-medium mt-1">
-                            {elapsedTime === 0 
-                              ? "Yeni başladı" 
-                              : `${elapsedTime} dakikadır devam ediyor${isOvertime ? ' (Süre aşıldı)' : ` (${remainingTime} dk kaldı)`}`}
-                          </p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                            <p className="text-sm text-yellow-600 dark:text-yellow-500 font-medium">
+                              {elapsedTime === 0 
+                                ? "Yeni başladı" 
+                                : `${elapsedTime} dk sürüyor${isOvertime ? ' (Süre aşıldı)' : ` (${remainingTime} dk kaldı)`}`}
+                            </p>
+                          </div>
                         );
                       }
                     }
                     const timeUntilStart = getTimeUntilStart(appointment.date, appointment.time);
                     if (timeUntilStart !== null) {
                       return (
-                        <p className="text-sm text-orange-500 font-medium mt-1">
-                          {timeUntilStart === 0 
-                            ? "Şimdi başlayacak" 
-                            : `${timeUntilStart} dakika içinde başlayacak`}
-                        </p>
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                          <p className="text-sm text-orange-600 dark:text-orange-500 font-medium">
+                            {timeUntilStart === 0 
+                              ? "Şimdi başlayacak" 
+                              : `${timeUntilStart} dk içinde başlıyor`}
+                          </p>
+                        </div>
                       );
                     }
                     return null;
                   })()}
                 </div>
-                <Badge
-                  className={cn(
-                    "px-2 py-1",
-                    getStatusColor(appointment.status)
-                  )}
-                >
-                  {getStatusText(appointment.status)}
-                </Badge>
               </div>
               
-              <div className="mt-auto pt-3 border-t flex justify-between items-center text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>{appointment.time.slice(0, 5)} </span>
+              <div className="mt-auto pt-3 border-t flex items-center gap-2 text-sm">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs font-medium text-primary">
+                    {trainer?.first_name?.[0]}{trainer?.last_name?.[0]}
+                  </span>
                 </div>
-                <span>
+                <span className="text-muted-foreground font-medium">
                   {trainer?.first_name} {trainer?.last_name}
                 </span>
               </div>

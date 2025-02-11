@@ -43,6 +43,7 @@ interface AppointmentCardProps {
     notes?: string;
   };
   member: {
+    id: string;
     firstName: string;
     lastName: string;
     avatar?: string;

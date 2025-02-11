@@ -31,7 +31,7 @@ export const TrainerCard = ({
   return (
     <Card
       className={cn(
-        "relative sm:w-[500px] cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
+        "relative  min-w-[500px] cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
         "hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/20",
         "dark:from-gray-900 dark:to-gray-800 dark:hover:shadow-gray-950",
         isBusy && "border-l-4 border-yellow-400"
