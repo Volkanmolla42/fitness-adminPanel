@@ -110,8 +110,23 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           }
 
           try {
+            // Notlara ödeme bilgilerini ekle
+            const paymentInfo =
+              selectedServices.length > 0
+                ? `\nPaket: ${selectedServices
+                    .map((service) => service.name)
+                    .join(", ")} \nKredi Kartı: ${Number(
+                    paymentData.credit_card_paid
+                  ).toLocaleString("tr-TR")}₺ \nNakit: ${Number(
+                    paymentData.cash_paid
+                  ).toLocaleString("tr-TR")}₺`
+                : "";
+
             // Üye kaydını oluştur
-            await onSubmit(data);
+            await onSubmit({
+              ...data,
+              notes: data.notes + paymentInfo,
+            });
 
             // Ödeme kaydını oluştur
             if (selectedServices.length > 0) {
@@ -122,7 +137,9 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                   credit_card_paid: Number(paymentData.credit_card_paid) || 0,
                   cash_paid: Number(paymentData.cash_paid) || 0,
                   created_at: data.start_date,
-                  package_name: selectedServices.map((service) => service.name).join(", "),
+                  package_name: selectedServices
+                    .map((service) => service.name)
+                    .join(", "),
                 });
 
               if (paymentError) {

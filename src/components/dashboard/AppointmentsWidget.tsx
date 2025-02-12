@@ -160,11 +160,11 @@ const AppointmentsWidget = ({
             <div
               key={appointment.id}
               className={cn(
-                "group flex flex-col p-5 rounded-xl border transition-all duration-300 hover:shadow-lg cursor-pointer",
+                "group flex flex-col p-5 rounded-xl border transition-all duration-3000 hover:shadow-lg cursor-pointer",
                 appointment.status === "in-progress"
-                  ? "border-2 border-yellow-500 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 scale-[1.02] shadow-lg animate-pulse-slow"
+                  ? "border-2 border-yellow-500 bg-gradient-to-br from-yellow-500/10 to-yellow-500/10 shadow-lg"
                   : getTimeUntilStart(appointment.date, appointment.time) !== null
-                  ? "border-2 border-orange-500 bg-gradient-to-br from-orange-500/10 to-orange-500/5 shadow-md"
+                  ? "border-2 border-orange-500 bg-gradient-to-br from-orange-500/10 to-orange-500/10 shadow-md"
                   : "border-border hover:bg-accent/50 hover:scale-[1.01]"
               )}
               role="button"
