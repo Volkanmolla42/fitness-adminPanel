@@ -92,7 +92,7 @@ export const MemberDetail = ({
   const usedSessions = member.subscribed_services.reduce((acc, serviceId) => {
     // Bu servis için tamamlanan randevuları bul
     const serviceAppointments = memberAppointments.filter(
-      (apt) => apt.service_id === serviceId && apt.status === "completed"
+      (apt) => apt.service_id === serviceId && (apt.status === "completed" || apt.status === "cancelled")
     );
 
     // Aktif paketteki tamamlanan seans sayısı

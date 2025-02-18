@@ -449,7 +449,7 @@ export function SessionsDialog({
       (apt) =>
         apt.member_id === currentMemberId &&
         apt.service_id === selectedService.id &&
-        apt.status === "completed"
+        (apt.status === "completed" || apt.status === "cancelled")
     );
     // Aktif paketteki tamamlanan seans sayısı
     const currentPackageCompletedSessions = completedAppointments.length;
