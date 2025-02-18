@@ -377,7 +377,7 @@ export function SessionsDialog({
   };
 
   const handleAddSession = () => {
-    if (sessions.length < sessionCount) {
+    if (sessions.length < calculateTotalSessions()) {
       onSessionsChange([...sessions, { date: "", time: "" }]);
     }
   };
@@ -451,29 +451,11 @@ export function SessionsDialog({
         apt.service_id === selectedService.id &&
         apt.status === "completed"
     );
-
-    // Bu servisin tamamlanmış paket sayısını bul
-    const completedPackageInfo = member.completed_packages?.find(
-      (pkg) => pkg.package_id === selectedService.id
-    );
-
-    // Servisin seans sayısını bul
-    const serviceSessionCount =
-      services.find((s) => s.id === selectedService.id)?.session_count || 0;
-
-    // Tamamlanmış paketlerin toplam seans sayısını hesapla
-    const completedPackageSessionCount = completedPackageInfo
-      ? serviceSessionCount * completedPackageInfo.completion_count
-      : 0;
-
     // Aktif paketteki tamamlanan seans sayısı
     const currentPackageCompletedSessions = completedAppointments.length;
 
     // Tamamlanan seanslardan, tamamlanmış paketlerin seans sayısını çıkar
-    return Math.max(
-      0,
-      currentPackageCompletedSessions - completedPackageSessionCount
-    );
+    return currentPackageCompletedSessions;
   }, [
     appointments,
     appointment?.member_id,
@@ -500,6 +482,18 @@ export function SessionsDialog({
     return scheduledAppointments.length;
   }, [appointments, appointment?.member_id, memberId, selectedService?.id]);
 
+  const calculateTotalSessions = React.useCallback(() => {
+    if (!selectedService || !member) return sessionCount;
+
+    // Üyenin bu pakete kaç kez kayıt olduğunu bul
+    const packageCount = member.subscribed_services.filter(
+      (serviceId) => serviceId === selectedService.id
+    ).length;
+
+    // Toplam seans sayısı = Paket seans sayısı x Paket adedi
+    return selectedService.session_count * (packageCount || 1);
+  }, [selectedService, member, sessionCount]);
+
   const isComplete = sessions.every(
     (session) => session.date && session.time && !session.hasConflict
   );
@@ -522,10 +516,10 @@ export function SessionsDialog({
             {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
           </DialogTitle>
           <DialogDescription>
-            {appointment
+          {appointment
               ? "Randevunun tarih ve saatini değiştirebilirsiniz."
-              : sessionCount && sessionCount > 1
-              ? `${sessionCount} seansın tarih ve saatlerini seçin.`
+              : calculateTotalSessions() && calculateTotalSessions() > 1
+              ? `${calculateTotalSessions()} seansın tarih ve saatlerini seçin.`
               : "Randevunun tarih ve saatini seçin."}
           </DialogDescription>
         </DialogHeader>
@@ -551,14 +545,14 @@ export function SessionsDialog({
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Toplam: {sessionCount}
+                    Toplam: {calculateTotalSessions()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
                     Kalan:{" "}
-                    {sessionCount -
+                    {calculateTotalSessions() -
                       (calculateCompletedSessions() +
                         calculateScheduledSessions())}
                   </span>
@@ -599,14 +593,14 @@ export function SessionsDialog({
                 -
               </Button>
               <div className="w-20 sm:w-24 text-center text-xs sm:text-sm">
-                Seans: {sessions.length} / {sessionCount}
+                Seans: {sessions.length} / {calculateTotalSessions()}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleAddSession}
                 className="shrink-0 px-2"
-                disabled={sessions.length >= sessionCount}
+                disabled={sessions.length >= calculateTotalSessions()}
               >
                 +
               </Button>
@@ -676,7 +670,7 @@ export function SessionsDialog({
                     )}
 
                   {/* Seans Numarası */}
-                  {!appointment && sessionCount && sessionCount > 1 && (
+                  {!appointment && calculateTotalSessions() && calculateTotalSessions() > 1 && (
                     <div className="absolute -top-2 -left-2 w-6 h-6">
                       <div
                         className={`absolute inset-0 rounded-full ${
@@ -828,7 +822,8 @@ export function SessionsDialog({
               ) : (
                 <>
                   <AlertCircle className="w-3.5 h-3.5 mr-1" />
-                  {completedSessions} / {sessionCount} seans planlandı
+                  {completedSessions} / {calculateTotalSessions()} seans
+                  planlandı
                 </>
               )}
             </Badge>

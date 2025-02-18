@@ -54,14 +54,11 @@ export const MemberDetail = ({
   appointments,
   onEdit,
   onDelete,
-  onUpdate,
+
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPackagesDialog, setShowPackagesDialog] = useState(false);
-  const [completingPackage, setCompletingPackage] = useState<string | null>(
-    null
-  );
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const isVip = member.membership_type === "vip";
@@ -112,24 +109,6 @@ export const MemberDetail = ({
       setShowDeleteDialog(false);
     }
   };
-
-  const handleCompletePackage = async (serviceId: string) => {
-    if (!onUpdate) return;
-
-    // Mevcut subscribed_services'den paketi kaldır
-    const newSubscribedServices = member.subscribed_services.filter(
-      (id) => id !== serviceId
-    );
-
-    // Üyeyi güncelle
-    const updatedMember = {
-      ...member,
-      subscribed_services: newSubscribedServices,
-    };
-
-    await onUpdate(updatedMember);
-  };
-
   return (
     <div className="p-3 relative">
       {/* Services Summary */}
@@ -355,41 +334,6 @@ export const MemberDetail = ({
         </DialogContent>
       </Dialog>
 
-      {/* Package Completion Dialog */}
-      <Dialog
-        open={!!completingPackage}
-        onOpenChange={() => setCompletingPackage(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Paket Tamamlama Onayı</DialogTitle>
-            <DialogDescription>
-              {completingPackage && services[completingPackage]?.name} paketini
-              tamamlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve
-              paket tamamlanan paketler listesine taşınacaktır.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setCompletingPackage(null)}
-            >
-              İptal
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => {
-                if (completingPackage) {
-                  handleCompletePackage(completingPackage);
-                  setCompletingPackage(null);
-                }
-              }}
-            >
-              Tamamla
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Packages Dialog */}
       <Dialog open={showPackagesDialog} onOpenChange={setShowPackagesDialog}>

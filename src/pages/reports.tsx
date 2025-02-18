@@ -35,6 +35,7 @@ import {
   getMembers,
   getServices,
   getMemberPayments,
+  getTrainers,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { toast } from "sonner";
@@ -44,28 +45,16 @@ import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import { ServiceUsageStats } from "@/components/reports/ServiceUsageStats";
 import { AppointmentDistribution } from "@/components/reports/AppointmentDistribution";
 import { RevenueChart } from "@/components/reports/RevenueChart";
-import { MemberActivityTable } from "@/components/reports/MemberActivityTable";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
+import { MembersList } from "@/components/reports/MembersList";
 import { LoadingSpinner } from "@/App";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
-interface MemberActivity {
-  memberId: string;
-  memberName: string;
-  startDate: Date;
-  packages: {
-    name: string;
-    totalSessions: number;
-    completedSessions: number;
-    startDate: Date;
-    status: "completed" | "active";
-    completionCount: number;
-  }[];
-}
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
 const ReportsPage = () => {
   const reportRef = useRef<HTMLDivElement>(null);
@@ -81,10 +70,42 @@ const ReportsPage = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
-  const [memberActivities, setMemberActivities] = useState<MemberActivity[]>(
-    []
-  );
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [
+          appointmentsData,
+          membersData,
+          servicesData,
+          memberPaymentsData,
+          trainersData,
+        ] = await Promise.all([
+          getAppointments(),
+          getMembers(),
+          getServices(),
+          getMemberPayments(),
+          getTrainers(),
+        ]);
+
+        setAppointments(appointmentsData);
+        setMembers(membersData);
+        setServices(servicesData);
+        setMemberPayments(memberPaymentsData);
+        setTrainers(trainersData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Veri yüklenirken bir hata oluştu");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const filteredData = useMemo(() => {
     let dateRange;
@@ -130,16 +151,6 @@ const ReportsPage = () => {
     });
   }, [appointments, selectedDateRange, customDateRange]);
 
-  // İlk veri yüklemesi
-  useEffect(() => {
-    fetchInitialData();
-  }, []); // Sadece component mount olduğunda çalışsın
-
-  // Filtreleme değiştiğinde verileri yeniden hesapla
-  useEffect(() => {
-    calculateMemberActivities();
-  }, [appointments, members, selectedDateRange, customDateRange]);
-
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
@@ -162,14 +173,12 @@ const ReportsPage = () => {
     }
   };
 
-  // Verileri yeniden yükle
   const refreshData = () => {
     fetchInitialData();
   };
 
   const calculateMetrics = () => {
     const now = new Date();
-    // Tarih aralığı hesaplama
     let dateRange;
     if (selectedDateRange === "all") {
       dateRange = null;
@@ -194,7 +203,6 @@ const ReportsPage = () => {
       };
     }
 
-    // Filtreleme fonksiyonu
     const isInDateRange = (date: Date) => {
       if (!dateRange) return true;
       return isWithinInterval(date, {
@@ -206,7 +214,6 @@ const ReportsPage = () => {
     let totalRevenue = 0;
     let totalPackages = 0;
 
-    // Üye ödemelerinden gelir hesaplama
     memberPayments.forEach((payment) => {
       const paymentDate = new Date(payment.created_at);
       if (isInDateRange(paymentDate)) {
@@ -217,7 +224,6 @@ const ReportsPage = () => {
       }
     });
 
-    // Ortalama gelir/paket hesapla
     const averageRevenuePerPackage =
       totalPackages > 0 ? totalRevenue / totalPackages : 0;
 
@@ -251,7 +257,6 @@ const ReportsPage = () => {
 
   const metrics = calculateMetrics();
 
-  // Prepare data for ServiceUsageStats
   const serviceUsageData = useMemo(() => {
     return services.map((service) => ({
       name: service.name,
@@ -260,7 +265,6 @@ const ReportsPage = () => {
     }));
   }, [services, filteredData]);
 
-  // Prepare data for RevenueChart
   const revenueChartData = useMemo(() => {
     const monthlyRevenue = memberPayments.reduce(
       (acc: { [key: string]: number }, payment) => {
@@ -301,74 +305,8 @@ const ReportsPage = () => {
       });
   }, [memberPayments]);
 
-  const calculateMemberActivities = () => {
-    const activities = members.map((member) => {
-      const memberAppointments = appointments.filter(
-        (app) => app.member_id === member.id
-      );
-
-      // Üyenin tüm paketlerini bulalım
-      const memberPackages =
-        member.subscribed_services
-          ?.map((serviceId) => {
-            const service = services.find((s) => s.id === serviceId);
-            if (!service) return null;
-
-            // Bu paket için tamamlanan seansları bulalım
-            const completedAppointments = memberAppointments.filter(
-              (app) =>
-                app.service_id === serviceId && app.status === "completed"
-            );
-
-            // Paketin tamamlanma sayısını bulalım
-            const completedPackage = member.completed_packages?.find(
-              (cp) => cp.package_id === serviceId
-            );
-
-            // Paketin başlangıç tarihini bulalım (ilk randevu tarihi veya üyelik başlangıç tarihi)
-            const packageAppointments = memberAppointments
-              .filter((app) => app.service_id === serviceId)
-              .sort(
-                (a, b) =>
-                  new Date(a.date).getTime() - new Date(b.date).getTime()
-              );
-
-            const startDate =
-              packageAppointments.length > 0
-                ? new Date(packageAppointments[0].date)
-                : new Date(member.start_date);
-
-            // Paketin durumunu belirleyelim
-            const isCompleted =
-              completedAppointments.length >= service.session_count;
-            const status: "active" | "completed" = isCompleted
-              ? "completed"
-              : "active";
-
-            return {
-              name: service.name,
-              totalSessions: service.session_count,
-              completedSessions: completedAppointments.length,
-              startDate,
-              status,
-              completionCount: completedPackage?.completion_count || 0,
-            };
-          })
-          .filter((pkg): pkg is NonNullable<typeof pkg> => pkg !== null) || [];
-
-      return {
-        memberId: member.id,
-        memberName: `${member.first_name} ${member.last_name}`,
-        startDate: new Date(member.start_date),
-        packages: memberPackages,
-      };
-    });
-
-    setMemberActivities(activities);
-  };
-
   return (
-    <div className="container my-4 p-0 mx-auto">
+    <div className="container my-0 p-0 mx-auto">
       {isLoading ? (
         <LoadingSpinner text="Veriler yükleniyor..." />
       ) : (
@@ -491,15 +429,24 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </div>
+              <MemberPaymentsCard />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PackageIncomeCard />
               <ServiceUsageStats data={serviceUsageData} />
-              <AppointmentDistribution appointments={filteredData} />
               <RevenueChart data={revenueChartData} />
+              <AppointmentDistribution appointments={filteredData} />
             </div>
-            <MemberPaymentsCard />
-            <MemberActivityTable data={memberActivities} />
+         
+       
+            <MembersList
+              members={members}
+              services={services}
+              appointments={appointments}
+              trainers={trainers}
+            />
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
+            </div>
           </div>
         </>
       )}
