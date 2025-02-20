@@ -47,8 +47,8 @@ function AppointmentsPage() {
   } = useAppointments();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "weekly" | "monthly">(
-    "list"
+  const [viewMode, setViewMode] = useState<"list" | "weekly" | "table">(
+    "weekly"
   );
   const [selectedAppointment, setSelectedAppointment] =
     useState<AppointmentType | null>(null);
@@ -188,16 +188,7 @@ function AppointmentsPage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 rounded-lg">
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="flex-1 sm:flex-none"
-            >
-              <LayoutList className="h-4 w-4 mr-2" />
-              Liste
-            </Button>
-            <Button
+          <Button
               variant={viewMode === "weekly" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("weekly")}
@@ -207,9 +198,19 @@ function AppointmentsPage() {
               Haftalık
             </Button>
             <Button
-              variant={viewMode === "monthly" ? "default" : "ghost"}
+              variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setViewMode("monthly")}
+              onClick={() => setViewMode("list")}
+              className="flex-1 sm:flex-none"
+            >
+              <LayoutList className="h-4 w-4 mr-2" />
+              Liste
+            </Button>
+            
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
               className="flex-1 sm:flex-none"
             >
               <Table2 className="h-4 w-4 mr-2" />
@@ -265,16 +266,28 @@ function AppointmentsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex flex-wrap gap-2 p-1 bg-muted/50 rounded-lg">
             <Button
-              variant={activeFilter === "daily" ? "default" : "ghost"}
+              variant={activeFilter === "today" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setActiveFilter("daily")}
+              onClick={() => setActiveFilter("today")}
               className="flex-1"
             >
               Bugün
               <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("daily")}
+                {getFilteredCount("today")}
               </span>
             </Button>
+            <Button
+              variant={activeFilter === "tomorrow" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("tomorrow")}
+              className="flex-1"
+            >
+              Yarın
+              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+                {getFilteredCount("tomorrow")}
+              </span>
+            </Button>
+
             <Button
               variant={activeFilter === "weekly" ? "default" : "ghost"}
               size="sm"
@@ -358,7 +371,7 @@ function AppointmentsPage() {
             />
           )}
 
-          {viewMode === "monthly" && (
+          {viewMode === "table" && (
             <MonthlyView
               appointments={appointments}
               members={members}

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Trainer } from "@/types/appointments";
 
+import React from "react"
 interface AppointmentFiltersProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;

@@ -429,7 +429,12 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </div>
-              <MemberPaymentsCard />
+            <MembersList
+              members={members}
+              services={services}
+              appointments={appointments}
+              trainers={trainers}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PackageIncomeCard />
@@ -439,12 +444,8 @@ const ReportsPage = () => {
             </div>
          
        
-            <MembersList
-              members={members}
-              services={services}
-              appointments={appointments}
-              trainers={trainers}
-            />
+         
+             <MemberPaymentsCard />
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
           </div>

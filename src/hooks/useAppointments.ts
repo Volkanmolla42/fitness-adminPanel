@@ -27,7 +27,6 @@ import {
   endOfMonth,
 } from "date-fns";
 
-
 export const useAppointments = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -40,7 +39,7 @@ export const useAppointments = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeFilter, setActiveFilter] = useState<FilterType>("daily");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("today");
   const [activeNotifications, setActiveNotifications] = useState<
     Array<{ id: string; message: string }>
   >([]);
@@ -59,21 +58,32 @@ export const useAppointments = () => {
       switch (filter) {
         case "all":
           return true;
-        case "daily":
+        case "today": {
           return (
             appointmentDate >= startOfDay(now) &&
             appointmentDate <= endOfDay(now)
           );
-        case "weekly":
+        }
+        case "tomorrow": {
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return (
+            appointmentDate >= startOfDay(tomorrow) &&
+            appointmentDate <= endOfDay(tomorrow)
+          );
+        }
+        case "weekly": {
           return (
             appointmentDate >= startOfWeek(now) &&
             appointmentDate <= endOfWeek(now)
           );
-        case "monthly":
+        }
+        case "monthly": {
           return (
             appointmentDate >= startOfMonth(now) &&
             appointmentDate <= endOfMonth(now)
           );
+        }
       }
     }).length;
   };
@@ -166,11 +176,19 @@ export const useAppointments = () => {
 
     // Filter by date
     const now = new Date();
-    if (activeFilter === "daily") {
+    if (activeFilter === "today") {
       filtered = filtered.filter(
         (appointment) =>
           new Date(appointment.date) >= startOfDay(now) &&
           new Date(appointment.date) <= endOfDay(now)
+      );
+    } else if (activeFilter === "tomorrow") {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      filtered = filtered.filter(
+        (appointment) =>
+          new Date(appointment.date) >= startOfDay(tomorrow) &&
+          new Date(appointment.date) <= endOfDay(tomorrow)
       );
     } else if (activeFilter === "weekly") {
       filtered = filtered.filter(
@@ -281,7 +299,7 @@ export const useAppointments = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 60000);
 
     return () => clearInterval(timer);
   }, []);
