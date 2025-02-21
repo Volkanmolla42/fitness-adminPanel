@@ -99,6 +99,7 @@ export const MemberList = ({
             key={member.id}
             member={member}
             services={services}
+            appointments={appointments}
             onClick={onMemberClick}
           />
         ))}

@@ -230,20 +230,46 @@ export const MembersList: React.FC<MembersListProps> = ({
                       if (!service) return null;
                       
                       const count = serviceCount[id];
-                      const totalSessions = service.session_count * count;
                       const completedSessions = completedAppointments[id] || 0;
+                      const sessionsPerPackage = service.session_count;
+
+                      // Eğer üye bu paketten sadece 1 tane almışsa ve seans sayısını aşmışsa
+                      // gerçek tamamlanan seans sayısını göster
+                      if (count === 1 && completedSessions > sessionsPerPackage) {
+                        return {
+                          ...service,
+                          count,
+                          totalSessions: sessionsPerPackage,
+                          completedSessions,
+                          currentPackageProgress: 100,
+                          showTotalProgress: true
+                        };
+                      }
+
+                      // Tamamlanan seansların kaç pakete denk geldiğini hesapla
+                      const completedPackages = Math.floor(completedSessions / sessionsPerPackage);
                       
-                      return { 
-                        ...service, 
+                      // Son paketteki tamamlanan seans sayısı
+                      const currentPackageCompletedSessions = completedSessions % sessionsPerPackage || 
+                        (completedSessions > 0 && completedSessions === completedPackages * sessionsPerPackage ? sessionsPerPackage : 0);
+                      
+                      return {
+                        ...service,
                         count,
-                        totalSessions,
-                        completedSessions
+                        totalSessions: sessionsPerPackage,
+                        completedSessions: currentPackageCompletedSessions,
+                        completedPackages,
+                        currentPackageProgress: (currentPackageCompletedSessions / sessionsPerPackage) * 100,
+                        showTotalProgress: false
                       };
                     })
                     .filter((s): s is (Service & { 
                       count: number;
                       totalSessions: number;
                       completedSessions: number;
+                      currentPackageProgress: number;
+                      completedPackages?: number;
+                      showTotalProgress: boolean;
                     }) => s !== null);
 
                   return (
@@ -273,8 +299,7 @@ export const MembersList: React.FC<MembersListProps> = ({
                       <TableCell>
                         <div className="flex flex-col gap-2.5">
                           {memberServices.map((service) => {
-                            const progress = (service.completedSessions / service.totalSessions) * 100;
-                            const isCompleted = service.completedSessions >= service.totalSessions;
+                            const isCompleted = service.currentPackageProgress === 100;
                             
                             return (
                               <div 
@@ -307,16 +332,16 @@ export const MembersList: React.FC<MembersListProps> = ({
                                   <div className="flex items-center gap-3">
                                     <div className="flex-1">
                                       <Progress 
-                                        value={progress}
+                                        value={service.currentPackageProgress}
                                         className={cn(
                                           "h-2",
                                           isCompleted && "bg-primary/20 [&>div]:bg-primary"
                                         )}
                                       />
                                     </div>
-                                    {service.count > 1 && (
+                                    {!service.showTotalProgress && service.completedPackages && service.completedPackages > 0 && (
                                       <span className="text-xs font-medium px-1.5 py-0.5 rounded-md bg-background">
-                                        {service.count - 1} Kez tamamlandı
+                                        {service.completedPackages} Paket tamamlandı
                                       </span>
                                     )}
                                   </div>
@@ -327,7 +352,7 @@ export const MembersList: React.FC<MembersListProps> = ({
                                         "font-medium tabular-nums",
                                         isCompleted && "text-primary"
                                       )}>
-                                        {service.completedSessions}
+                                        {service.showTotalProgress ? service.completedSessions : service.completedSessions}
                                       </span>
                                       <span className="text-muted-foreground">/</span>
                                       <span className="font-medium text-muted-foreground tabular-nums">
