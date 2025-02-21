@@ -159,17 +159,10 @@ export const useAppointments = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((appointment) => {
         const member = members.find((m) => m.id === appointment.member_id);
-        const trainer = trainers.find((t) => t.id === appointment.trainer_id);
-        const service = services.find((s) => s.id === appointment.service_id);
-
         return (
           `${member?.first_name} ${member?.last_name}`
             .toLowerCase()
-            .includes(query) ||
-          `${trainer?.first_name} ${trainer?.last_name}`
-            .toLowerCase()
-            .includes(query) ||
-          service?.name.toLowerCase().includes(query)
+            .includes(query)
         );
       });
     }

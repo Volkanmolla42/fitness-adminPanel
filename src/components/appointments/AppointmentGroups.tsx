@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Appointment, Member, Service, Trainer } from "@/types/appointments";
 import AppointmentCard from "./AppointmentCard";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp,Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
-
+import { Input } from "@/components/ui/input";
 interface AppointmentGroupsProps {
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
   groupedAppointments: Record<string, Appointment[]>;
   members: Member[];
   trainers: Trainer[];
@@ -13,9 +15,14 @@ interface AppointmentGroupsProps {
   onStatusChange: (id: string, status: string) => void;
   onEdit: (appointment: Appointment) => void;
   onDelete: (id: string) => void;
+  activeFilter: string;
+  setActiveFilter: (filter: "today" | "tomorrow" | "weekly" | "monthly" | "all") => void;
+  getFilteredCount: (filter: "today" | "tomorrow" | "weekly" | "monthly" | "all") => number;
 }
 
 const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
+  searchQuery,
+  onSearchChange,
   groupedAppointments,
   members,
   trainers,
@@ -23,6 +30,9 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
   onStatusChange,
   onEdit,
   onDelete,
+  activeFilter,
+  setActiveFilter,
+  getFilteredCount,
 }) => {
   const [visibleGroups, setVisibleGroups] = useState<Record<string, boolean>>({
     "in-progress": true,
@@ -122,6 +132,72 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap gap-2 p-1 bg-muted/50 rounded-lg">
+        <Button
+          variant={activeFilter === "today" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveFilter("today")}
+          className="flex-1"
+        >
+          Bugün
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+            {getFilteredCount("today")}
+          </span>
+        </Button>
+        <Button
+          variant={activeFilter === "tomorrow" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveFilter("tomorrow")}
+          className="flex-1"
+        >
+          Yarın
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+            {getFilteredCount("tomorrow")}
+          </span>
+        </Button>
+        <Button
+          variant={activeFilter === "weekly" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveFilter("weekly")}
+          className="flex-1"
+        >
+          Bu Hafta
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+            {getFilteredCount("weekly")}
+          </span>
+        </Button>
+        <Button
+          variant={activeFilter === "monthly" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveFilter("monthly")}
+          className="flex-1"
+        >
+          Bu Ay
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+            {getFilteredCount("monthly")}
+          </span>
+        </Button>
+        <Button
+          variant={activeFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setActiveFilter("all")}
+          className="flex-1"
+        >
+          Tümü
+          <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
+            {getFilteredCount("all")}
+          </span>
+        </Button>
+      </div>
+      <div className="relative flex-1">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+        <Input
+          placeholder="Ara..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-8 w-full"
+        />
+      </div>
       {/* Devam Eden Randevular */}
       {groupedAppointments["in-progress"]?.length > 0 && (
         <div className="bg-yellow-50/60 border border-yellow-200 rounded-lg p-4">

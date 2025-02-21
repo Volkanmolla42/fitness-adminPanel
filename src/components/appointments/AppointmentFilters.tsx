@@ -1,5 +1,3 @@
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,50 +6,60 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Trainer } from "@/types/appointments";
-
-import React from "react"
+import { useState } from "react";
+import React from "react";
 interface AppointmentFiltersProps {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
   trainers: Trainer[];
   selectedTrainerId: string | null;
   onTrainerChange: (value: string | null) => void;
 }
 
 export function AppointmentFilters({
-  searchQuery,
-  onSearchChange,
   trainers,
   selectedTrainerId,
   onTrainerChange,
 }: AppointmentFiltersProps) {
+  const [open, setOpen] = useState<boolean>(true);
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <div className="relative flex-1">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-        <Input
-          placeholder="Ara..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-8 w-full"
-        />
-      </div>
-      <Select
-        value={selectedTrainerId || "all"}
-        onValueChange={(value) => onTrainerChange(value === "all" ? null : value)}
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+  <Select
+    open={open}
+    onOpenChange={setOpen}
+    value={selectedTrainerId || "all"}
+    onValueChange={(value) =>
+      onTrainerChange(value === "all" ? null : value)
+    }
+  >
+    <SelectTrigger 
+      autoFocus 
+      className="w-full sm:w-[220px]  border-blue-500 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors duration-200 bg-white rounded-lg shadow-sm"
+    >
+      <SelectValue 
+        placeholder={
+          <span className="text-gray-500">Eğitmen seç</span>
+        } 
+      />
+    </SelectTrigger>
+    <SelectContent className="rounded-lg shadow-lg border border-gray-200 bg-white mt-1 py-1">
+      <SelectItem 
+        value="all" 
+        className="font-semibold text-gray-900 hover:bg-blue-50 active:bg-blue-100 focus:bg-blue-50 px-4 py-2"
       >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Eğitmen seç" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tüm Eğitmenler</SelectItem>
-          {trainers.map((trainer) => (
-            <SelectItem key={trainer.id} value={trainer.id}>
-              {trainer.first_name} {trainer.last_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+        Tüm Eğitmenler
+      </SelectItem>
+      {trainers.map((trainer) => (
+        <SelectItem 
+          key={trainer.id} 
+          value={trainer.id}
+          className="text-gray-700 hover:text-gray-900 hover:bg-blue-50 active:bg-blue-100 focus:bg-blue-50 px-4 py-2 transition-colors duration-200"
+        >
+          <span className="block truncate">
+            {trainer.first_name} {trainer.last_name}
+          </span>
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
   );
 }

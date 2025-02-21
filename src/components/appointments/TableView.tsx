@@ -34,7 +34,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
-interface MonthlyViewProps {
+interface TableViewProps {
   appointments: Appointment[];
   members: Member[];
   trainers: Trainer[];
@@ -42,7 +42,7 @@ interface MonthlyViewProps {
   onEdit: (appointment: Appointment) => void;
 }
 
-const MonthlyView: React.FC<MonthlyViewProps> = ({
+const TableView: React.FC<TableViewProps> = ({
   appointments,
   members,
   trainers,
@@ -353,11 +353,11 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Üye</TableHead>
+              <TableHead>Eğitmen</TableHead>
+              <TableHead>Hizmet</TableHead>
               <TableHead>Tarih</TableHead>
               <TableHead>Saat</TableHead>
-              <TableHead>Eğitmen</TableHead>
-              <TableHead>Üye</TableHead>
-              <TableHead>Hizmet</TableHead>
               <TableHead>Durum</TableHead>
             </TableRow>
           </TableHeader>
@@ -374,18 +374,18 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
                   onClick={() => onEdit(appointment)}
                 >
                   <TableCell>
-                    {format(new Date(appointment.date), "d MMMM yyyy", { locale: tr })}
+                    {member?.first_name} {member?.last_name}
                   </TableCell>
-                  <TableCell>{formatTime(appointment.time)}</TableCell>
                   <TableCell>
                     {trainer?.first_name} {trainer?.last_name}
                   </TableCell>
                   <TableCell>
-                    {member?.first_name} {member?.last_name}
-                  </TableCell>
-                  <TableCell>
                     {service?.name}
                   </TableCell>
+                  <TableCell>
+                    {format(new Date(appointment.date), "d MMMM yyyy", { locale: tr })}
+                  </TableCell>
+                  <TableCell>{formatTime(appointment.time)}</TableCell>
                   <TableCell>
                     {getStatusBadge(appointment.status)}
                   </TableCell>
@@ -396,15 +396,15 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
               const remainingSlots = getRemainingStandardSlots(selectedDate!, slot);
               return (
                 <TableRow key={slot} className="bg-gray-50">
-                  <TableCell>
-                    {selectedDate && format(selectedDate, "d MMMM yyyy", { locale: tr })}
-                  </TableCell>
-                  <TableCell>{formatTime(slot)}</TableCell>
+                  <TableCell>-</TableCell>
                   <TableCell>
                     {trainers.find(t => t.id === selectedTrainer)?.first_name} {trainers.find(t => t.id === selectedTrainer)?.last_name}
                   </TableCell>
                   <TableCell>-</TableCell>
-                  <TableCell>-</TableCell>
+                  <TableCell>
+                    {selectedDate && format(selectedDate, "d MMMM yyyy", { locale: tr })}
+                  </TableCell>
+                  <TableCell>{formatTime(slot)}</TableCell>
                   <TableCell className="text-green-600 font-medium">
                     {remainingSlots === 3 ? (
                       "Boş"
@@ -431,4 +431,4 @@ const MonthlyView: React.FC<MonthlyViewProps> = ({
   );
 };
 
-export default MonthlyView;
+export default TableView;

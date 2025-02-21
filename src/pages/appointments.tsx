@@ -11,13 +11,13 @@ import {
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { AppointmentFilters } from "@/components/appointments/AppointmentFilters";
 import WeeklyView from "@/components/appointments/WeeklyView";
-import MonthlyView from "@/components/appointments/MonthlyView";
+import TableView from "@/components/appointments/TableView";
 import AppointmentGroups from "@/components/appointments/AppointmentGroups";
 import { useAppointments } from "@/hooks/useAppointments";
 import { Notification } from "@/components/ui/notification";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
-import { LoadingSpinner } from "@/App";
+import { LoadingSpinner } from "@/App"; 
 
 type AppointmentType = Database["public"]["Tables"]["appointments"]["Row"];
 
@@ -264,69 +264,8 @@ function AppointmentsPage() {
 
       <div className="flex flex-col space-y-4 px-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex flex-wrap gap-2 p-1 bg-muted/50 rounded-lg">
-            <Button
-              variant={activeFilter === "today" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveFilter("today")}
-              className="flex-1"
-            >
-              Bugün
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("today")}
-              </span>
-            </Button>
-            <Button
-              variant={activeFilter === "tomorrow" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveFilter("tomorrow")}
-              className="flex-1"
-            >
-              Yarın
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("tomorrow")}
-              </span>
-            </Button>
-
-            <Button
-              variant={activeFilter === "weekly" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveFilter("weekly")}
-              className="flex-1"
-            >
-              Bu Hafta
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("weekly")}
-              </span>
-            </Button>
-            <Button
-              variant={activeFilter === "monthly" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveFilter("monthly")}
-              className="flex-1"
-            >
-              Bu Ay
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("monthly")}
-              </span>
-            </Button>
-            <Button
-              variant={activeFilter === "all" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveFilter("all")}
-              className="flex-1"
-            >
-              Tümü
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20">
-                {getFilteredCount("all")}
-              </span>
-            </Button>
-          </div>
-
           <div className="w-full md:w-auto">
             <AppointmentFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
               trainers={trainers}
               selectedTrainerId={selectedTrainerId}
               onTrainerChange={setSelectedTrainerId}
@@ -337,6 +276,11 @@ function AppointmentsPage() {
         <div className="min-h-[400px]">
           {viewMode === "list" && (
             <AppointmentGroups
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+              getFilteredCount={getFilteredCount}
               groupedAppointments={groupedAppointments}
               members={members}
               trainers={trainers}
@@ -372,7 +316,7 @@ function AppointmentsPage() {
           )}
 
           {viewMode === "table" && (
-            <MonthlyView
+            <TableView
               appointments={appointments}
               members={members}
               trainers={trainers}
