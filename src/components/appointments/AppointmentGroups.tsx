@@ -131,7 +131,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex flex-wrap gap-2 p-1 bg-muted/50 rounded-lg">
         <Button
           variant={activeFilter === "today" ? "default" : "outline"}
@@ -221,7 +221,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
 
       {/* Planlanmış Randevular */}
       {groupedAppointments["scheduled"]?.length > 0 && (
-        <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50/60 border border-blue-200 rounded-lg p-4 ">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-blue-800 flex items-center">
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />

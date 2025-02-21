@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarDays, LayoutList, Table2 } from "lucide-react";
+import { CalendarDays, LayoutList, Table2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -230,8 +230,9 @@ function AppointmentsPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" /> Yeni Randevu
+              <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 p-4">
+                <span className="text-green-500 text-xl mr-2">+</span>
+                <span>Randevu Ekle</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
