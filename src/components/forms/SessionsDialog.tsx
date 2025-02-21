@@ -525,7 +525,7 @@ export function SessionsDialog({
         </DialogHeader>
 
         {/* Seans Bilgileri Kartı */}
-        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+        <div className="bg-muted/50 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h4 className="text-sm font-medium">Üye Seans Bilgileri</h4>
@@ -548,9 +548,9 @@ export function SessionsDialog({
                     Toplam: {calculateTotalSessions()}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-center text-red-700 gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>
                     Kalan:{" "}
                     {calculateTotalSessions() -
                       (calculateCompletedSessions() +
