@@ -8,7 +8,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Appointment, Member, Service } from "@/types/appointments";
-import { format, startOfWeek, addDays, addWeeks, subWeeks, endOfWeek } from "date-fns";
+import {
+  format,
+  startOfWeek,
+  addDays,
+  addWeeks,
+  subWeeks,
+  endOfWeek,
+} from "date-fns";
 import { tr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -19,8 +26,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ServiceAppointmentsDialog } from "./ServiceAppointmentsDialog";
-import TIME_SLOTS  from "@/constants/timeSlots";
-
+//import TIME_SLOTS  from "@/constants/timeSlots";
+// geçici olarak saatler
+const TIME_SLOTS = [
+  "10:00",
+  "11:30",
+  "13:00",
+  "14:00",
+  "15:30",
+  "17:00",
+  "18:00",
+  "19:00",
+];
 interface WeeklyViewProps {
   appointments: Appointment[];
   members: Member[];
@@ -43,7 +60,14 @@ export default function WeeklyView({
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
 
   const getDayName = (dayIndex: number) => {
-    const days = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const days = [
+      "Pazartesi",
+      "Salı",
+      "Çarşamba",
+      "Perşembe",
+      "Cuma",
+      "Cumartesi",
+    ];
     return days[dayIndex];
   };
 
@@ -63,52 +87,65 @@ export default function WeeklyView({
   }, [selectedDate]);
 
   // Hafta başlangıç ve bitiş tarihlerini önbelleğe al
-  const { weekStart, weekEnd } = useMemo(() => ({
-    weekStart: startOfWeek(selectedDate, { weekStartsOn: 1 }),
-    weekEnd: endOfWeek(selectedDate, { weekStartsOn: 1 })
-  }), [selectedDate]);
+  const { weekStart, weekEnd } = useMemo(
+    () => ({
+      weekStart: startOfWeek(selectedDate, { weekStartsOn: 1 }),
+      weekEnd: endOfWeek(selectedDate, { weekStartsOn: 1 }),
+    }),
+    [selectedDate]
+  );
 
-// Randevuları ve hizmetleri grupla ve önbelleğe al
+  // Randevuları ve hizmetleri grupla ve önbelleğe al
   const appointmentsByDayAndHour = useMemo(() => {
     const result = new Map();
-    
+
     for (let dayIndex = 0; dayIndex < 6; dayIndex++) {
       const currentDate = weekDates[dayIndex];
-      const dateStr = format(currentDate, 'yyyy-MM-dd');
-      
+      const dateStr = format(currentDate, "yyyy-MM-dd");
+
       for (const timeSlot of TIME_SLOTS) {
         const hour = timeSlot.split(":")[0];
         const minute = timeSlot.split(":")[1];
         const key = `${dayIndex}-${timeSlot}`;
-        
+
         const filteredAppointments = appointments.filter((apt) => {
           const [aptHour, aptMinute] = apt.time.split(":");
-          return apt.date === dateStr && 
-                 aptHour === hour &&
-                 aptMinute === minute &&
-                 apt.trainer_id === selectedTrainerId &&
-                 apt.status === "scheduled";
+          return (
+            apt.date === dateStr &&
+            aptHour === hour &&
+            aptMinute === minute &&
+            apt.trainer_id === selectedTrainerId &&
+            apt.status === "scheduled"
+          );
         });
 
         // Randevuları hizmetlere göre grupla
-        const groupedByService = filteredAppointments.reduce((acc, appointment) => {
-          const service = services.find(s => s.id === appointment.service_id);
-          if (!service) return acc;
+        const groupedByService = filteredAppointments.reduce(
+          (acc, appointment) => {
+            const service = services.find(
+              (s) => s.id === appointment.service_id
+            );
+            if (!service) return acc;
 
-          if (!acc[service.id]) {
-            acc[service.id] = {
-              service,
-              appointments: []
-            };
-          }
-          acc[service.id].appointments.push(appointment);
-          return acc;
-        }, {} as Record<string, { service: Service, appointments: Appointment[] }>);
+            if (!acc[service.id]) {
+              acc[service.id] = {
+                service,
+                appointments: [],
+              };
+            }
+            acc[service.id].appointments.push(appointment);
+            return acc;
+          },
+          {} as Record<
+            string,
+            { service: Service; appointments: Appointment[] }
+          >
+        );
 
         result.set(key, Object.values(groupedByService));
       }
     }
-    
+
     return result;
   }, [appointments, weekDates, selectedTrainerId, services]);
 
@@ -131,20 +168,25 @@ export default function WeeklyView({
     }
 
     const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
-    
+
     // Hiç randevu yoksa, kontenjan vardır
     if (appointments.length === 0) {
       return true;
     }
 
     // VIP randevusu varsa, kontenjan yoktur
-    const hasVipAppointment = appointments.some(({ service }) => service.isVipOnly);
+    const hasVipAppointment = appointments.some(
+      ({ service }) => service.isVipOnly
+    );
     if (hasVipAppointment) {
       return false;
     }
 
     // Standart randevular için toplam katılımcı sayısını kontrol et
-    const totalParticipants = appointments.reduce((total : number, { appointments }) => total + appointments.length, 0);
+    const totalParticipants = appointments.reduce(
+      (total: number, { appointments }) => total + appointments.length,
+      0
+    );
     const MAX_STANDARD_PARTICIPANTS = 4;
 
     return totalParticipants < MAX_STANDARD_PARTICIPANTS;
@@ -167,15 +209,22 @@ export default function WeeklyView({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 ">
+      <span>Bu tabloda geçici süreyle
+        eskı saatler gösterilmektedir. ramazan saatlerine girilen randevuları görmek
+        için <span className="font-semibold underline">liste </span> veya{" "}
+        <span className="font-semibold underline">tablo</span> görünümlerini
+        kullanabilirsiniz.
+      </span>
       <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
         <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
           <ChevronLeftIcon className="h-4 w-4" />
         </Button>
-        
+
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold">
-            {format(weekStart, "d MMMM", { locale: tr })} - {format(weekEnd, "d MMMM yyyy", { locale: tr })}
+            {format(weekStart, "d MMMM", { locale: tr })} -{" "}
+            {format(weekEnd, "d MMMM yyyy", { locale: tr })}
           </span>
           <Popover>
             <PopoverTrigger asChild>
@@ -234,51 +283,59 @@ export default function WeeklyView({
                     className="p-1 h-[80px] align-top border-r-2 border-gray-300 last:border-r-0 border-b"
                   >
                     <div className="space-y-2">
-                      {getAppointmentsForDayAndHour(dayIndex, timeSlot).map(({ service, appointments }) => (
-                        <div
-                          key={service.id}
-                          className="rounded-lg overflow-hidden border shadow-sm"
-                        >
-                          <div 
-                            className={`text-xs font-medium px-2 py-1.5 flex items-center justify-between cursor-pointer hover:opacity-80
-                              ${service.isVipOnly 
-                                ? "bg-purple-300 text-purple-900" 
-                                : "bg-blue-300 text-blue-900"}`}
-                            onClick={() => {
-                              setSelectedService(service);
-                              setIsServiceDialogOpen(true);
-                            }}
+                      {getAppointmentsForDayAndHour(dayIndex, timeSlot).map(
+                        ({ service, appointments }) => (
+                          <div
+                            key={service.id}
+                            className="rounded-lg overflow-hidden border shadow-sm"
                           >
-                            <div className="flex items-center">
-                              {service.name}
-                              {appointments.length > 1 && (
-                                <span className="ml-1 text-[10px] px-1 py-0.5 rounded-full bg-white/50">
-                                  {appointments.length}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
-                                {formatTime(appointments[0].time)}
-                              </span>
-                              {service.max_participants > 1 && appointments.length > 1 && (
+                            <div
+                              className={`text-xs font-medium px-2 py-1.5 flex items-center justify-between cursor-pointer hover:opacity-80
+                              ${
+                                service.isVipOnly
+                                  ? "bg-purple-300 text-purple-900"
+                                  : "bg-blue-300 text-blue-900"
+                              }`}
+                              onClick={() => {
+                                setSelectedService(service);
+                                setIsServiceDialogOpen(true);
+                              }}
+                            >
+                              <div className="flex items-center">
+                                {service.name}
+                                {appointments.length > 1 && (
+                                  <span className="ml-1 text-[10px] px-1 py-0.5 rounded-full bg-white/50">
+                                    {appointments.length}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
-                                  {appointments.length}/{service.max_participants}
+                                  {formatTime(appointments[0].time)}
                                 </span>
-                              )}
+                                {service.max_participants > 1 &&
+                                  appointments.length > 1 && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/80 text-muted-foreground">
+                                      {appointments.length}/
+                                      {service.max_participants}
+                                    </span>
+                                  )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="p-0.5">
-                            {appointments.map((appointment) => (
-                              <div
-                                key={appointment.id}
-                                onClick={() => onAppointmentClick(appointment)}
-                                className={`
+                            <div className="p-0.5">
+                              {appointments.map((appointment) => (
+                                <div
+                                  key={appointment.id}
+                                  onClick={() =>
+                                    onAppointmentClick(appointment)
+                                  }
+                                  className={`
                                   p-2 rounded text-sm mb-0.5 last:mb-0 cursor-pointer 
                                   hover:opacity-80 transition-opacity
-                                  ${service.isVipOnly
-                                    ? "bg-purple-200 hover:bg-purple-100"
-                                    : "bg-blue-200 hover:bg-blue-100"
+                                  ${
+                                    service.isVipOnly
+                                      ? "bg-purple-200 hover:bg-purple-100"
+                                      : "bg-blue-200 hover:bg-blue-100"
                                   }
                                   ${
                                     appointment.status === "completed"
@@ -289,23 +346,39 @@ export default function WeeklyView({
                                       ? "!bg-red-50 hover:!bg-red-100"
                                       : ""
                                   }`}
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="font-medium truncate">
-                                    {getMemberName(appointment.member_id)}
-                                  </span>
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-medium truncate">
+                                      {getMemberName(appointment.member_id)}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                       {hasAvailableSlot(dayIndex, timeSlot) && (
                         <button
-                          onClick={() => onAddAppointment(format(weekDates[dayIndex], 'yyyy-MM-dd'), timeSlot)}
+                          onClick={() =>
+                            onAddAppointment(
+                              format(weekDates[dayIndex], "yyyy-MM-dd"),
+                              timeSlot
+                            )
+                          }
                           className="w-full h-6 flex items-center justify-center text-green-600 bg-green-50 hover:bg-green-200 rounded transition-colors"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                           </svg>
@@ -329,8 +402,8 @@ export default function WeeklyView({
           }}
           service={selectedService}
           appointments={appointments.filter(
-            (apt) => 
-              apt.service_id === selectedService.id && 
+            (apt) =>
+              apt.service_id === selectedService.id &&
               apt.trainer_id === selectedTrainerId &&
               apt.status === "scheduled"
           )}
@@ -339,4 +412,4 @@ export default function WeeklyView({
       )}
     </div>
   );
-};
+}
