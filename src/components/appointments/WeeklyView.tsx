@@ -26,9 +26,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ServiceAppointmentsDialog } from "./ServiceAppointmentsDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 //import TIME_SLOTS  from "@/constants/timeSlots";
 // geçici olarak saatler
-const TIME_SLOTS = [
+const OLD_TIME_SLOTS = [
   "10:00",
   "11:30",
   "13:00",
@@ -37,6 +44,16 @@ const TIME_SLOTS = [
   "17:00",
   "18:00",
   "19:00",
+];
+const NEW_TIME_SLOTS = [
+  "11:30",
+  "12:30",
+  "13:30",
+  "15:00",
+  "16:30",
+  "19:30",
+  "21:00",
+  "22:00"
 ];
 interface WeeklyViewProps {
   appointments: Appointment[];
@@ -58,6 +75,9 @@ export default function WeeklyView({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">("old");
+
+  const TIME_SLOTS = selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
 
   const getDayName = (dayIndex: number) => {
     const days = [
@@ -147,7 +167,7 @@ export default function WeeklyView({
     }
 
     return result;
-  }, [appointments, weekDates, selectedTrainerId, services]);
+  }, [appointments, weekDates, selectedTrainerId, services, TIME_SLOTS]);
 
   // Belirli gün ve saat için randevuları getir
   const getAppointmentsForDayAndHour = (dayIndex: number, timeSlot: string) => {
@@ -209,13 +229,24 @@ export default function WeeklyView({
   }
 
   return (
-    <div className="space-y-4 ">
-      <span>Bu tabloda geçici süreyle
-        eskı saatler gösterilmektedir. ramazan saatlerine girilen randevuları görmek
-        için <span className="font-semibold underline">liste </span> veya{" "}
-        <span className="font-semibold underline">tablo</span> görünümlerini
-        kullanabilirsiniz.
-      </span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+        <span>Saat aralığını seçin</span>
+          <Select
+            value={selectedTimeType}
+            onValueChange={(value: "old" | "new") => setSelectedTimeType(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Saat tipini seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="old">Eski Saatler</SelectItem>
+              <SelectItem value="new">Ramazan Saatleri</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
         <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
           <ChevronLeftIcon className="h-4 w-4" />
@@ -248,6 +279,8 @@ export default function WeeklyView({
           <ChevronRightIcon className="h-4 w-4" />
         </Button>
       </div>
+
+    
 
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <Table className="border-2 border-gray-300">
