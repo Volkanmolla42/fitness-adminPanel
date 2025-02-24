@@ -29,7 +29,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
+
+const OLD_TIME_SLOTS = [
+  "10:00",
+  "11:30",
+  "13:00",
+  "14:00",
+  "15:30",
+  "17:00",
+  "18:00",
+  "19:00",
+];
+
+const NEW_TIME_SLOTS = [
+  "11:30",
+  "12:30",
+  "13:30",
+  "15:00",
+  "16:30",
+  "19:30",
+  "21:00",
+  "22:00",
+];
 
 interface SessionsDialogProps {
   open: boolean;
@@ -67,7 +88,11 @@ export function SessionsDialog({
   member,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-
+  const [selectedTimeType, setSelectedTimeType] = React.useState<"old" | "new">(
+    "old"
+  );
+  const TIME_SLOTS =
+    selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
   const DATE_RESTRICTIONS = {
     excludedDays: [0] as number[], // 0: Pazar
   } as const;
@@ -112,17 +137,6 @@ export function SessionsDialog({
         return { isValid: false, error: "Bu gün randevu alınamaz" };
       }
 
-      // Çalışma saati kontrolü
-      const hour = parseInt(time.split(":")[0]);
-      const workingStartHour = parseInt(WORKING_HOURS.start.split(":")[0]);
-      const workingEndHour = parseInt(WORKING_HOURS.end.split(":")[0]);
-
-      if (hour < workingStartHour || hour >= workingEndHour) {
-        return {
-          isValid: false,
-          error: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} arasında olmalıdır`,
-        };
-      }
       return { isValid: true };
     },
     []
@@ -233,6 +247,7 @@ export function SessionsDialog({
     sessions,
     defaultDate,
     defaultTime,
+    TIME_SLOTS,
   ]);
 
   const handleSessionChange = React.useCallback(
@@ -516,7 +531,7 @@ export function SessionsDialog({
             {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
           </DialogTitle>
           <DialogDescription>
-          {appointment
+            {appointment
               ? "Randevunun tarih ve saatini değiştirebilirsiniz."
               : calculateTotalSessions() && calculateTotalSessions() > 1
               ? `${calculateTotalSessions()} seansın tarih ve saatlerini seçin.`
@@ -604,6 +619,20 @@ export function SessionsDialog({
               >
                 +
               </Button>
+              <Select
+                value={selectedTimeType}
+                onValueChange={(value: "old" | "new") =>
+                  setSelectedTimeType(value)
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Saat dilimi seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="old">Normal Saatler</SelectItem>
+                  <SelectItem value="new">Ramazan Saatleri</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -670,19 +699,21 @@ export function SessionsDialog({
                     )}
 
                   {/* Seans Numarası */}
-                  {!appointment && calculateTotalSessions() && calculateTotalSessions() > 1 && (
-                    <div className="absolute -top-2 -left-2 w-6 h-6">
-                      <div
-                        className={`absolute inset-0 rounded-full ${
-                          isSessionComplete
-                            ? "bg-primary"
-                            : "bg-muted-foreground"
-                        } text-primary-foreground flex items-center justify-center text-sm font-medium`}
-                      >
-                        {index + 1}
+                  {!appointment &&
+                    calculateTotalSessions() &&
+                    calculateTotalSessions() > 1 && (
+                      <div className="absolute -top-2 -left-2 w-6 h-6">
+                        <div
+                          className={`absolute inset-0 rounded-full ${
+                            isSessionComplete
+                              ? "bg-primary"
+                              : "bg-muted-foreground"
+                          } text-primary-foreground flex items-center justify-center text-sm font-medium`}
+                        >
+                          {index + 1}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="mt-2 space-y-2 sm:space-y-3">
                     <div className="flex flex-col gap-1.5 sm:gap-2">
