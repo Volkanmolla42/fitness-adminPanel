@@ -241,7 +241,7 @@ export default function WeeklyView({
               <SelectValue placeholder="Saat tipini seçin" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="old">Eski Saatler</SelectItem>
+              <SelectItem value="old">Normal Saatler</SelectItem>
               <SelectItem value="new">Ramazan Saatleri</SelectItem>
             </SelectContent>
           </Select>
