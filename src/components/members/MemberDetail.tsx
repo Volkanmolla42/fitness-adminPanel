@@ -192,8 +192,9 @@ export const MemberDetail = ({
                   <span>{member.phone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-primary" />
-                  <span>{member.email}</span>
+                  <span className="flex items-center gap-2">
+                    <Mail className="size-4"/>
+                    {member.email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="w-4 h-4 text-primary" />

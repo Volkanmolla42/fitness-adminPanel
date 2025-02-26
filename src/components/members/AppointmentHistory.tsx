@@ -6,10 +6,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Package2, ChevronDown } from "lucide-react";
+import { Calendar, Clock, Package2, ChevronDown, User } from "lucide-react";
 import type { Database } from "@/types/supabase";
-import { useMemo, useState } from "react";
-import { format, isToday, isTomorrow, isYesterday } from "date-fns";
+import { useMemo, useState, useCallback } from "react";
+import { format, isToday, isTomorrow, isYesterday, parseISO, isFuture } from "date-fns";
 import { tr } from "date-fns/locale";
 import {
   Collapsible,
@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -36,23 +38,29 @@ interface AppointmentHistoryProps {
 interface StatusConfig {
   color: string;
   text: string;
+  bgColor: string;
+  icon?: React.ReactNode;
 }
 
 const STATUS_CONFIG: Record<AppointmentStatus, StatusConfig> = {
   completed: {
     color: "bg-green-100 text-green-700 border-green-300",
+    bgColor: "bg-green-50",
     text: "Tamamlandı"
   },
   cancelled: {
     color: "bg-red-100 text-red-700 border-red-300",
+    bgColor: "bg-red-50",
     text: "İptal Edildi"
   },
   scheduled: {
     color: "bg-blue-100 text-blue-700 border-blue-300",
+    bgColor: "bg-blue-50",
     text: "Planlandı"
   },
   "in-progress": {
     color: "bg-yellow-100 text-yellow-700 border-yellow-300",
+    bgColor: "bg-yellow-50",
     text: "Devam Ediyor"
   }
 };
@@ -65,8 +73,12 @@ const getStatusText = (status: AppointmentStatus) => {
   return STATUS_CONFIG[status]?.text ?? status;
 };
 
+const getStatusBgColor = (status: AppointmentStatus) => {
+  return STATUS_CONFIG[status]?.bgColor ?? "bg-gray-50";
+};
+
 const formatDate = (date: string) => {
-  const appointmentDate = new Date(date);
+  const appointmentDate = parseISO(date);
   
   if (isToday(appointmentDate)) {
     return "Bugün";
@@ -101,66 +113,90 @@ const sortAppointments = (appointments: Appointment[]) => {
   });
 };
 
-const getAppointmentCardStyle = (date: string) => {
-  const appointmentDate = new Date(date);
+const getAppointmentCardStyle = (date: string, status: AppointmentStatus) => {
+  const appointmentDate = parseISO(date);
   
-  if (isToday(appointmentDate)) {
+  if (status === "cancelled") {
+    return "bg-red-50/70 border-red-200/70 hover:bg-red-100/50";
+  } else if (status === "completed") {
+    return "bg-green-50/70 border-green-200/70 hover:bg-green-100/50";
+  } else if (isToday(appointmentDate)) {
     return "bg-primary/5 border-primary/20 hover:bg-primary/10";
   } else if (isTomorrow(appointmentDate)) {
-    return "bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/10";
+    return "bg-blue-50/70 border-blue-200/70 hover:bg-blue-100/50";
+  } else if (status === "in-progress") {
+    return "bg-yellow-50/70 border-yellow-200/70 hover:bg-yellow-100/50";
   }
   
   return "bg-card hover:bg-accent/50";
 };
 
-const AppointmentCard = ({ appointment, service, trainer }: { 
-  appointment: Appointment; 
-  service: Service | undefined; 
+interface AppointmentCardProps {
+  appointment: Appointment;
   trainer: Trainer | undefined;
-}) => {
-  const cardStyle = getAppointmentCardStyle(appointment.date);
-  const isUpcoming = isToday(new Date(appointment.date)) || isTomorrow(new Date(appointment.date));
+}
+
+const AppointmentCard = React.memo(({ appointment, trainer }: AppointmentCardProps) => {
+  const cardStyle = getAppointmentCardStyle(appointment.date, appointment.status as AppointmentStatus);
+  const isUpcoming = isFuture(parseISO(`${appointment.date}T${appointment.time}`));
+  const status = appointment.status as AppointmentStatus;
 
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border transition-colors ${cardStyle}`}>
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border shadow-sm transition-colors ${cardStyle}`}>
       <div className="flex-1 grid gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className={`flex items-center gap-1.5 min-w-[140px] text-base font-medium ${isUpcoming ? "text-primary" : ""}`}>
+          <span className={`flex items-center gap-1.5 min-w-[140px] text-sm sm:text-base font-medium ${isUpcoming ? "text-primary" : ""}`}>
             <Calendar className={`w-4 h-4 ${isUpcoming ? "text-primary" : "text-muted-foreground"}`} />
             {formatDate(appointment.date)}
           </span>
-          <span className={`flex items-center gap-1.5 text-base font-medium ${isUpcoming ? "text-primary" : ""}`}>
+          <span className={`flex items-center gap-1.5 text-sm sm:text-base font-medium ${isUpcoming ? "text-primary" : ""}`}>
             <Clock className={`w-4 h-4 ${isUpcoming ? "text-primary" : "text-muted-foreground"}`} />
             {formatTime(appointment.time)}
           </span>
         </div>
-        <div className="text-sm text-muted-foreground flex items-center gap-1">
+        <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
+          <User className="w-3.5 h-3.5" />
           <span>Eğitmen:</span> 
-          <span className="text-foreground/80">{trainer?.first_name} {trainer?.last_name}</span>
+          <span className="text-foreground/80 font-medium">{trainer?.first_name} {trainer?.last_name}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Badge className={`shrink-0 px-3 py-1 ${getStatusColor(appointment.status as AppointmentStatus)}`}>
-          {getStatusText(appointment.status as AppointmentStatus)}
-        </Badge>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge className={`shrink-0 px-3 py-1 ${getStatusColor(status)} ${getStatusBgColor(status)}`}>
+                {getStatusText(status)}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Durum: {getStatusText(status)}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
-};
+});
 
-const ServiceGroup = ({ 
-  serviceName, 
-  appointments,
-  services,
-  trainers 
-}: { 
+AppointmentCard.displayName = "AppointmentCard";
+
+interface ServiceGroupProps {
   serviceName: string;
   appointments: Appointment[];
-  services: { [key: string]: Service };
   trainers: { [key: string]: Trainer };
-}) => {
+}
+
+const ServiceGroup = React.memo(({ 
+  serviceName, 
+  appointments,
+  trainers 
+}: ServiceGroupProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const sortedAppointments = useMemo(() => sortAppointments(appointments), [appointments]);
+  const hasUpcomingAppointments = useMemo(() => 
+    sortedAppointments.some(apt => isFuture(parseISO(`${apt.date}T${apt.time}`))),
+    [sortedAppointments]
+  );
 
   return (
     <Collapsible
@@ -170,7 +206,10 @@ const ServiceGroup = ({
     >
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <CollapsibleTrigger className="w-full">
-          <div className="flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors">
+          <div className={cn(
+            "flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors",
+            hasUpcomingAppointments && "border-l-4 border-primary pl-2"
+          )}>
             <div className="flex items-center gap-2">
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Package2 className="w-5 h-5 text-primary" />
@@ -192,19 +231,20 @@ const ServiceGroup = ({
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent className="space-y-2">
+      <CollapsibleContent className="space-y-2.5 pl-1">
         {sortedAppointments.map((appointment) => (
           <AppointmentCard
             key={appointment.id}
             appointment={appointment}
-            service={services[appointment.service_id]}
             trainer={trainers[appointment.trainer_id]}
           />
         ))}
       </CollapsibleContent>
     </Collapsible>
   );
-};
+});
+
+ServiceGroup.displayName = "ServiceGroup";
 
 export const AppointmentHistory = ({
   open,
@@ -227,11 +267,11 @@ export const AppointmentHistory = ({
   }, [appointments]);
 
   const tabs = useMemo(() => [
-    { value: "all", label: "Tümü", count: filteredAppointments.all.length },
-    { value: "scheduled", label: "Planlanan", count: filteredAppointments.scheduled.length },
     { value: "completed", label: "Tamamlanan", count: filteredAppointments.completed.length },
+    { value: "scheduled", label: "Planlanan", count: filteredAppointments.scheduled.length },
     { value: "cancelled", label: "İptal Edilen", count: filteredAppointments.cancelled.length },
     { value: "in-progress", label: "Devam Eden", count: filteredAppointments["in-progress"].length },
+    { value: "all", label: "Tümü", count: filteredAppointments.all.length },
   ], [filteredAppointments]);
 
   const groupedAppointments = useMemo(() => {
@@ -263,50 +303,64 @@ export const AppointmentHistory = ({
     };
   }, [filteredAppointments, services]);
 
+  const renderTabContent = useCallback((tabValue: string) => {
+    const currentGroups = groupedAppointments[tabValue === "all" ? "all" : tabValue as keyof typeof groupedAppointments];
+    
+    if (Object.keys(currentGroups).length === 0) {
+      return (
+        <div className="text-center text-muted-foreground py-12 bg-accent/30 rounded-lg">
+          <p className="text-lg">Bu kategoride randevu bulunmuyor</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-6">
+        {Object.entries(currentGroups)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([serviceName, appointments]) => (
+            <ServiceGroup
+              key={serviceName}
+              serviceName={serviceName}
+              appointments={appointments}
+              trainers={trainers}
+            />
+          ))}
+      </div>
+    );
+  }, [groupedAppointments, trainers]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="h-[80vh] max-w-3xl overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>  {member.first_name} {member.last_name} - Randevu Geçmişi</DialogTitle>
+      <DialogContent className="h-[85vh] max-w-3xl overflow-hidden flex flex-col">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <span className="font-semibold">{member.first_name} {member.last_name}</span>
+            <span className="text-muted-foreground">-</span>
+            <span>Randevu Geçmişi</span>
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto">
-            <Tabs defaultValue="scheduled" className="w-full">
-              <TabsList className="w-full">
-                {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
-                    {tab.label}
-                    {tab.count > 0 && (
-                      <Badge variant="secondary" className="ml-1">
-                        {tab.count}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-
+        <div className="flex-1 overflow-y-auto pr-2">
+          <Tabs defaultValue="completed" className="w-full">
+            <TabsList className="w-full mb-4 grid grid-cols-5 ">
               {tabs.map((tab) => (
-                <TabsContent key={tab.value} value={tab.value} className="mt-4">
-                  <div className="space-y-6">
-                    {Object.entries(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments])
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([serviceName, appointments]) => (
-                        <ServiceGroup
-                          key={serviceName}
-                          serviceName={serviceName}
-                          appointments={appointments}
-                          services={services}
-                          trainers={trainers}
-                        />
-                      ))}
-                    {Object.keys(groupedAppointments[tab.value === "all" ? "all" : tab.value as keyof typeof groupedAppointments]).length === 0 && (
-                      <div className="text-center text-muted-foreground py-8">
-                        Bu kategoride randevu bulunmuyor
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
+                <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1">
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {tab.count}
+                    </Badge>
+                  )}
+                </TabsTrigger>
               ))}
-            </Tabs>
+            </TabsList>
+
+            {tabs.map((tab) => (
+              <TabsContent key={tab.value} value={tab.value} className="mt-4">
+                {renderTabContent(tab.value)}
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
