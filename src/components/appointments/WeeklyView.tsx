@@ -75,7 +75,7 @@ export default function WeeklyView({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
-  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">("old");
+  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">("new");
 
   const TIME_SLOTS = selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
 
