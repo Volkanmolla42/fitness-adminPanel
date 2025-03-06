@@ -250,10 +250,10 @@ const TableView: React.FC<TableViewProps> = ({
         </div>
 
         <div className="flex-1 space-y-2">
-          <Label>Eğitmen</Label>
+          <Label>Antrenör</Label>
           <Select value={selectedTrainer} onValueChange={setSelectedTrainer}>
             <SelectTrigger>
-              <SelectValue placeholder="Eğitmen seçin" />
+              <SelectValue placeholder="Antrenör seçin" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tümü</SelectItem>
@@ -340,7 +340,7 @@ const TableView: React.FC<TableViewProps> = ({
                 )}
                 {selectedTrainer === "all" && (
                   <TooltipContent>
-                    <p>Lütfen bir eğitmen seçin</p>
+                    <p>Lütfen bir antrenör seçin</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -354,7 +354,7 @@ const TableView: React.FC<TableViewProps> = ({
           <TableHeader>
             <TableRow>
               <TableHead>Üye</TableHead>
-              <TableHead>Eğitmen</TableHead>
+              <TableHead>Antrenör</TableHead>
               <TableHead>Hizmet</TableHead>
               <TableHead>Tarih</TableHead>
               <TableHead>Saat</TableHead>

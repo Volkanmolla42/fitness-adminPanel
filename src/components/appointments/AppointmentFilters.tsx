@@ -36,7 +36,7 @@ export function AppointmentFilters({
     >
       <SelectValue 
         placeholder={
-          <span className="text-gray-500">Eğitmen seç</span>
+          <span className="text-gray-500">Antrenör seç</span>
         } 
       />
     </SelectTrigger>
@@ -45,7 +45,7 @@ export function AppointmentFilters({
         value="all" 
         className="font-semibold text-gray-900 hover:bg-blue-50 active:bg-blue-100 focus:bg-blue-50 px-4 py-2"
       >
-        Tüm Eğitmenler
+        Tüm Antrenörler
       </SelectItem>
       {trainers.map((trainer) => (
         <SelectItem 

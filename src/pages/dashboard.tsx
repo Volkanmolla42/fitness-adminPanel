@@ -82,7 +82,7 @@ const DashboardPage: React.FC = () => {
     appointmentsError: "Randevular yüklenirken bir hata oluştu!",
     membersError: "Üyeler yüklenirken bir hata oluştu!",
     servicesError: "Hizmetler yüklenirken bir hata oluştu!",
-    trainersError: "Eğitmenler yüklenirken bir hata oluştu!",
+    trainersError: "Antrenörler yüklenirken bir hata oluştu!",
     memberPaymentsError: "Üye ödemeleri yüklenirken bir hata oluştu!",
   };
 

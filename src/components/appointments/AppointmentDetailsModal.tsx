@@ -110,7 +110,7 @@ const AppointmentDetailsModal = ({
             .eq("id", apt.service_id)
             .single();
 
-          // 2.2 Eğitmen bilgilerini çek
+          // 2.2 Antrenör bilgilerini çek
           const { data: trainerData } = await supabase
             .from("trainers")
             .select("first_name, last_name")
@@ -129,7 +129,7 @@ const AppointmentDetailsModal = ({
             },
             trainer: {
               firstName: trainerData?.first_name ?? "Bilinmeyen",
-              lastName: trainerData?.last_name ?? "Eğitmen",
+              lastName: trainerData?.last_name ?? "Antrenör",
             },
           };
         })
@@ -254,7 +254,7 @@ const AppointmentDetailsModal = ({
                   <div className="flex items-center gap-2">
                     <UserCog className="h-4 w-4 text-primary shrink-0" />
                     <span className="text-sm">
-                      <span className="text-muted-foreground">Eğitmen:</span>{" "}
+                      <span className="text-muted-foreground">Antrenör:</span>{" "}
                       <span className="font-medium">
                         {trainer.firstName} {trainer.lastName}
                       </span>
@@ -376,7 +376,7 @@ const AppointmentDetailsModal = ({
                       </Badge>
                     </div>
 
-                    {/* Alt Kısım - Hizmet ve Eğitmen Bilgileri */}
+                    {/* Alt Kısım - Hizmet ve Antrenör Bilgileri */}
                     <div className="grid gap-2 text-sm">
                       <div className="flex items-center gap-2 bg-muted/50 p-2 rounded">
                         <Package className="h-4 w-4 text-primary shrink-0" />
@@ -389,7 +389,7 @@ const AppointmentDetailsModal = ({
                       
                       <div className="flex items-center gap-2 bg-muted/50 p-2 rounded">
                         <UserCog className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-muted-foreground">Eğitmen:</span>
+                        <span className="text-muted-foreground">Antrenör:</span>
                         <span className="font-medium">
                           {historyItem.trainer.firstName} {historyItem.trainer.lastName}
                         </span>

@@ -56,7 +56,7 @@ const navigationItems = [
     path: "/services",
   },
   {
-    title: "Eğitmenler",
+    title: "Antrenörler",
     icon: UserCog,
     path: "/trainers",
   },

@@ -223,7 +223,7 @@ export default function WeeklyView({
   if (!selectedTrainerId) {
     return (
       <div className="flex justify-center items-center h-[400px] bg-white rounded-lg shadow">
-        <p className="text-lg text-gray-500">Lütfen bir eğitmen seçin</p>
+        <p className="text-lg text-gray-500">Lütfen bir antrenör seçin</p>
       </div>
     );
   }

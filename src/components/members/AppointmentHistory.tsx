@@ -156,7 +156,7 @@ const AppointmentCard = React.memo(({ appointment, trainer }: AppointmentCardPro
         </div>
         <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
           <User className="w-3.5 h-3.5" />
-          <span>Eğitmen:</span> 
+          <span>Antrenör:</span> 
           <span className="text-foreground/80 font-medium">{trainer?.first_name} {trainer?.last_name}</span>
         </div>
       </div>

@@ -112,10 +112,10 @@ const TrainersPage = () => {
     try {
       await createTrainer(data);
       setIsAddDialogOpen(false);
-      toast.success("Eğitmen başarıyla eklendi.");
+      toast.success("Antrenör başarıyla eklendi.");
     } catch (error) {
-      console.error("Eğitmen eklenirken hata:", error);
-      toast.error("Eğitmen eklenirken bir hata oluştu.");
+      console.error("Antrenör eklenirken hata:", error);
+      toast.error("Antrenör eklenirken bir hata oluştu.");
     }
   };
 
@@ -125,10 +125,10 @@ const TrainersPage = () => {
     try {
       await updateTrainer(editingTrainer.id, data);
       setEditingTrainer(null);
-      toast.success("Eğitmen başarıyla güncellendi.");
+      toast.success("Antrenör başarıyla güncellendi.");
     } catch (error) {
-      console.error("Eğitmen güncellenirken hata:", error);
-      toast.error("Eğitmen güncellenirken bir hata oluştu.");
+      console.error("Antrenör güncellenirken hata:", error);
+      toast.error("Antrenör güncellenirken bir hata oluştu.");
     }
   };
 
@@ -136,10 +136,10 @@ const TrainersPage = () => {
     try {
       await deleteTrainer(id);
       setSelectedTrainer(null);
-      toast.success("Eğitmen başarıyla silindi.");
+      toast.success("Antrenör başarıyla silindi.");
     } catch (error) {
-      console.error("Eğitmen silinirken hata:", error);
-      toast.error("Eğitmen silinirken bir hata oluştu.");
+      console.error("Antrenör silinirken hata:", error);
+      toast.error("Antrenör silinirken bir hata oluştu.");
     }
   };
 
@@ -217,16 +217,16 @@ const TrainersPage = () => {
   );
 
   if (isLoading) {
-    return <LoadingSpinner text="Eğitmenler yükleniyor..." />;
+    return <LoadingSpinner text="Antrenörler yükleniyor..." />;
   }
 
   return (
     <div className="space-y-4 mt-4 container m-0 p-0">
       <div className="flex flex-col md:flex-row gap-4 md:justify-between md:items-center">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold tracking-tight">Eğitmenler</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Antrenörler</h2>
           <p className="text-muted-foreground">
-            Eğitmenleri görüntüle, düzenle ve yönet
+            Antrenörleri görüntüle, düzenle ve yönet
           </p>
         </div>
 
@@ -234,12 +234,12 @@ const TrainersPage = () => {
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Eğitmen Ekle
+              Antrenör Ekle
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Yeni Eğitmen</DialogTitle>
+              <DialogTitle>Yeni Antrenör</DialogTitle>
             </DialogHeader>
             <TrainerForm
               onSubmit={handleCreate}
@@ -251,7 +251,7 @@ const TrainersPage = () => {
 
       <div className="flex items-center space-x-2">
         <Input
-          placeholder="Eğitmen ara... "
+          placeholder="Antrenör ara... "
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-sm"
@@ -260,7 +260,7 @@ const TrainersPage = () => {
 
       {busyTrainers.length > 0 && (
         <TrainerList
-          title="Randevuda Olan Eğitmenler"
+          title="Randevuda Olan Antrenörler"
           trainers={busyTrainers}
           isBusy={true}
           services={services}
@@ -271,7 +271,7 @@ const TrainersPage = () => {
       )}
 
       <TrainerList
-        title="Müsait Eğitmenler"
+        title="Müsait Antrenörler"
         trainers={availableTrainers}
         onTrainerSelect={setSelectedTrainer}
       />
@@ -294,7 +294,7 @@ const TrainersPage = () => {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Eğitmen Düzenle</DialogTitle>
+              <DialogTitle>Antrenör Düzenle</DialogTitle>
             </DialogHeader>
             <TrainerForm
               trainer={editingTrainer}

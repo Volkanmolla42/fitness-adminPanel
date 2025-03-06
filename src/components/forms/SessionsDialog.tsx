@@ -362,7 +362,7 @@ export function SessionsDialog({
             time: targetDay.time,
             hasConflict: hasConflict,
             hasError: hasConflict
-              ? "Bu tarih ve saatte eğitmen müsait değil"
+              ? "Bu tarih ve saatte antrenör müsait değil"
               : undefined,
           };
           lastDate = nextDate;
@@ -832,7 +832,7 @@ export function SessionsDialog({
                     {hasConflict && (
                       <div className="flex items-center gap-2 text-sm text-destructive font-medium mt-2">
                         <XCircle className="w-4 h-4" />
-                        <span>Bu tarih ve saatte eğitmen müsait değil</span>
+                        <span>Bu tarih ve saatte antrenör müsait değil</span>
                       </div>
                     )}
                   </div>

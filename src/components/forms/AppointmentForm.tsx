@@ -330,11 +330,11 @@ export function AppointmentForm({
             name="trainer_id"
             render={({ field }) => (
               <FormItem className="w-full">
-                <FormLabel>Eğitmen</FormLabel>
+                <FormLabel>Antrenör</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Eğitmen seçin" />
+                      <SelectValue placeholder="Antrenör seçin" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -372,7 +372,7 @@ export function AppointmentForm({
                           placeholder={
                             !form.watch("member_id") ||
                             !form.watch("trainer_id")
-                              ? "Önce üye ve eğitmen seçin"
+                              ? "Önce üye ve antrenör seçin"
                               : "Paket seçin"
                           }
                         />

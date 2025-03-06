@@ -29,13 +29,13 @@ export const DeleteTrainerDialog = ({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Eğitmeni Sil</AlertDialogTitle>
+          <AlertDialogTitle>Antrenöri Sil</AlertDialogTitle>
           <AlertDialogDescription>
             <span className="font-medium text-primary">
               {trainer.first_name} {trainer.last_name}
             </span>{" "}
-            isimli eğitmeni silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve
-            eğitmenin tüm randevu geçmişi silinecektir.
+            isimli antrenöri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve
+            antrenörin tüm randevu geçmişi silinecektir.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

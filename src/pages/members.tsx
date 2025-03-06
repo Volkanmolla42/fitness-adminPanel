@@ -117,8 +117,8 @@ const MembersPage = () => {
         setTrainers(trainersMap);
       }
     } catch (error) {
-      console.error("Eğitmenler yüklenirken hata:", error);
-      toast.error("Eğitmenler yüklenirken bir hata oluştu.");
+      console.error("Antrenörler yüklenirken hata:", error);
+      toast.error("Antrenörler yüklenirken bir hata oluştu.");
     }
   };
 

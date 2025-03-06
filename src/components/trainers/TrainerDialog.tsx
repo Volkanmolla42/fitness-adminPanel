@@ -9,7 +9,6 @@ import {
   Pencil,
   Trash2,
   User2,
-  History,
 } from "lucide-react";
 import {
   Dialog,
@@ -150,16 +149,15 @@ export const TrainerDialog = ({
                       }
                     </p>
                     <Button
-                      variant="ghost"
+                      variant="link"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsHistoryDialogOpen(true);
                       }}
-                      className="h-8 text-xs"
+                      className="h-8  bg-slate-300"
                     >
-                      <History className="w-3 h-3 mr-1" />
-                      Geçmiş
+                      Tümünü gör
                     </Button>
                   </div>
                 </div>

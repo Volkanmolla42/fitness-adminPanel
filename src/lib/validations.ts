@@ -86,7 +86,7 @@ export const serviceSchema = z.object({
 // Appointment validation schema
 export const appointmentFormSchema = z.object({
   member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
-  trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
+  trainer_id: z.string().min(1, { message: "Antrenör seçimi zorunludur" }),
   service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
   status: z.enum(["scheduled", "in-progress", "completed", "cancelled"]),
   date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
@@ -97,7 +97,7 @@ export const appointmentFormSchema = z.object({
 // Multi-session appointment validation schema
 export const multiSessionAppointmentSchema = z.object({
   member_id: z.string().min(1, { message: "Üye seçimi zorunludur" }),
-  trainer_id: z.string().min(1, { message: "Eğitmen seçimi zorunludur" }),
+  trainer_id: z.string().min(1, { message: "Antrenör seçimi zorunludur" }),
   service_id: z.string().min(1, { message: "Paket seçimi zorunludur" }),
   sessions: z
     .array(

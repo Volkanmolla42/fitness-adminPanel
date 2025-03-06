@@ -214,7 +214,7 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                     <FormControl>
                       <Textarea
                         {...field}
-                        placeholder="Eğitmen hakkında kısa bir biyografi..."
+                        placeholder="Antrenör hakkında kısa bir biyografi..."
                         className="h-10 resize-none"
                       />
                     </FormControl>
