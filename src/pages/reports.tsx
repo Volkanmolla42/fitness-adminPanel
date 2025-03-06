@@ -48,6 +48,7 @@ import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
 import { MembersList } from "@/components/reports/MembersList";
+import { TrainerClassesChart } from "@/components/reports/TrainerClassesChart";
 import { LoadingSpinner } from "@/App";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -442,10 +443,8 @@ const ReportsPage = () => {
               <RevenueChart data={revenueChartData} />
               <AppointmentDistribution appointments={filteredData} />
             </div>
-         
-       
-         
-             <MemberPaymentsCard />
+              <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
+            <MemberPaymentsCard />
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
           </div>
