@@ -8,7 +8,6 @@ import {
   Calendar,
   History,
   Trash2,
-  CheckCircle2,
   Notebook,
   Package2,
   ChevronDown,
@@ -30,7 +29,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Progress } from "../ui/progress";
+
+import { ServiceProgress } from "./ServiceProgress";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -77,31 +77,36 @@ export const MemberDetail = ({
     0
   );
 
-  // Paketleri grupla ve say
-  const groupedServices = useMemo(() => {
-    return member.subscribed_services.reduce(
-      (acc: { [key: string]: number }, serviceId) => {
-        acc[serviceId] = (acc[serviceId] || 0) + 1;
-        return acc;
-      },
-      {}
-    );
-  }, [member.subscribed_services]);
-
-  // Calculate used sessions for each service
-  const usedSessions = member.subscribed_services.reduce((acc, serviceId) => {
-    // Bu servis için tamamlanan randevuları bul
-    const serviceAppointments = memberAppointments.filter(
-      (apt) => apt.service_id === serviceId && (apt.status === "completed" || apt.status === "cancelled")
-    );
-
-    // Aktif paketteki tamamlanan seans sayısı
-    const currentPackageCompletedSessions = serviceAppointments.length;
-
-    acc[serviceId] = currentPackageCompletedSessions;
-
-    return acc;
-  }, {} as { [key: string]: number });
+  // Hesaplamaları useMemo ile optimize et
+  const memberServices = useMemo(() => {
+    // Üyenin aldığı paketleri ve sayılarını hesapla
+    const serviceCount = member.subscribed_services.reduce((acc, serviceId) => {
+      acc[serviceId] = (acc[serviceId] || 0) + 1;
+      return acc;
+    }, {} as { [key: string]: number });
+    
+    // Her bir servis için tamamlanan randevuları bul
+    return Object.entries(serviceCount).map(([serviceId, count]) => {
+      const service = services[serviceId];
+      
+      const serviceAppointments = appointments.filter(
+        (apt) =>
+          apt.service_id === serviceId &&
+          apt.member_id === member.id &&
+          (apt.status === "completed" || apt.status === "cancelled")
+      );
+      
+      // Tamamlanan seans sayısı
+      const completedSessions = serviceAppointments.length;
+      
+      return {
+        serviceId,
+        service,
+        completedSessions,
+        totalPackages: count
+      };
+    });
+  }, [member, services, appointments]);
 
   const handleDelete = async () => {
     if (member.id) {
@@ -253,50 +258,14 @@ export const MemberDetail = ({
           </div>
 
           <div className="grid gap-2">
-            {Object.entries(groupedServices).map(([serviceId, count]) => {
-              const service = services[serviceId];
-              if (!service) return null;
-              const totalSessions = service.session_count * count;
-              const completedSessions = usedSessions[serviceId] || 0;
-              const progress = (completedSessions / totalSessions) * 100;
-
-              return (
-                <div
-                  key={serviceId}
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-md">
-                      <Package2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium">
-                        {service.name}
-                        {count > 1 && (
-                          <span className="ml-1 text-muted-foreground">
-                            x{count}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-0.5">
-                        {service.price.toLocaleString("tr-TR")} ₺
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge
-                      variant="outline"
-                      className="bg-primary/5 border-primary/10"
-                      title="Tamamlanan Seans Sayısı"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5 text-primary mr-1" />
-                      {completedSessions} / {totalSessions} Seans
-                    </Badge>
-                    <Progress value={progress} />
-                  </div>
-                </div>
-              );
-            })}
+            {memberServices.map(({ serviceId, service, completedSessions, totalPackages }) => (
+              <ServiceProgress 
+                key={serviceId}
+                service={service}
+                completedSessions={completedSessions}
+                totalPackages={totalPackages}
+              />
+            ))}
           </div>
         </div>
 
@@ -353,39 +322,14 @@ export const MemberDetail = ({
                 Aktif Paketler
               </h4>
               <div className="grid gap-2">
-                {Object.entries(groupedServices).map(([serviceId, count]) => {
-                  const service = services[serviceId];
-                  if (!service) return null;
-                  const totalSessions = service.session_count * count;
-                  return (
-                    <div
-                      key={serviceId}
-                      className="flex items-center justify-between rounded-lg border p-2 text-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Package2 className="h-4 w-4 text-primary" />
-                        <span>
-                          {service.name}
-                          {count > 1 && (
-                            <span className="ml-1 text-muted-foreground">
-                              x{count}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="ml-auto flex items-center gap-1"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                        <span>
-                          {usedSessions[serviceId] || 0} / {totalSessions} Seans
-                          Tamamlandı
-                        </span>
-                      </Badge>
-                    </div>
-                  );
-                })}
+                {memberServices.map(({ serviceId, service, completedSessions, totalPackages }) => (
+                  <ServiceProgress 
+                    key={serviceId}
+                    service={service}
+                    completedSessions={completedSessions}
+                    totalPackages={totalPackages}
+                  />
+                ))}
               </div>
             </div>
           </div>
