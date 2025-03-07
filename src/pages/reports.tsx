@@ -47,7 +47,7 @@ import { AppointmentDistribution } from "@/components/reports/AppointmentDistrib
 import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
-import { MembersList } from "@/components/reports/MembersList";
+//import { MembersList } from "@/components/reports/MembersList";
 import { TrainerClassesChart } from "@/components/reports/TrainerClassesChart";
 import { LoadingSpinner } from "@/App";
 
@@ -430,20 +430,22 @@ const ReportsPage = () => {
                 </CardContent>
               </Card>
             </div>
-            <MembersList
+           {/**
+            * <MembersList
               members={members}
               services={services}
               appointments={appointments}
               trainers={trainers}
-            />
+            />*/}
+            
 
+            <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PackageIncomeCard />
               <ServiceUsageStats data={serviceUsageData} />
               <RevenueChart data={revenueChartData} />
               <AppointmentDistribution appointments={filteredData} />
             </div>
-              <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
             <MemberPaymentsCard />
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
