@@ -111,22 +111,10 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
           }
 
           try {
-            // Notlara ödeme bilgilerini ekle
-            const paymentInfo =
-              selectedServices.length > 0
-                ? `\nPaket: ${selectedServices
-                    .map((service) => service.name)
-                    .join(", ")} \nKredi Kartı: ${Number(
-                    paymentData.credit_card_paid
-                  ).toLocaleString("tr-TR")}₺ \nNakit: ${Number(
-                    paymentData.cash_paid
-                  ).toLocaleString("tr-TR")}₺`
-                : "";
-
             // Üye kaydını oluştur
             await onSubmit({
               ...data,
-              notes: data.notes + paymentInfo,
+              notes: data.notes, // Sadece kullanıcının girdiği notları kullan
             });
 
             // Ödeme kaydını oluştur
