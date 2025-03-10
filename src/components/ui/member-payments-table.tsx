@@ -25,17 +25,20 @@ import {
 
 import { DataTablePagination } from "@/components/ui/data-table-pagination"
 import { Skeleton } from "./skeleton" 
+import cn from "classnames"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   isLoading?: boolean
+  className?: string
 }
 
 export function MemberPaymentsTable<TData, TValue>({
   columns,
   data,
   isLoading = false,
+  className,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -63,7 +66,7 @@ export function MemberPaymentsTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className={cn("rounded-md border", className)}>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

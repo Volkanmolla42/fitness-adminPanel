@@ -45,6 +45,8 @@ export const columns = ({
     header: "Kredi Kartı Ödemesi",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("credit_card_paid"))
+      if (amount === 0) return "-"
+      
       const formatted = new Intl.NumberFormat("tr-TR", {
         style: "currency",
         currency: "TRY",
@@ -57,6 +59,8 @@ export const columns = ({
     header: "Nakit Ödeme",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("cash_paid"))
+      if (amount === 0) return "-"
+      
       const formatted = new Intl.NumberFormat("tr-TR", {
         style: "currency",
         currency: "TRY",

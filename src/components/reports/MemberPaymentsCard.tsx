@@ -307,10 +307,17 @@ export function MemberPaymentsCard() {
 
   return (
     <div className="col-span-2 relative">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Üye Ödemeleri</CardTitle>
+      <Card className="shadow-md">
+        <CardHeader className="bg-muted/30 pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <CardTitle>
+              Üye Ödemeleri
+              {filteredPayments.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({filteredPayments.length} kayıt)
+                </span>
+              )}
+            </CardTitle>
             <Button onClick={() => setIsAddingPayment(true)}>
               Yeni Ödeme Ekle
             </Button>
@@ -319,7 +326,7 @@ export function MemberPaymentsCard() {
         <CardContent>
           <div className="space-y-4">
             {/* Arama ve Filtreleme */}
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-md">
               <div className="flex-1 flex gap-2">
                 <Select
                   value={searchField}
@@ -362,7 +369,7 @@ export function MemberPaymentsCard() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "justify-start text-left font-normal w-[220px]",
+                        "justify-start text-left font-normal w-full sm:w-[220px]",
                         !dateRange && "text-muted-foreground"
                       )}
                     >
@@ -405,14 +412,34 @@ export function MemberPaymentsCard() {
             </div>
 
             {/* Tablo */}
-            <MemberPaymentsTable
-              columns={columns({
-                onEdit: handleEdit,
-                onDelete: handleDelete,
-              })}
-              data={filteredPayments}
-              isLoading={tableLoading}
-            />
+            <div className="overflow-hidden">
+              {filteredPayments.length > 0 ? (
+                <MemberPaymentsTable
+                  columns={columns({
+                    onEdit: handleEdit,
+                    onDelete: handleDelete,
+                  })}
+                  data={filteredPayments}
+                  isLoading={tableLoading}
+                  className="[&_thead_tr]:bg-muted/50 [&_tbody_tr:hover]:bg-muted/30"
+                />
+              ) : (
+                <div className="py-12 text-center text-muted-foreground">
+                  {tableLoading ? (
+                    <p>Yükleniyor...</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p>Gösterilecek ödeme kaydı bulunamadı</p>
+                      <p className="text-sm">
+                        {searchTerm || dateRange
+                          ? "Filtreleri temizlemeyi deneyin"
+                          : "Yeni bir ödeme eklemek için 'Yeni Ödeme Ekle' düğmesini kullanın"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -439,6 +439,7 @@ const ReportsPage = () => {
             />*/}
             
 
+            <MemberPaymentsCard />
             <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PackageIncomeCard />
@@ -446,7 +447,6 @@ const ReportsPage = () => {
               <RevenueChart data={revenueChartData} />
               <AppointmentDistribution appointments={filteredData} />
             </div>
-            <MemberPaymentsCard />
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
           </div>
