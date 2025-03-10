@@ -45,6 +45,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
   const [paymentData, setPaymentData] = useState({
     credit_card_paid: "",
     cash_paid: "",
+    payment_date: new Date().toISOString().split("T")[0],
   });
 
   // Seçili paketlerin toplam tutarını hesapla
@@ -136,7 +137,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                   member_name: `${data.first_name} ${data.last_name}`,
                   credit_card_paid: Number(paymentData.credit_card_paid) || 0,
                   cash_paid: Number(paymentData.cash_paid) || 0,
-                  created_at: data.start_date,
+                  created_at: paymentData.payment_date,
                   package_name: selectedServices
                     .map((service) => service.name)
                     .join(", "),
@@ -408,11 +409,11 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
         {/* Ödeme Bilgileri */}
         {selectedServices.length > 0 && (
           <div className="flex flex-col">
-            <div className="border-t border-blue-600 p-2 pb-0 font-bold ">
-              <div className="flex justify-between items-center ">
-                <span className="text-sm ">Toplam Kalan Tutar:</span>
+            <div className="border-t border-blue-600 pt-2 font-bold">
+              <div className="flex justify-between items-center">
+                <span className="text-xs">Toplam Kalan Tutar:</span>
                 <span
-                  className={`text-sm ${
+                  className={`text-xs ${
                     remainingAmount > 0
                       ? "text-destructive"
                       : remainingAmount < 0
@@ -424,44 +425,62 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                 </span>
               </div>
             </div>
-            <div className="p-4 mx-auto rounded-lg space-y-4">
-              {/* Ödeme Detayları */}
-              <div className="flex justify-center gap-2 items-center">
-                <div>
-                  <FormLabel className="text-xs text-muted-foreground">
-                    Banka Kartı ile Ödenen
-                  </FormLabel>
-                  <Input
-                    type="number"
-                    value={paymentData.credit_card_paid}
-                    onChange={(e) =>
-                      setPaymentData({
-                        ...paymentData,
-                        credit_card_paid: e.target.value,
-                      })
-                    }
-                    className="border-2 focus-visible:border-primary"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <FormLabel className="text-xs text-muted-foreground">
-                    Nakit Ödenen
-                  </FormLabel>
-                  <Input
-                    type="number"
-                    value={paymentData.cash_paid}
-                    onChange={(e) =>
-                      setPaymentData({
-                        ...paymentData,
-                        cash_paid: e.target.value,
-                      })
-                    }
-                    className="border-2 focus-visible:border-primary"
-                    placeholder="0"
-                  />
-                </div>
+            
+            {/* Ödeme Formu - Kompakt Tasarım */}
+            <div className="grid grid-cols-2 gap-1 mt-2">
+              <div className="col-span-3">
+                <FormLabel className="text-xs text-muted-foreground mb-0">
+                  Ödeme Tarihi
+                </FormLabel>
+                <Input
+                  type="date"
+                  value={paymentData.payment_date}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      payment_date: e.target.value,
+                    })
+                  }
+                  className="border h-8 text-xs focus-visible:border-primary"
+                />
               </div>
+              
+              <div>
+                <FormLabel className="text-xs text-muted-foreground mb-0">
+                  Kredi Kartı
+                </FormLabel>
+                <Input
+                  type="number"
+                  value={paymentData.credit_card_paid}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      credit_card_paid: e.target.value,
+                    })
+                  }
+                  className="border h-8 text-xs focus-visible:border-primary"
+                  placeholder="0"
+                />
+              </div>
+              
+              <div>
+                <FormLabel className="text-xs text-muted-foreground mb-0">
+                  Nakit
+                </FormLabel>
+                <Input
+                  type="number"
+                  value={paymentData.cash_paid}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      cash_paid: e.target.value,
+                    })
+                  }
+                  className="border h-8 text-xs focus-visible:border-primary"
+                  placeholder="0"
+                />
+              </div>
+             
             </div>
           </div>
         )}
