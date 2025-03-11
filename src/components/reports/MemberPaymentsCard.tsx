@@ -18,7 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { addDays, format, isWithinInterval, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Calendar as CalendarIcon, X, RefreshCw, Plus, Search, FilterX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -50,9 +50,6 @@ export function MemberPaymentsCard() {
   const [filteredPayments, setFilteredPayments] = useState<MemberPayment[]>([]);
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchField, setSearchField] = useState<
-    "member_name" | "package_name"
-  >("member_name");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [tableLoading, setTableLoading] = useState(true);
   const [packages, setPackages] = useState<Service[]>([]);
@@ -120,27 +117,78 @@ export function MemberPaymentsCard() {
       return;
     }
 
-    const [firstName, lastName] = memberName.split(" ");
-
-    const { data: memberData, error: memberError } = await supabase
-      .from("members")
-      .select("subscribed_services")
-      .eq("first_name", firstName)
-      .eq("last_name", lastName)
-      .single();
-
-    if (memberError || !memberData) {
-      toast.error("Üye bilgileri alınamadı");
+    // Üye adını parçalara ayır
+    const nameParts = memberName.split(" ");
+    if (nameParts.length < 2) {
+      toast.error("Geçersiz üye adı formatı");
+      setSelectedMemberPackages([]);
       return;
     }
 
-    const subscribedServices = memberData.subscribed_services || [];
+    // Son kelimeyi soyadı, geri kalanını ad olarak kabul et
+    const lastName = nameParts.pop() || "";
+    const firstName = nameParts.join(" ");
 
-    const filteredPackages = packages.filter((pkg) =>
-      subscribedServices.includes(pkg.id)
-    );
+    try {
+      // İlk olarak tam eşleşme ile deneyelim
+      const { data: memberData, error: memberError } = await supabase
+        .from("members")
+        .select("subscribed_services, id")
+        .eq("first_name", firstName)
+        .eq("last_name", lastName)
+        .single();
 
-    setSelectedMemberPackages(filteredPackages);
+      if (memberError) {
+        console.error("Üye arama hatası:", memberError);
+        
+        // Tam eşleşme bulunamadıysa, daha esnek bir arama yapalım
+        const { data: allMembers, error: allMembersError } = await supabase
+          .from("members")
+          .select("subscribed_services, id, first_name, last_name");
+        
+        if (allMembersError) {
+          toast.error("Üye bilgileri alınamadı");
+          setSelectedMemberPackages([]);
+          return;
+        }
+        
+        // Tam ad ile eşleşen üyeyi bul
+        const matchedMember = allMembers.find(member => 
+          `${member.first_name} ${member.last_name}`.toLowerCase() === memberName.toLowerCase()
+        );
+        
+        if (!matchedMember) {
+          toast.error("Üye bulunamadı");
+          setSelectedMemberPackages([]);
+          return;
+        }
+        
+        const subscribedServices = matchedMember.subscribed_services || [];
+        const filteredPackages = packages.filter((pkg) =>
+          subscribedServices.includes(pkg.id)
+        );
+        
+        setSelectedMemberPackages(filteredPackages);
+        return;
+      }
+
+      if (!memberData) {
+        toast.error("Üye bulunamadı");
+        setSelectedMemberPackages([]);
+        return;
+      }
+
+      const subscribedServices = memberData.subscribed_services || [];
+      const filteredPackages = packages.filter((pkg) =>
+        subscribedServices.includes(pkg.id)
+      );
+
+      setSelectedMemberPackages(filteredPackages);
+    } catch (error) {
+      console.error("Üye paketleri alınırken hata:", error);
+      toast.error("Üye paketleri alınamadı");
+      setSelectedMemberPackages([]);
+    }
   };
 
   useEffect(() => {
@@ -156,7 +204,7 @@ export function MemberPaymentsCard() {
     // Metin araması
     if (searchTerm) {
       filtered = filtered.filter((payment) => {
-        const searchValue = payment[searchField]?.toLowerCase() || "";
+        const searchValue = payment.member_name?.toLowerCase() || "";
         return searchValue.includes(searchTerm.toLowerCase());
       });
     }
@@ -176,11 +224,10 @@ export function MemberPaymentsCard() {
     }
 
     setFilteredPayments(filtered);
-  }, [searchTerm, searchField, dateRange, memberPayments]);
+  }, [searchTerm, dateRange, memberPayments]);
 
   const clearFilters = () => {
     setSearchTerm("");
-    setSearchField("member_name");
     setDateRange(undefined);
   };
 
@@ -318,9 +365,25 @@ export function MemberPaymentsCard() {
                 </span>
               )}
             </CardTitle>
-            <Button onClick={() => setIsAddingPayment(true)}>
-              Yeni Ödeme Ekle
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => fetchMemberPayments()} 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Yenile
+              </Button>
+              <Button 
+                onClick={() => setIsAddingPayment(true)}
+                className="flex items-center gap-1"
+                size="sm"
+              >
+                <Plus className="h-4 w-4" />
+                Yeni Ödeme
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -328,30 +391,15 @@ export function MemberPaymentsCard() {
             {/* Arama ve Filtreleme */}
             <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-md">
               <div className="flex-1 flex gap-2">
-                <Select
-                  value={searchField}
-                  onValueChange={(value: "member_name" | "package_name") =>
-                    setSearchField(value)
-                  }
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Arama alanı" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member_name">Üye Adı</SelectItem>
-                    <SelectItem value="package_name">Paket Adı</SelectItem>
-                  </SelectContent>
-                </Select>
                 <div className="flex-1 relative">
+                  <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <Search className="h-4 w-4" />
+                  </div>
                   <Input
-                    placeholder={
-                      searchField === "member_name"
-                        ? "Üye adı ara..."
-                        : "Paket adı ara..."
-                    }
+                    placeholder="Üye adı ara..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full"
+                    className="w-full pl-9"
                   />
                   {searchTerm && (
                     <button
@@ -404,6 +452,7 @@ export function MemberPaymentsCard() {
                     variant="ghost"
                     onClick={clearFilters}
                     className="px-3"
+                    title="Filtreleri temizle"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -412,7 +461,7 @@ export function MemberPaymentsCard() {
             </div>
 
             {/* Tablo */}
-            <div className="overflow-hidden">
+            <div className="overflow-hidden rounded-md border">
               {filteredPayments.length > 0 ? (
                 <MemberPaymentsTable
                   columns={columns({
@@ -421,21 +470,27 @@ export function MemberPaymentsCard() {
                   })}
                   data={filteredPayments}
                   isLoading={tableLoading}
-                  className="[&_thead_tr]:bg-muted/50 [&_tbody_tr:hover]:bg-muted/30"
                 />
               ) : (
-                <div className="py-12 text-center text-muted-foreground">
-                  {tableLoading ? (
-                    <p>Yükleniyor...</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <p>Gösterilecek ödeme kaydı bulunamadı</p>
-                      <p className="text-sm">
-                        {searchTerm || dateRange
-                          ? "Filtreleri temizlemeyi deneyin"
-                          : "Yeni bir ödeme eklemek için 'Yeni Ödeme Ekle' düğmesini kullanın"}
-                      </p>
-                    </div>
+                <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                  <div className="rounded-full bg-muted p-3 mb-3">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">Kayıt bulunamadı</h3>
+                  <p className="text-muted-foreground text-sm max-w-md mb-4">
+                    {searchTerm || dateRange 
+                      ? "Arama kriterlerinize uygun ödeme kaydı bulunamadı. Lütfen farklı bir arama terimi deneyin veya filtreleri temizleyin."
+                      : "Henüz hiç ödeme kaydı eklenmemiş. Yeni bir ödeme eklemek için 'Yeni Ödeme' düğmesine tıklayın."}
+                  </p>
+                  {(searchTerm || dateRange) && (
+                    <Button 
+                      variant="outline" 
+                      onClick={clearFilters}
+                      className="flex items-center gap-1"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      Filtreleri Temizle
+                    </Button>
                   )}
                 </div>
               )}
