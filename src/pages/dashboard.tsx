@@ -11,7 +11,7 @@ import {
   getMemberPayments,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
-import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Calendar, Users,Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -185,12 +185,12 @@ const DashboardPage: React.FC = () => {
       {
         title: "Aylık Randevular",
         value: stats.monthlyAppointments.toString(),
-        icon: <TrendingUp className="h-6 w-6 text-primary" />,
+        icon: <Calendar className="h-6 w-6 text-primary" />,
       },
       {
         title: "Aylık Gelir",
         value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
-        icon: <DollarSign className="h-6 w-6 text-primary" />,
+        icon: <Wallet className="h-6 w-6 text-primary" />,
       }
     ],
     [stats]

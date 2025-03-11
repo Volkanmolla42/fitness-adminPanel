@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import {
   Download,
   Calendar,
-  DollarSign,
   Package2,
   Users,
-  Calculator,
   RefreshCw,
+  Wallet,
+  TrendingUp,
 } from "lucide-react";
 import {
   startOfWeek,
@@ -47,7 +47,6 @@ import { AppointmentDistribution } from "@/components/reports/AppointmentDistrib
 import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
-//import { MembersList } from "@/components/reports/MembersList";
 import { TrainerClassesChart } from "@/components/reports/TrainerClassesChart";
 import { LoadingSpinner } from "@/App";
 
@@ -212,8 +211,20 @@ const ReportsPage = () => {
       });
     };
 
+    // Bu ayki gelir için tarih aralığı
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+    
+    const isInCurrentMonth = (date: Date) => {
+      return isWithinInterval(date, {
+        start: currentMonthStart,
+        end: currentMonthEnd,
+      });
+    };
+
     let totalRevenue = 0;
     let totalPackages = 0;
+    let currentMonthRevenue = 0;
 
     memberPayments.forEach((payment) => {
       const paymentDate = new Date(payment.created_at);
@@ -223,17 +234,22 @@ const ReportsPage = () => {
         totalRevenue += revenue;
         totalPackages += 1;
       }
+      
+      // Bu ayki gelir hesaplaması
+      if (isInCurrentMonth(paymentDate)) {
+        const revenue =
+          Number(payment.credit_card_paid) + Number(payment.cash_paid);
+        currentMonthRevenue += revenue;
+      }
     });
 
-    const averageRevenuePerPackage =
-      totalPackages > 0 ? totalRevenue / totalPackages : 0;
-
+   
     return {
       totalRevenue,
       totalPackages,
       uniqueMembers: members.length,
       totalAppointments: appointments.length,
-      averageRevenuePerPackage,
+      currentMonthRevenue,
     };
   };
 
@@ -357,88 +373,80 @@ const ReportsPage = () => {
 
           <div ref={reportRef} className="space-y-6">
             {/* Metrics Overview */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Toplam Gelir
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalRevenue.toLocaleString("tr-TR", {
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Performans Metrikleri</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                {[
+                  
+                  {
+                    title: "Toplam Satılan Paket",
+                    value: metrics.totalPackages,
+                    icon: Package2,
+                    color: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200",
+                    iconColor: "text-blue-500",
+                   
+               
+                  },
+                  {
+                    title: "Üye Sayısı",
+                    value: metrics.uniqueMembers,
+                    icon: Users,
+                    color: "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200",
+                    iconColor: "text-purple-500",
+                
+                  },
+                  {
+                    title: "Randevu Sayısı",
+                    value: metrics.totalAppointments,
+                    icon: Calendar,
+                    color: "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200",
+                    iconColor: "text-amber-500",
+                  
+                  },
+                  {
+                    title: "Bu Ayki Gelir",
+                    value: metrics.currentMonthRevenue.toLocaleString("tr-TR", {
                       style: "currency",
                       currency: "TRY",
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Toplam Satılan Paket
-                  </CardTitle>
-                  <Package2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalPackages}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Üye Sayısı
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {metrics.uniqueMembers}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Randevu Sayısı
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {metrics.totalAppointments}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Ortalama Gelir/Paket
-                  </CardTitle>
-                  <Calculator className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {metrics.averageRevenuePerPackage.toLocaleString("tr-TR", {
+                    }),
+                    icon: TrendingUp,
+                    color: "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200",
+                    iconColor: "text-pink-500",
+                  },
+                  {
+                    title: "Toplam Gelir",
+                    value: metrics.totalRevenue.toLocaleString("tr-TR", {
                       style: "currency",
                       currency: "TRY",
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                    }),
+                    icon: Wallet,
+                    color: "bg-gradient-to-br from-green-50 to-green-100 border-green-200",
+                    iconColor: "text-green-500",
+                    
+                  
+                  },
+                  
+                ].map((item, index) => (
+                  <Card 
+                    key={index} 
+                    className={`relative overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 ${item.color}`}
+                  >
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className={`p-2 rounded-lg ${item.iconColor} bg-white bg-opacity-50`}>
+                          <item.icon className="h-5 w-5" />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-medium text-muted-foreground">{item.title}</h3>
+                        <p className="text-2xl font-bold">{item.value}</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
-           {/**
-            * <MembersList
-              members={members}
-              services={services}
-              appointments={appointments}
-              trainers={trainers}
-            />*/}
-            
-
             <MemberPaymentsCard />
             <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
