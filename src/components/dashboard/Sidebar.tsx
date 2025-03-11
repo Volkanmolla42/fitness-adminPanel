@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
+import { BugReportModal } from "@/components/BugReportModal";
 
 interface SidebarProps {
   className?: string;
@@ -224,9 +225,61 @@ const SidebarContent = memo(
           </div>
         </div>
         {/* Footer */}
-        <footer className="border-t py-3 px-6 text-center text-sm text-muted-foreground">
-          <p>Destek: Volkan Molla</p>
-          <a className="text-muted-foreground" href="https://api.whatsapp.com/send?phone=905418224484" target="_blank" rel="noopener noreferrer">+90 541 822 44 84</a>
+        <footer className="border-t py-3 px-4 text-sm text-muted-foreground">
+          <div className={cn("flex flex-col md:flex-row", {
+            "hidden":isCollapsed,
+            "items-center justify-center": !isCollapsed,
+          })}>
+            {/* Destek bilgisi ve iletişim */}
+            <div className={cn("flex flex-col items-center mb-2 md:mb-0", {
+              "md:items-start md:mr-auto": !isCollapsed,
+            })}>
+              <p className="font-medium mb-1">Destek: Volkan Molla</p>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      asChild
+                      variant="link"
+                      size="sm"
+                      className="text-muted-foreground hover:text-primary p-0 h-auto"
+                    >
+                      <a
+                        href="https://api.whatsapp.com/send?phone=905418224484"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="WhatsApp üzerinden iletişim"
+                      >
+                        +90 (541) 822 44 84
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="font-medium">
+                    WhatsApp ile iletişime geç
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* Bug Report butonu */}
+            <div className={cn({
+              "md:ml-auto": !isCollapsed,
+              "hidden": isCollapsed,
+            })}>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-center">
+                      <BugReportModal />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top"  className="font-medium">
+                    Hata bildir
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
         </footer>
       </div>
     );
