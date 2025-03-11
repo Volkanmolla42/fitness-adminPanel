@@ -8,10 +8,9 @@ import {
   getMembers,
   getServices,
   getTrainers,
-  getMemberPayments,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
-import { Calendar, Users,Wallet } from "lucide-react";
+import { Calendar, TrendingUp, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -20,12 +19,10 @@ type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
-type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 
 interface Stats {
   activeMembers: number;
   todayAppointments: number;
-  monthlyRevenue: number;
   monthlyAppointments: number;
 }
 
@@ -69,21 +66,13 @@ const DashboardPage: React.FC = () => {
     queryFn: getTrainers,
   });
 
-  const {
-    data: memberPayments = [],
-    isLoading: isLoadingMemberPayments,
-    error: memberPaymentsError,
-  } = useQuery<MemberPayment[]>({
-    queryKey: ["memberPayments"],
-    queryFn: getMemberPayments,
-  });
+ 
 
   const errorMessages = {
     appointmentsError: "Randevular yüklenirken bir hata oluştu!",
     membersError: "Üyeler yüklenirken bir hata oluştu!",
     servicesError: "Hizmetler yüklenirken bir hata oluştu!",
     trainersError: "Antrenörler yüklenirken bir hata oluştu!",
-    memberPaymentsError: "Üye ödemeleri yüklenirken bir hata oluştu!",
   };
 
   Object.entries({
@@ -91,7 +80,6 @@ const DashboardPage: React.FC = () => {
     membersError,
     servicesError,
     trainersError,
-    memberPaymentsError,
   }).forEach(([key, error]) => {
     if (error) toast.error(errorMessages[key] || error.message);
   });
@@ -120,8 +108,7 @@ const DashboardPage: React.FC = () => {
     (
       members: Member[],
       appointments: Appointment[],
-      services: Service[],
-      memberPayments: MemberPayment[]
+ 
     ): Stats => {
       const today = new Date().toISOString().split("T")[0];
       const now = new Date();
@@ -134,22 +121,8 @@ const DashboardPage: React.FC = () => {
           new Date(app.date).toISOString().split("T")[0] === today
       ).length;
 
-      const calculateMonthRevenue = (month: number, year: number) =>
-        memberPayments
-          .filter((payment) => {
-            const paymentDate = new Date(payment.created_at);
-            return (
-              paymentDate.getMonth() === month && paymentDate.getFullYear() === year
-            );
-          })
-          .reduce(
-            (sum, payment) => {
-              return sum + (payment.credit_card_paid || 0) + (payment.cash_paid || 0);
-            },
-            0
-          );
+     
 
-      const monthlyRevenue = calculateMonthRevenue(currentMonth, currentYear);
       const monthlyAppointments = appointments.filter(appointment => {
         const appointmentDate = new Date(appointment.date);
         return appointmentDate.getMonth() === currentMonth && appointmentDate.getFullYear() === currentYear;
@@ -158,7 +131,6 @@ const DashboardPage: React.FC = () => {
       return {
         activeMembers,
         todayAppointments,
-        monthlyRevenue,
         monthlyAppointments,
       };
     },
@@ -166,8 +138,8 @@ const DashboardPage: React.FC = () => {
   );
 
   const stats = React.useMemo(
-    () => calculateStats(members, appointments, services, memberPayments),
-    [members, appointments, services, memberPayments, calculateStats]
+    () => calculateStats(members, appointments),
+    [members, appointments,calculateStats]
   );
 
   const statsForGrid = React.useMemo(
@@ -185,13 +157,9 @@ const DashboardPage: React.FC = () => {
       {
         title: "Aylık Randevular",
         value: stats.monthlyAppointments.toString(),
-        icon: <Calendar className="h-6 w-6 text-primary" />,
+        icon: <TrendingUp className="h-6 w-6 text-primary" />,
       },
-      {
-        title: "Aylık Gelir",
-        value: `₺${stats.monthlyRevenue.toLocaleString("tr-TR")}`,
-        icon: <Wallet className="h-6 w-6 text-primary" />,
-      }
+      
     ],
     [stats]
   );
@@ -200,8 +168,7 @@ const DashboardPage: React.FC = () => {
     isLoadingAppointments ||
     isLoadingMembers ||
     isLoadingServices ||
-    isLoadingTrainers ||
-    isLoadingMemberPayments;
+    isLoadingTrainers
 
   if (isLoading) {
     return (
