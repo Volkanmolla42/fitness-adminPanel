@@ -5,7 +5,7 @@ import { Database } from "@/types/supabase"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pencil, Trash } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash, ArrowUpDown } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,15 +26,51 @@ export const columns = ({
 }: MemberPaymentColumnProps): ColumnDef<MemberPayment>[] => [
   {
     accessorKey: "member_name",
-    header: "Üye Adı",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Üye Adı
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "text",
   },
   {
     accessorKey: "package_name",
-    header: "Paket Adı",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Paket Adı
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "text",
   },
   {
     accessorKey: "created_at",
-    header: "Ödeme Tarihi",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Ödeme Tarihi
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "datetime",
     cell: ({ row }) => {
       const date = new Date(row.getValue("created_at"))
       return format(date, "PPP", { locale: tr })
@@ -42,7 +78,19 @@ export const columns = ({
   },
   {
     accessorKey: "credit_card_paid",
-    header: "Kredi Kartı Ödemesi",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Kredi Kartı Ödemesi
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "basic",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("credit_card_paid"))
       if (amount === 0) return "-"
@@ -56,7 +104,19 @@ export const columns = ({
   },
   {
     accessorKey: "cash_paid",
-    header: "Nakit Ödeme",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Nakit Ödeme
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "basic",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("cash_paid"))
       if (amount === 0) return "-"
@@ -70,7 +130,24 @@ export const columns = ({
   },
   {
     id: "total",
-    header: "Toplam Ödeme",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium text-primary"
+        >
+          Toplam Ödeme
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    sortingFn: "basic",
+    accessorFn: (row) => {
+      const creditCard = row.credit_card_paid
+      const cash = row.cash_paid
+      return creditCard + cash
+    },
     cell: ({ row }) => {
       const creditCard = parseFloat(row.getValue("credit_card_paid"))
       const cash = parseFloat(row.getValue("cash_paid"))
@@ -79,7 +156,10 @@ export const columns = ({
         style: "currency",
         currency: "TRY",
       }).format(total)
-      return formatted
+      if(total === 0) return "Ödeme bekleniyor.."
+      return (
+        <div className="font-medium text-primary">{formatted}</div>
+      )
     },
   },
   {
