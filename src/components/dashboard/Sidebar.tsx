@@ -119,10 +119,13 @@ const SidebarContent = memo(
       >
         {/* Logo Area */}
         <div
-          className={cn("flex flex-col min-h-24 items-center mt-6 mb-6 shrink-0", {
-            "gap-2": isCollapsed,
-            "gap-4": !isCollapsed,
-          })}
+          className={cn(
+            "flex flex-col min-h-24 items-center mt-6 mb-6 shrink-0",
+            {
+              "gap-2": isCollapsed,
+              "gap-4": !isCollapsed,
+            }
+          )}
         >
           <div className="size-12 rounded-lg flex items-center justify-center">
             <img
@@ -220,6 +223,11 @@ const SidebarContent = memo(
             </TooltipProvider>
           </div>
         </div>
+        {/* Footer */}
+        <footer className="border-t py-3 px-6 text-center text-sm text-muted-foreground">
+          <p>Destek: Volkan Molla</p>
+          <a className="text-muted-foreground" href="https://api.whatsapp.com/send?phone=905418224484" target="_blank" rel="noopener noreferrer">+90 541 822 44 84</a>
+        </footer>
       </div>
     );
   }
