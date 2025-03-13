@@ -34,6 +34,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
+import { useTheme } from "@/contexts/theme-context";
+
 interface TableViewProps {
   appointments: Appointment[];
   members: Member[];
@@ -49,6 +51,7 @@ const TableView: React.FC<TableViewProps> = ({
   services,
   onEdit,
 }) => {
+  const { theme } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTrainer, setSelectedTrainer] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("scheduled");
@@ -69,20 +72,21 @@ const TableView: React.FC<TableViewProps> = ({
     const normalizedTime = normalizeTime(time);
     const [hours, minutes] = normalizedTime.split(':').map(Number);
     return hours * 60 + (minutes || 0);
-  }; 
+  };
+
   // Randevu çakışmasını kontrol eden fonksiyon
   const checkTimeConflict = (time: string, appointments: Appointment[]): boolean => {
     if (!selectedTrainer || !services) return true;
 
     // Seçili tarihteki randevuları filtrele
-    const dayAppointments = appointments.filter(apt => 
-      apt.date === format(selectedDate!, 'yyyy-MM-dd') && 
+    const dayAppointments = appointments.filter(apt =>
+      apt.date === format(selectedDate!, 'yyyy-MM-dd') &&
       apt.trainer_id === selectedTrainer &&
       apt.status === "scheduled"
     );
 
     // Aynı saatteki randevuları bul
-    const conflictingAppointments = dayAppointments.filter(apt => 
+    const conflictingAppointments = dayAppointments.filter(apt =>
       normalizeTime(apt.time) === normalizeTime(time)
     );
 
@@ -106,8 +110,8 @@ const TableView: React.FC<TableViewProps> = ({
   const getRemainingStandardSlots = (date: Date, time: string) => {
     if (!selectedTrainer || !services) return 0;
 
-    const dayAppointments = appointments.filter(apt => 
-      apt.date === format(date, 'yyyy-MM-dd') && 
+    const dayAppointments = appointments.filter(apt =>
+      apt.date === format(date, 'yyyy-MM-dd') &&
       apt.trainer_id === selectedTrainer &&
       normalizeTime(apt.time) === normalizeTime(time) &&
       apt.status === "scheduled"
@@ -138,16 +142,16 @@ const TableView: React.FC<TableViewProps> = ({
     return appointments
       .filter((appointment) => {
         const appointmentDate = new Date(`${appointment.date} ${appointment.time}`);
-        const isDateMatch = selectedDate 
+        const isDateMatch = selectedDate
           ? isWithinInterval(appointmentDate, {
-              start: startOfDay(selectedDate),
-              end: endOfDay(selectedDate),
-            })
+            start: startOfDay(selectedDate),
+            end: endOfDay(selectedDate),
+          })
           : true;
-        
+
         const isTrainerMatch = selectedTrainer === "all" || appointment.trainer_id === selectedTrainer;
         const isStatusMatch = selectedStatus === "all" || appointment.status === selectedStatus;
-        
+
         // Sadece belirli randevu saatlerini kabul et
         const normalizedAppointmentTime = normalizeTime(appointment.time);
         const isTimeMatch = normalizedAppointmentTime >= timeRange.start && normalizedAppointmentTime <= timeRange.end;
@@ -159,7 +163,7 @@ const TableView: React.FC<TableViewProps> = ({
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         const dateCompare = dateA.getTime() - dateB.getTime();
-        
+
         if (dateCompare !== 0) return dateCompare;
 
         // Aynı tarihli randevuları saate göre sırala
@@ -171,8 +175,8 @@ const TableView: React.FC<TableViewProps> = ({
     if (!selectedDate || !showAvailable || !selectedTrainer || selectedTrainer === "all") return [];
 
     // Seçili tarihteki randevuları filtrele
-    const dayAppointments = appointments.filter(apt => 
-      apt.date === format(selectedDate, 'yyyy-MM-dd') && 
+    const dayAppointments = appointments.filter(apt =>
+      apt.date === format(selectedDate, 'yyyy-MM-dd') &&
       apt.trainer_id === selectedTrainer &&
       apt.status === "scheduled"
     );
@@ -214,23 +218,27 @@ const TableView: React.FC<TableViewProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className={`flex flex-col sm:flex-row gap-4 p-4 rounded-lg ${
+        theme === 'dark' ? 'bg-gray-00' : 'bg-gray-50'
+      }`}>
         <div className="flex-1 space-y-2">
-          <Label>Tarih</Label>
+          <Label className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Tarih</Label>
           <div className="relative">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <Button variant="outline" className={`w-full justify-start text-left font-normal ${
+                  theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'
+                }`}>
                   {selectedDate ? format(selectedDate, "d MMMM yyyy", { locale: tr }) : "Tüm Tarihler"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className={`w-auto p-0 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white'}`} align="start">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   locale={tr}
-                  className="rounded-md border-0 shadow-sm"
+                  className={`rounded-md border-0 shadow-sm ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
                   showOutsideDays
                   fixedWeeks
                 />
@@ -240,7 +248,9 @@ const TableView: React.FC<TableViewProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 ${
+                  theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'
+                }`}
                 onClick={() => setSelectedDate(undefined)}
               >
                 <X className="h-4 w-4" />
@@ -250,15 +260,19 @@ const TableView: React.FC<TableViewProps> = ({
         </div>
 
         <div className="flex-1 space-y-2">
-          <Label>Antrenör</Label>
+          <Label className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Antrenör</Label>
           <Select value={selectedTrainer} onValueChange={setSelectedTrainer}>
-            <SelectTrigger>
+            <SelectTrigger className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
               <SelectValue placeholder="Antrenör seçin" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
+            <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+              <SelectItem value="all" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Tümü</SelectItem>
               {trainers.map((trainer) => (
-                <SelectItem key={trainer.id} value={trainer.id}>
+                <SelectItem 
+                  key={trainer.id} 
+                  value={trainer.id}
+                  className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}
+                >
                   {trainer.first_name} {trainer.last_name}
                 </SelectItem>
               ))}
@@ -267,34 +281,38 @@ const TableView: React.FC<TableViewProps> = ({
         </div>
 
         <div className="flex-1 space-y-2">
-          <Label>Durum</Label>
+          <Label className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Durum</Label>
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger>
+            <SelectTrigger className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
               <SelectValue placeholder="Durum seçin" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tümü</SelectItem>
-              <SelectItem value="scheduled">Planlandı</SelectItem>
-              <SelectItem value="in-progress">Devam Ediyor</SelectItem>
-              <SelectItem value="completed">Tamamlandı</SelectItem>
-              <SelectItem value="cancelled">İptal Edildi</SelectItem>
+            <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
+              <SelectItem value="all" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Tümü</SelectItem>
+              <SelectItem value="scheduled" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Planlandı</SelectItem>
+              <SelectItem value="in-progress" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Devam Ediyor</SelectItem>
+              <SelectItem value="completed" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Tamamlandı</SelectItem>
+              <SelectItem value="cancelled" className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>İptal Edildi</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="flex-1 space-y-2">
-          <Label>Saat Aralığı</Label>
+          <Label className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}>Saat Aralığı</Label>
           <div className="flex gap-2">
             <Select 
               value={timeRange.start}
               onValueChange={(value) => setTimeRange(prev => ({ ...prev, start: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                 {TIME_SLOTS.map((time) => (
-                  <SelectItem key={time} value={time}>
+                  <SelectItem 
+                    key={time} 
+                    value={time}
+                    className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}
+                  >
                     {time}
                   </SelectItem>
                 ))}
@@ -304,12 +322,16 @@ const TableView: React.FC<TableViewProps> = ({
               value={timeRange.end}
               onValueChange={(value) => setTimeRange(prev => ({ ...prev, end: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white'}>
                 {TIME_SLOTS.map((time) => (
-                  <SelectItem key={time} value={time}>
+                  <SelectItem 
+                    key={time} 
+                    value={time}
+                    className={theme === 'dark' ? 'text-gray-300' : 'text-gray-900'}
+                  >
                     {time}
                   </SelectItem>
                 ))}
@@ -328,18 +350,19 @@ const TableView: React.FC<TableViewProps> = ({
                       variant="outline"
                       onClick={() => setShowAvailable(!showAvailable)}
                       disabled={!selectedDate || selectedTrainer === "all"}
+                      className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white'}
                     >
                       {showAvailable ? "Müsait Saatleri Gizle" : "Müsait Saatleri Göster"}
                     </Button>
                   </div>
                 </TooltipTrigger>
                 {!selectedDate && (
-                  <TooltipContent>
+                  <TooltipContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
                     <p>Lütfen önce bir tarih seçin</p>
                   </TooltipContent>
                 )}
                 {selectedTrainer === "all" && (
-                  <TooltipContent>
+                  <TooltipContent className={theme === 'dark' ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white'}>
                     <p>Lütfen bir antrenör seçin</p>
                   </TooltipContent>
                 )}
@@ -349,16 +372,16 @@ const TableView: React.FC<TableViewProps> = ({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className={`rounded-md border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Üye</TableHead>
-              <TableHead>Antrenör</TableHead>
-              <TableHead>Hizmet</TableHead>
-              <TableHead>Tarih</TableHead>
-              <TableHead>Saat</TableHead>
-              <TableHead>Durum</TableHead>
+            <TableRow className={`${theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50/50'}`}>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Üye</TableHead>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Antrenör</TableHead>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Hizmet</TableHead>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Tarih</TableHead>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Saat</TableHead>
+              <TableHead className={theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}>Durum</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -370,22 +393,24 @@ const TableView: React.FC<TableViewProps> = ({
               return (
                 <TableRow
                   key={appointment.id}
-                  className="cursor-pointer hover:bg-gray-50"
+                  className={`cursor-pointer ${
+                    theme === 'dark' ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'
+                  }`}
                   onClick={() => onEdit(appointment)}
                 >
-                  <TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {member?.first_name} {member?.last_name}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {trainer?.first_name} {trainer?.last_name}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {service?.name}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {format(new Date(appointment.date), "d MMMM yyyy", { locale: tr })}
                   </TableCell>
-                  <TableCell>{formatTime(appointment.time)}</TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{formatTime(appointment.time)}</TableCell>
                   <TableCell>
                     {getStatusBadge(appointment.status)}
                   </TableCell>
@@ -395,17 +420,17 @@ const TableView: React.FC<TableViewProps> = ({
             {showAvailable && availableSlots.map(slot => {
               const remainingSlots = getRemainingStandardSlots(selectedDate!, slot);
               return (
-                <TableRow key={slot} className="bg-gray-50">
-                  <TableCell>-</TableCell>
-                  <TableCell>
+                <TableRow key={slot} className={theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'}>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>-</TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {trainers.find(t => t.id === selectedTrainer)?.first_name} {trainers.find(t => t.id === selectedTrainer)?.last_name}
                   </TableCell>
-                  <TableCell>-</TableCell>
-                  <TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>-</TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
                     {selectedDate && format(selectedDate, "d MMMM yyyy", { locale: tr })}
                   </TableCell>
-                  <TableCell>{formatTime(slot)}</TableCell>
-                  <TableCell className="text-green-600 font-medium">
+                  <TableCell className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{formatTime(slot)}</TableCell>
+                  <TableCell className={theme === 'dark' ? 'text-green-600' : 'text-green-500'} font-medium>
                     {remainingSlots === 3 ? (
                       "Boş"
                     ) : remainingSlots > 0 ? (
@@ -419,7 +444,7 @@ const TableView: React.FC<TableViewProps> = ({
             })}
             {filteredAppointments.length === 0 && !showAvailable && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+                <TableCell colSpan={6} className={`text-center py-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
                   Bu kriterlere uygun randevu bulunamadı
                 </TableCell>
               </TableRow>

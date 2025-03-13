@@ -11,11 +11,32 @@ import { Badge } from "@/components/ui/badge";
 import { Trainer } from "@/types";
 import cn from "classnames";
 
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+}
+
+interface Member {
+  first_name: string;
+  last_name: string;
+}
+
+interface Appointment {
+  id: string;
+  time: string;
+  service_id: string;
+  member?: Member;
+  service?: {
+    name: string;
+  };
+}
+
 interface TrainerCardProps {
   trainer: Trainer;
   isBusy?: boolean;
-  currentAppointment?: any;
-  services?: any[];
+  currentAppointment?: Appointment;
+  services?: Service[];
   onClick?: () => void;
   getRemainingMinutes?: (startTime: string, durationMinutes?: number) => number;
 }

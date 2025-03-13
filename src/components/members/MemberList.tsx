@@ -3,6 +3,8 @@ import { Search } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { MemberCard } from "./MemberCard";
 import React from "react";
+import { useTheme } from "@/contexts/theme-context";
+
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -33,6 +35,9 @@ export const MemberList = ({
   onMemberClick,
   onTrainerFilterChange,
 }: MemberListProps) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const filteredMembers = members
     .filter((member) => {
       const matchesSearch =
@@ -66,7 +71,7 @@ export const MemberList = ({
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Search className={`absolute left-2 top-2.5 h-4 w-4 ${isDark ? "text-gray-400" : "text-muted-foreground"}`} />
         <Input
           placeholder="İsim, email veya telefon ile ara..."
           value={searchTerm}
@@ -79,7 +84,11 @@ export const MemberList = ({
         <select
           value={selectedTrainerId}
           onChange={(e) => onTrainerFilterChange(e.target.value)}
-          className="w-full p-2 border rounded-md"
+          className={`w-full p-2 border rounded-md ${
+            isDark 
+              ? "bg-gray-800 text-gray-200 border-gray-700" 
+              : "bg-white text-gray-900 border-gray-300"
+          }`}
         >
           <option value="all">Tüm Antrenörler</option>
           {trainers.map((trainer) => (
@@ -88,7 +97,7 @@ export const MemberList = ({
             </option>
           ))}
         </select>
-        <p className="text-sm text-muted-foreground whitespace-nowrap">
+        <p className={`text-sm whitespace-nowrap ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
           {filteredMembers.length} üye listeleniyor
         </p>
       </div>

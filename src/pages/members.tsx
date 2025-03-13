@@ -23,6 +23,7 @@ import { MemberStats } from "@/components/members/MemberStats";
 import { MemberList } from "@/components/members/MemberList";
 import { MemberDetail } from "@/components/members/MemberDetail";
 import { LoadingSpinner } from "@/App";
+import { useTheme } from "@/contexts/theme-context";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
@@ -48,6 +49,8 @@ const MembersPage = () => {
   const [addingMember, setAddingMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     fetchMembers();
@@ -205,9 +208,9 @@ const MembersPage = () => {
   }
 
   return (
-    <div className="container p-0 mx-auto py-6 space-y-6">
+    <div className={`container p-0 mx-auto py-6 space-y-6 ${isDark ? "text-gray-100" : ""}`}>
         <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Üyeler</h1>
+        <h1 className={`text-3xl font-bold ${isDark ? "text-white" : ""}`}>Üyeler</h1>
           <Dialog open={addingMember} onOpenChange={setAddingMember}>
             <DialogTrigger asChild>
               <Button>
@@ -215,9 +218,9 @@ const MembersPage = () => {
                 Yeni Üye
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
               <DialogHeader>
-              <DialogTitle>Yeni Üye</DialogTitle>
+              <DialogTitle className={isDark ? "dark:text-white" : ""}>Yeni Üye</DialogTitle>
               </DialogHeader>
               <MemberForm
                 onSubmit={handleCreate}
@@ -251,7 +254,7 @@ const MembersPage = () => {
             />
 
           {selectedMember && (
-            <DialogContent>
+            <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
               <MemberDetail
                 member={selectedMember}
                 services={services}
@@ -279,9 +282,9 @@ const MembersPage = () => {
             open={!!editingMember}
             onOpenChange={(open) => !open && setEditingMember(null)}
           >
-            <DialogContent>
+            <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
               <DialogHeader>
-                <DialogTitle>Üye Düzenle</DialogTitle>
+                <DialogTitle className={isDark ? "dark:text-white" : ""}>Üye Düzenle</DialogTitle>
               </DialogHeader>
               <MemberForm
                 member={editingMember}

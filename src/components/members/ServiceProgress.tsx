@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2 } from "lucide-react";
 import cn from "classnames";
 import type { Database } from "@/types/supabase";
+import { useTheme } from "@/contexts/theme-context";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
@@ -14,16 +15,25 @@ export interface ServiceProgressProps {
 }
 
 export const ServiceProgress = ({ service, completedSessions, totalPackages }: ServiceProgressProps) => {
+  const { theme } = useTheme();
   const sessionsPerPackage = service?.session_count || 0;
   
   // Eğer üye bu paketten sadece 1 tane almışsa ve seans sayısını aşmışsa
   // gerçek tamamlanan seans sayısını göster
   if (totalPackages === 1 && completedSessions > sessionsPerPackage) {
     return (
-      <div className="w-full bg-primary/5 p-2.5 rounded-lg shadow-sm border border-primary/10 hover:bg-primary/10 transition-colors">
+      <div className={`w-full p-2.5 rounded-lg shadow-sm border transition-colors ${
+        theme === 'dark'
+          ? 'bg-gray-800/80 border-primary/20 hover:bg-gray-800'
+          : 'bg-primary/5 border-primary/10 hover:bg-primary/10'
+      }`}>
         <Badge
           variant="outline"
-          className="px-3 py-1 flex items-center gap-2 mb-1.5 bg-background/80 font-medium"
+          className={`px-3 py-1 flex items-center gap-2 mb-1.5 font-medium ${
+            theme === 'dark'
+              ? 'bg-gray-700/80 text-gray-200 border-gray-600'
+              : 'bg-background/80'
+          }`}
         >
           <span className="mr-auto">
             {service?.name || "Yükleniyor..."}
@@ -32,11 +42,19 @@ export const ServiceProgress = ({ service, completedSessions, totalPackages }: S
         <div className="flex items-center gap-2.5">
           <Progress
             value={100}
-            className="h-2.5 rounded-full bg-green-100/70 [&>div]:bg-green-600"
+            className={`h-2.5 rounded-full ${
+              theme === 'dark'
+                ? 'bg-green-800/40 [&>div]:bg-green-500'
+                : 'bg-green-100/70 [&>div]:bg-green-600'
+            }`}
           />
-          <span className="text-xs whitespace-nowrap flex items-center gap-1.5 font-medium">
+          <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 font-medium ${
+            theme === 'dark' ? 'text-gray-300' : ''
+          }`}>
             {completedSessions}/{sessionsPerPackage}
-            <CheckCircle2 className="text-green-600 size-4 ml-0.5" />
+            <CheckCircle2 className={`size-4 ml-0.5 ${
+              theme === 'dark' ? 'text-green-500' : 'text-green-600'
+            }`} />
           </span>
         </div>
       </div>
@@ -56,10 +74,18 @@ export const ServiceProgress = ({ service, completedSessions, totalPackages }: S
   const isCompleted = progress >= 100;
   
   return (
-    <div className="w-full bg-primary/5 p-2.5 rounded-lg shadow-sm border border-primary/10 hover:bg-primary/10 transition-colors">
+    <div className={`w-full p-2.5 rounded-lg shadow-sm border transition-colors ${
+      theme === 'dark'
+        ? 'bg-gray-800/80 border-primary/20 hover:bg-gray-800'
+        : 'bg-primary/5 border-primary/10 hover:bg-primary/10'
+    }`}>
       <Badge
         variant="outline"
-        className="px-3 py-1 flex items-center gap-2 mb-1.5 bg-background/80 font-medium"
+        className={`px-3 py-1 flex items-center gap-2 mb-1.5 font-medium ${
+          theme === 'dark'
+            ? 'bg-gray-700/80 text-gray-200 border-gray-600'
+            : 'bg-background/80'
+        }`}
       >
         {totalPackages > 1 && (
           <span className="text-red-500 font-semibold">{totalPackages} ×</span>
@@ -73,17 +99,31 @@ export const ServiceProgress = ({ service, completedSessions, totalPackages }: S
           value={progress}
           className={cn(
             "h-2.5 rounded-full",
-            isCompleted ? "bg-green-100/70 [&>div]:bg-green-600" : "bg-primary/10 [&>div]:bg-primary"
+            isCompleted 
+              ? theme === 'dark'
+                ? "bg-green-800/40 [&>div]:bg-green-500" 
+                : "bg-green-100/70 [&>div]:bg-green-600"
+              : theme === 'dark'
+                ? "bg-gray-700 [&>div]:bg-primary" 
+                : "bg-primary/10 [&>div]:bg-primary"
           )}
         />
-        <span className="text-xs whitespace-nowrap flex items-center gap-1.5 font-medium">
+        <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 font-medium ${
+          theme === 'dark' ? 'text-gray-300' : ''
+        }`}>
           {currentPackageCompletedSessions}/{sessionsPerPackage}
           {(completedPackages > 0 || isCompleted) && (
             <span className="ml-1.5 flex items-center">
               {isCompleted ? (
-                <CheckCircle2 className="text-green-600 size-4 ml-0.5" />
+                <CheckCircle2 className={`size-4 ml-0.5 ${
+                  theme === 'dark' ? 'text-green-500' : 'text-green-600'
+                }`} />
               ) : (
-                <span className="text-xs text-muted-foreground italic">({completedPackages} kez tamamlandı)</span>
+                <span className={`text-xs italic ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-muted-foreground'
+                }`}>
+                  ({completedPackages} kez tamamlandı)
+                </span>
               )}
             </span>
           )}

@@ -22,6 +22,7 @@ import {
   PieChart,
   Legend,
 } from "recharts";
+import { useTheme } from "@/contexts/theme-context";
 
 interface TooltipProps {
   active?: boolean;
@@ -36,7 +37,8 @@ interface PackageIncome {
   purchase_count: number;
 }
 
-const COLORS = [
+// Açık ve karanlık tema için renk paletleri
+const LIGHT_COLORS = [
   "#FF6B6B",
   "#4ECDC4",
   "#45B7D1",
@@ -47,7 +49,20 @@ const COLORS = [
   "#FFE0B2",
 ];
 
+const DARK_COLORS = [
+  "#FF8A8A",
+  "#6EEAE0",
+  "#67D5F0",
+  "#B4E0D0",
+  "#FFF0C0",
+  "#F0C0C0",
+  "#B0C0F0",
+  "#FFE0C0",
+];
+
 export function PackageIncomeCard() {
+  const { theme } = useTheme();
+  const COLORS = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS;
   const [packageIncomes, setPackageIncomes] = useState<PackageIncome[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -101,16 +116,16 @@ export function PackageIncomeCard() {
   const CustomTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border">
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} p-4 rounded-lg shadow-lg border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
           <p className="font-semibold">{payload[0].payload.package_name}</p>
-          <p className="text-sm text-gray-600">
+          <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
             Gelir:{" "}
             {new Intl.NumberFormat("tr-TR", {
               style: "currency",
               currency: "TRY",
             }).format(payload[0].payload.total_income)}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
             Satın Alınma: {payload[0].payload.purchase_count} kez
           </p>
         </div>
@@ -149,13 +164,13 @@ export function PackageIncomeCard() {
                 <BarChart data={packageIncomes}>
                   <XAxis
                     dataKey="package_name"
-                    stroke="#888888"
+                    stroke={theme === 'dark' ? "#aaaaaa" : "#888888"}
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="#888888"
+                    stroke={theme === 'dark' ? "#aaaaaa" : "#888888"}
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
@@ -190,51 +205,42 @@ export function PackageIncomeCard() {
                     cy="50%"
                     outerRadius={100}
                     label={(entry) => entry.package_name}
+                    labelLine={{ stroke: theme === 'dark' ? '#aaaaaa' : '#888888' }}
                   >
                     {packageIncomes.map((entry, index) => (
                       <Cell key={entry.package_name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend />
+                  <Legend formatter={(value) => <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{value}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </TabsContent>
 
-          <TabsContent value="table">
+          <TabsContent value="table" className="space-y-4">
             <div className="rounded-md border">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Paket Adı</TableHead>
+                    <TableHead className="text-right">Gelir</TableHead>
                     <TableHead className="text-right">Satın Alınma</TableHead>
-                    <TableHead className="text-right">Toplam Gelir</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {packageIncomes.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center">
-                        Henüz gelir kaydı yok
+                  {packageIncomes.map((item) => (
+                    <TableRow key={item.package_name} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{item.package_name}</TableCell>
+                      <TableCell className="text-right">
+                        {new Intl.NumberFormat("tr-TR", {
+                          style: "currency",
+                          currency: "TRY",
+                        }).format(item.total_income)}
                       </TableCell>
+                      <TableCell className="text-right">{item.purchase_count} kez</TableCell>
                     </TableRow>
-                  ) : (
-                    packageIncomes.map((income) => (
-                      <TableRow key={income.package_name}>
-                        <TableCell>{income.package_name}</TableCell>
-                        <TableCell className="text-right">
-                          {income.purchase_count} kez
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {new Intl.NumberFormat("tr-TR", {
-                            style: "currency",
-                            currency: "TRY",
-                          }).format(income.total_income)}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </div>

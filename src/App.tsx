@@ -14,6 +14,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { ThemeProvider } from "@/contexts/theme-context";
 
 export function LoadingSpinner({ text }: { text: string }) {
   return (
@@ -90,11 +91,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Suspense fallback={<LoadingSpinner text="Sayfa yükleniyor..." />}>
-          <AppRoutes />
-        </Suspense>
-        <Toaster />
-        <Analytics />
+        <ThemeProvider>
+          <Suspense fallback={<LoadingSpinner text="Sayfa yükleniyor..." />}>
+            <AppRoutes />
+          </Suspense>
+          <Toaster />
+          <Analytics />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

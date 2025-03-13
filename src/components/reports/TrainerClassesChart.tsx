@@ -154,20 +154,20 @@ export const TrainerClassesChart: React.FC<TrainerClassesChartProps> = ({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="w-[200px]">Antrenör</TableHead>
-                    <TableHead className="text-center bg-green-50">Tamamlanan</TableHead>
-                    <TableHead className="text-center bg-blue-50">Planlanan</TableHead>
-                    <TableHead className="text-center bg-red-50">İptal Edilen</TableHead>
-                    <TableHead className="text-center bg-gray-100">Toplam</TableHead>
+                    <TableHead className="text-center">Tamamlanan</TableHead>
+                    <TableHead className="text-center">Planlanan</TableHead>
+                    <TableHead className="text-center">İptal Edilen</TableHead>
+                    <TableHead className="text-center">Toplam</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {classCountData.map((trainer) => (
                     <TableRow key={trainer.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{trainer.name}</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">{trainer.tamamlanan}</TableCell>
-                      <TableCell className="text-center text-blue-600 font-medium">{trainer.planlanan}</TableCell>
-                      <TableCell className="text-center text-red-600 font-medium">{trainer.iptal}</TableCell>
-                      <TableCell className="text-center font-semibold bg-gray-50">{trainer.toplam}</TableCell>
+                      <TableCell className="text-center text-green-600 dark:text-green-400 font-medium">{trainer.tamamlanan}</TableCell>
+                      <TableCell className="text-center text-blue-600 dark:text-blue-400 font-medium">{trainer.planlanan}</TableCell>
+                      <TableCell className="text-center text-red-600 dark:text-red-400 font-medium">{trainer.iptal}</TableCell>
+                      <TableCell className="text-center font-semibold">{trainer.toplam}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -181,18 +181,18 @@ export const TrainerClassesChart: React.FC<TrainerClassesChartProps> = ({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="w-[200px]">Antrenör</TableHead>
-                    <TableHead className="text-center bg-green-50">Tamamlanan (Saat)</TableHead>
-                    <TableHead className="text-center bg-blue-50">Planlanan (Saat)</TableHead>
-                    <TableHead className="text-center bg-gray-100">Toplam (Saat)</TableHead>
+                    <TableHead className="text-center">Tamamlanan (Saat)</TableHead>
+                    <TableHead className="text-center">Planlanan (Saat)</TableHead>
+                    <TableHead className="text-center">Toplam (Saat)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {hoursData.map((trainer) => (
                     <TableRow key={trainer.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{trainer.name}</TableCell>
-                      <TableCell className="text-center text-green-600 font-medium">{trainer.tamamlanan}</TableCell>
-                      <TableCell className="text-center text-blue-600 font-medium">{trainer.planlanan}</TableCell>
-                      <TableCell className="text-center font-semibold bg-gray-50">{trainer.toplam}</TableCell>
+                      <TableCell className="text-center text-green-600 dark:text-green-400 font-medium">{trainer.tamamlanan}</TableCell>
+                      <TableCell className="text-center text-blue-600 dark:text-blue-400 font-medium">{trainer.planlanan}</TableCell>
+                      <TableCell className="text-center font-semibold">{trainer.toplam}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

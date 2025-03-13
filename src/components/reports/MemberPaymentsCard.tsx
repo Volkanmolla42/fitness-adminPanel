@@ -33,12 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTheme } from "@/contexts/theme-context";
 
 type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export function MemberPaymentsCard() {
+  const { theme } = useTheme();
   const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(
     null
   );
@@ -667,11 +669,11 @@ export function MemberPaymentsCard() {
       </Dialog>
 
       <Dialog open={isAddingPayment} onOpenChange={setIsAddingPayment}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Yeni Ödeme Ekle</DialogTitle>
-            <DialogDescription>
-              Üye ödemesi eklemek için aşağıdaki formu doldurun
+            <DialogDescription className={theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}>
+              Yeni bir üye ödemesi eklemek için aşağıdaki formu doldurun.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

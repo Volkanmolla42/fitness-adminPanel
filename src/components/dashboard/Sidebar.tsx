@@ -11,6 +11,8 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
 import { BugReportModal } from "@/components/BugReportModal";
+import { useTheme } from "@/contexts/theme-context";
 
 interface SidebarProps {
   className?: string;
@@ -102,6 +105,7 @@ const SidebarContent = memo(
     const location = useLocation();
     const navigate = useNavigate();
     const { signOut } = useAuth();
+    const { theme, toggleTheme } = useTheme();
 
     const handleNavigation = useCallback(
       (path: string) => {
@@ -114,7 +118,7 @@ const SidebarContent = memo(
     return (
       <div
         className={cn(
-          "flex flex-col h-svh flex-nowrap bg-pink-100 text-foreground",
+          "flex flex-col h-svh flex-nowrap text-foreground",
           className
         )}
       >
@@ -160,6 +164,8 @@ const SidebarContent = memo(
                       className={cn("w-full", {
                         "justify-start px-3": !isCollapsed,
                         "justify-center p-2": isCollapsed,
+                        "dark:bg-gray-800 dark:text-white": isActive,
+                        "dark:text-gray-300 dark:hover:bg-gray-800": !isActive,
                       })}
                       onClick={() => handleNavigation(item.path)}
                     >
@@ -167,13 +173,15 @@ const SidebarContent = memo(
                         className={cn("h-5 w-5", {
                           "mr-2": !isCollapsed,
                           "text-white": isActive,
+                          "dark:text-white": isActive,
+                          "dark:text-gray-300": !isActive,
                         })}
                       />
-                      {!isCollapsed && <span>{item.title}</span>}
+                      {!isCollapsed && <span className="dark:text-inherit">{item.title}</span>}
                     </Button>
                   </TooltipTrigger>
                   {isCollapsed && (
-                    <TooltipContent side="right" className="font-medium">
+                    <TooltipContent side="right" className="font-medium dark:bg-gray-800 dark:text-gray-300">
                       {item.title}
                     </TooltipContent>
                   )}
@@ -192,6 +200,35 @@ const SidebarContent = memo(
               "flex-col gap-3 justify-center": isCollapsed,
             })}
           >
+            {/* Tema değiştirme düğmesi */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleTheme}
+                    className={cn({
+                      "w-full justify-start": !isCollapsed,
+                      "p-2 justify-center": isCollapsed,
+                    })}
+                  >
+                    {theme === "light" ? (
+                      <Moon className={cn("h-5 w-5", { "mr-2": !isCollapsed })} />
+                    ) : (
+                      <Sun className={cn("h-5 w-5", { "mr-2": !isCollapsed })} />
+                    )}
+                    {!isCollapsed && (theme === "light" ? "Karanlık Mod" : "Aydınlık Mod")}
+                  </Button>
+                </TooltipTrigger>
+                {isCollapsed && (
+                  <TooltipContent side="right" className="font-medium">
+                    {theme === "light" ? "Karanlık Mod" : "Aydınlık Mod"}
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -290,17 +327,20 @@ SidebarContent.displayName = "SidebarContent";
 
 const Sidebar = ({ className = "" }: SidebarProps) => {
   const { isOpen, setIsOpen, isCollapsed, toggleCollapse } = useSidebar();
+  const { theme } = useTheme();
 
   return (
     <>
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden sticky bg-pink-100 top-0 md:flex h-svh border-r z-50",
+          "hidden sticky top-0 md:flex h-svh border-r z-50",
           {
             "w-64": !isCollapsed,
             "w-20": isCollapsed,
           },
+          theme === 'dark' ? 'bg-background' : 'bg-pink-200/80',
+          theme === 'dark' ? 'border-border' : 'border-pink-100',
           className
         )}
       >
@@ -313,7 +353,12 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
         <Button
           variant="outline"
           size="icon"
-          className="absolute -right-4 top-8 h-8 w-8 rounded-full border-2 bg-background shadow-md hover:bg-accent"
+          className={cn(
+            "absolute -right-4 top-8 h-8 w-8 rounded-full border-2 shadow-md",
+            theme === 'dark' 
+              ? 'bg-background hover:bg-accent border-border' 
+              : 'bg-pink-50 hover:bg-pink-100 border-pink-200 text-pink-700'
+          )}
           onClick={toggleCollapse}
         >
           {isCollapsed ? (
@@ -330,13 +375,26 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden fixed top-4  bg-pink-100 left-4 z-[51]"
+            className={cn(
+              "md:hidden fixed top-4 left-4 z-[51]",
+              theme === 'dark' 
+                ? 'text-foreground hover:bg-accent' 
+                : 'text-pink-700 hover:bg-pink-100/50'
+            )}
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="py-0 px-2 w-64 z-[52] bg-pink-100">
+        <SheetContent 
+          side="left" 
+          className={cn(
+            "py-0 px-2 w-64 z-[52]",
+            theme === 'dark' 
+              ? 'bg-background border-border' 
+              : 'bg-pink-50/80 border-pink-100'
+          )}
+        >
           <SheetTitle className="hidden">FitAdmin Menu</SheetTitle>
           <SheetDescription className="hidden">
             Gezinmek için menüyü kullanın

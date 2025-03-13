@@ -5,6 +5,7 @@ import { Timer, User2, Calendar, Pencil, Trash2 } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/contexts/theme-context";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
@@ -19,13 +20,15 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { theme } = useTheme();
+  
   return (
-    <Card className="border border-gray-100 hover:border-destructive/50 transition-all hover:shadow-md group relative p-5">
+    <Card className={`border ${theme === 'dark' ? 'border-gray-800 hover:border-destructive/70' : 'border-gray-100 hover:border-destructive/50'} transition-all hover:shadow-md group relative p-5`}>
       <div className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
             
-              <h3 className="text-xl tracking-tight font-semibold text-gray-900">{service.name}</h3>
+              <h3 className={`text-xl tracking-tight font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{service.name}</h3>
               
            
             {service.isVipOnly && (
@@ -33,17 +36,17 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
                   VIP
                 </Badge>
               )}
-            <p className="text-sm leading-relaxed text-gray-500 pr-4">{service.description}</p>
+            <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} pr-4`}>{service.description}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 text-destructive border-t border-b border-gray-100 py-3 my-1">
+        <div className={`flex items-center gap-2.5 text-destructive border-t border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'} py-3 my-1`}>
           <Calendar className="h-4 w-4" />
           <span className="text-sm font-medium">{service.session_count} Ders</span>
           <span className="font-semibold text-xl tracking-tight ml-auto">₺{service.price.toLocaleString('tr-TR')}</span>
         </div>
 
-        <div className="flex items-center gap-6 text-gray-500">
+        <div className={`flex items-center gap-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
           <div className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
             <span className="text-sm font-medium">{service.duration} dk</span>
@@ -59,7 +62,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => onEdit(service)}
-            className="h-8 w-8 p-0 hover:text-destructive hover:bg-destructive/10"
+            className={`h-8 w-8 p-0 ${theme === 'dark' ? 'hover:text-destructive hover:bg-destructive/20' : 'hover:text-destructive hover:bg-destructive/10'}`}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -68,7 +71,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className={`h-8 w-8 p-0 text-destructive ${theme === 'dark' ? 'hover:bg-destructive/20' : 'hover:bg-destructive/10'}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

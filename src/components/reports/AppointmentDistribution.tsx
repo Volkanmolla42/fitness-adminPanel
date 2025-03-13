@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Database } from "@/types/supabase";
 import TIME_SLOTS  from "@/constants/timeSlots";
+import { useTheme } from "@/contexts/theme-context";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
@@ -18,9 +19,35 @@ interface AppointmentDistributionProps {
   appointments: Appointment[];
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  const { theme } = useTheme();
+  if (active && payload && payload.length) {
+    return (
+      <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} p-2 border rounded shadow-sm ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+        <p className="font-semibold">{label}</p>
+        <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+          Randevu Sayısı: {payload[0].value}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = ({
   appointments,
 }) => {
+  const { theme } = useTheme();
+  const barColor = theme === 'dark' ? '#6EE7B7' : '#82ca9d'; // Daha parlak yeşil karanlık tema için
+  const textColor = theme === 'dark' ? '#e0e0e0' : '#666';
+  const gridColor = theme === 'dark' ? '#333' : '#d0d0d0';
+
   const data = useMemo(() => {
     // Create a map to store time slot counts
     const slotDistribution: { [key: string]: number } = {};
@@ -53,6 +80,7 @@ export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = (
       randevu: slotDistribution[saat]
     }));
   }, [appointments]);
+  
   return (
     <Card>
       <CardHeader>
@@ -62,11 +90,11 @@ export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = (
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="saat" />
-              <YAxis domain={[0, 'auto']} />
-              <Tooltip formatter={(value) => [value, 'Randevu Sayısı']} />
-              <Bar dataKey="randevu" fill="#82ca9d" name="Randevu Sayısı" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="saat" tick={{ fill: textColor }} />
+              <YAxis domain={[0, 'auto']} tick={{ fill: textColor }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="randevu" fill={barColor} name="Randevu Sayısı" />
             </BarChart>
           </ResponsiveContainer>
         </div>

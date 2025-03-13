@@ -382,8 +382,8 @@ const ReportsPage = () => {
                     title: "Toplam Satılan Paket",
                     value: metrics.totalPackages,
                     icon: Package2,
-                    color: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200",
-                    iconColor: "text-blue-500",
+                    color: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950 dark:to-blue-900 dark:border-blue-800",
+                    iconColor: "text-blue-500 dark:text-blue-400",
                    
                
                   },
@@ -391,16 +391,16 @@ const ReportsPage = () => {
                     title: "Üye Sayısı",
                     value: metrics.uniqueMembers,
                     icon: Users,
-                    color: "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200",
-                    iconColor: "text-purple-500",
+                    color: "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950 dark:to-purple-900 dark:border-purple-800",
+                    iconColor: "text-purple-500 dark:text-purple-400",
                 
                   },
                   {
                     title: "Randevu Sayısı",
                     value: metrics.totalAppointments,
                     icon: Calendar,
-                    color: "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200",
-                    iconColor: "text-amber-500",
+                    color: "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-950 dark:to-amber-900 dark:border-amber-800",
+                    iconColor: "text-amber-500 dark:text-amber-400",
                   
                   },
                   {
@@ -410,8 +410,8 @@ const ReportsPage = () => {
                       currency: "TRY",
                     }),
                     icon: TrendingUp,
-                    color: "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200",
-                    iconColor: "text-pink-500",
+                    color: "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 dark:from-pink-950 dark:to-pink-900 dark:border-pink-800",
+                    iconColor: "text-pink-500 dark:text-pink-400",
                   },
                   {
                     title: "Toplam Gelir",
@@ -420,8 +420,8 @@ const ReportsPage = () => {
                       currency: "TRY",
                     }),
                     icon: Wallet,
-                    color: "bg-gradient-to-br from-green-50 to-green-100 border-green-200",
-                    iconColor: "text-green-500",
+                    color: "bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950 dark:to-green-900 dark:border-green-800",
+                    iconColor: "text-green-500 dark:text-green-400",
                     
                   
                   },
@@ -433,7 +433,7 @@ const ReportsPage = () => {
                   >
                     <div className="p-5">
                       <div className="flex justify-between items-start mb-4">
-                        <div className={`p-2 rounded-lg ${item.iconColor} bg-white bg-opacity-50`}>
+                        <div className={`p-2 rounded-lg ${item.iconColor} bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50`}>
                           <item.icon className="h-5 w-5" />
                         </div>
                       </div>

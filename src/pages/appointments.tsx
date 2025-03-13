@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, LayoutList, Table2 } from "lucide-react";
+import { useTheme } from "@/contexts/theme-context";
 import {
   Dialog,
   DialogContent,
@@ -17,12 +18,14 @@ import { useAppointments } from "@/hooks/useAppointments";
 import { Notification } from "@/components/ui/notification";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
-import { LoadingSpinner } from "@/App"; 
+import { LoadingSpinner } from "@/App";
 
 type AppointmentType = Database["public"]["Tables"]["appointments"]["Row"];
 
 function AppointmentsPage() {
   const { toast } = useToast();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const {
     appointments,
     members,
@@ -144,7 +147,7 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className="space-y-4 container m-0 p-0">
+    <div className={`space-y-4 container m-0 p-0`}>
       {/* Bildirimler */}
       <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
         {activeNotifications.map((notification, index) => (
@@ -153,26 +156,24 @@ function AppointmentsPage() {
             message={notification.message}
             index={index}
             onAcknowledge={() => {
-              setAcknowledgedNotifications(
-                (prev) => new Set([...prev, notification.id])
-              );
-              setActiveNotifications((prev) =>
-                prev.filter((n) => n.id !== notification.id)
-              );
+              setAcknowledgedNotifications((prev) => new Set([...prev, notification.id]));
+              setActiveNotifications((prev) => prev.filter((n) => n.id !== notification.id));
             }}
           />
         ))}
       </div>
-      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-end ">
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-end">
         <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-3xl font-bold">Randevular</h2>
-            <p className="text-sm md:text-base text-muted-foreground">
+            <h2 className={`text-3xl font-bold ${isDark ? "text-gray-100" : "text-gray-900"}`}>Randevular</h2>
+            <p className={`text-sm md:text-base ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
               Randevuları görüntüle, düzenle ve yönet
             </p>
           </div>
           <div className="flex items-center flex-wrap gap-2">
-            <div className="text-sm md:text-base font-bold bg-muted px-3 py-1 rounded-md">
+            <div className={`text-sm md:text-base font-bold px-3 py-1 rounded-md ${
+              isDark ? "bg-gray-800 text-gray-300" : "bg-muted text-gray-700"
+            }`}>
               {currentTime.toLocaleDateString("tr-TR", {
                 weekday: "long",
                 day: "numeric",
@@ -187,12 +188,16 @@ function AppointmentsPage() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex flex-wrap items-center gap-2 bg-muted/50 p-1 rounded-lg">
-          <Button
+          <div className={`flex flex-wrap items-center gap-2 p-1 rounded-lg ${
+            isDark ? "bg-gray-800/50" : "bg-muted/50"
+          }`}>
+            <Button
               variant={viewMode === "weekly" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("weekly")}
-              className="flex-1 sm:flex-none"
+              className={`flex-1 sm:flex-none ${
+                isDark && viewMode !== "weekly" ? "hover:bg-gray-700" : ""
+              }`}
             >
               <CalendarDays className="h-4 w-4 mr-2" />
               Haftalık
@@ -201,17 +206,20 @@ function AppointmentsPage() {
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
-              className="flex-1 sm:flex-none"
+              className={`flex-1 sm:flex-none ${
+                isDark && viewMode !== "list" ? "hover:bg-gray-700" : ""
+              }`}
             >
               <LayoutList className="h-4 w-4 mr-2" />
               Liste
             </Button>
-            
             <Button
               variant={viewMode === "table" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("table")}
-              className="flex-1 sm:flex-none"
+              className={`flex-1 sm:flex-none ${
+                isDark && viewMode !== "table" ? "hover:bg-gray-700" : ""
+              }`}
             >
               <Table2 className="h-4 w-4 mr-2" />
               Tablo
@@ -230,14 +238,18 @@ function AppointmentsPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 p-4">
-                <span className="text-green-500 text-xl mr-2">+</span>
+              <Button className={`w-full sm:w-auto p-4 ${
+                isDark 
+                  ? "bg-green-600 hover:bg-green-700 text-white" 
+                  : "bg-primary hover:bg-primary/90"
+              }`}>
+                <span className={`text-xl mr-2 ${isDark ? "text-white" : "text-green-500"}`}>+</span>
                 <span>Randevu Ekle</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className={`sm:max-w-[425px] ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className={isDark ? "text-gray-100" : ""}>
                   {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
                 </DialogTitle>
               </DialogHeader>
@@ -274,7 +286,7 @@ function AppointmentsPage() {
           </div>
         </div>
 
-        <div className="min-h-[400px]">
+        <div className={`min-h-[400px]`}>
           {viewMode === "list" && (
             <AppointmentGroups
               searchQuery={searchQuery}

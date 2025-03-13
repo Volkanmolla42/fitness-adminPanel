@@ -25,6 +25,7 @@ import { getServices } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useTheme } from "@/contexts/theme-context";
 
 import { formatPhoneNumber } from "./TrainerForm";
 
@@ -47,6 +48,8 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
     cash_paid: "",
     payment_date: new Date().toISOString().split("T")[0],
   });
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   // Seçili paketlerin toplam tutarını hesapla
   const totalAmount = selectedServices.reduce(
@@ -142,11 +145,11 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
             setIsSubmitting(false);
           }
         })}
-        className="space-y-4 p-2"
+        className={`space-y-4 p-2 ${isDark ? "text-gray-200" : ""}`}
       >
         {/* Kişisel Bilgiler */}
         <div className="space-y-2 mb-4">
-          <div className="text-xs font-medium text-muted-foreground px-1">
+          <div className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-muted-foreground"} px-1`}>
             Kişisel Bilgiler
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-sm">
@@ -159,7 +162,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                     <Input
                       placeholder="Ad"
                       {...field}
-                      className="border-2 focus-visible:border-primary"
+                      className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                     />
                   </FormControl>
                   <FormMessage />
@@ -179,7 +182,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       onChange={(e) => {
                         field.onChange(e.target.value.toUpperCase());
                       }}
-                      className="border-2 focus-visible:border-primary"
+                      className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                     />
                   </FormControl>
                   <FormMessage />
@@ -199,7 +202,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       placeholder="E-posta"
                       type="email"
                       {...field}
-                      className="border-2 focus-visible:border-primary"
+                      className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                     />
                   </FormControl>
                   <FormMessage />
@@ -220,7 +223,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                         const formatted = formatPhoneNumber(e.target.value);
                         field.onChange(formatted);
                       }}
-                      className="border-2 focus-visible:border-primary"
+                      className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                     />
                   </FormControl>
                   <FormMessage />
@@ -238,16 +241,16 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               name="membership_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground">
+                  <FormLabel className={`text-xs ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
                     Üyelik Tipi
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger className="border-2 focus-visible:border-primary">
+                      <SelectTrigger className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}>
                         <SelectValue placeholder="Üyelik tipi seçin" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className={isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}>
                       <SelectItem value="basic">Standart Üye</SelectItem>
                       <SelectItem value="vip">VIP Üye</SelectItem>
                     </SelectContent>
@@ -262,14 +265,14 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
               name="start_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground">
+                  <FormLabel className={`text-xs ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
                     Başlangıç Tarihi
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="date"
                       {...field}
-                      className="border-2 focus-visible:border-primary"
+                      className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                     />
                   </FormControl>
                   <FormMessage />
@@ -281,7 +284,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
         {/* Paket Seçimi */}
         <div className="space-y-2">
-          <div className="text-xs font-medium text-muted-foreground px-1">
+          <div className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-muted-foreground"} px-1`}>
             Paket Seçimi
           </div>
           <FormField
@@ -303,7 +306,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                   value=""
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full border-2 focus-visible:border-primary">
+                    <SelectTrigger className={`w-full border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}>
                       <SelectValue placeholder="Paket seçin">
                         {field.value?.length > 0
                           ? `${field.value.length} paket seçildi`
@@ -311,7 +314,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       </SelectValue>
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="max-h-[280px]">
+                  <SelectContent className={`max-h-[280px] ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}>
                     {services
                       .sort((a, b) => {
                         if (a.isVipOnly && !b.isVipOnly) return -1;
@@ -337,7 +340,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                             <div className="flex items-center justify-between gap-2 w-full">
                               <span>{service.name}</span>
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground text-sm">
+                                <span className={`text-sm ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
                                   {service.price?.toLocaleString("tr-TR")} ₺
                                 </span>
                                 {service.isVipOnly && (
@@ -363,15 +366,15 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                         <Badge
                           key={`${serviceId}-${index}`}
                           variant="secondary"
-                          className="px-2 py-1 flex items-center gap-1.5"
+                          className={`px-2 py-1 flex items-center gap-1.5 ${isDark ? "bg-gray-700 hover:bg-gray-600" : ""}`}
                         >
                           <span>{service.name}</span>
-                          <span className="text-muted-foreground text-sm">
+                          <span className={`text-sm ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
                             {service.price?.toLocaleString("tr-TR")} ₺
                           </span>
                           <button
                             type="button"
-                            className="ml-1  text-destructive"
+                            className="ml-1 text-destructive"
                             onClick={() => {
                               const newServices = [...field.value];
                               const newSelectedServices = [...selectedServices];
@@ -397,7 +400,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
         {/* Ödeme Bilgileri */}
         {selectedServices.length > 0 && (
           <div className="flex flex-col">
-            <div className="border-t border-blue-600 pt-2 font-bold">
+            <div className={`border-t border-blue-600 pt-2 font-bold ${isDark ? "text-gray-200" : ""}`}>
               <div className="flex justify-between items-center">
                 <span className="text-xs">Toplam Kalan Tutar:</span>
                 <span
@@ -417,7 +420,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
             {/* Ödeme Formu - Kompakt Tasarım */}
             <div className="grid grid-cols-2 gap-1 mt-2">
               <div className="col-span-3">
-                <FormLabel className="text-xs text-muted-foreground mb-0">
+                <FormLabel className={`text-xs ${isDark ? "text-gray-400" : "text-muted-foreground"} mb-0`}>
                   Ödeme Tarihi
                 </FormLabel>
                 <Input
@@ -429,12 +432,12 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       payment_date: e.target.value,
                     })
                   }
-                  className="border h-8 text-xs focus-visible:border-primary"
+                  className={`border h-8 text-xs focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                 />
               </div>
               
               <div>
-                <FormLabel className="text-xs text-muted-foreground mb-0">
+                <FormLabel className={`text-xs ${isDark ? "text-gray-400" : "text-muted-foreground"} mb-0`}>
                   Kredi Kartı
                 </FormLabel>
                 <Input
@@ -446,13 +449,13 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       credit_card_paid: e.target.value,
                     })
                   }
-                  className="border h-8 text-xs focus-visible:border-primary"
+                  className={`border h-8 text-xs focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                   placeholder="0"
                 />
               </div>
               
               <div>
-                <FormLabel className="text-xs text-muted-foreground mb-0">
+                <FormLabel className={`text-xs ${isDark ? "text-gray-400" : "text-muted-foreground"} mb-0`}>
                   Nakit
                 </FormLabel>
                 <Input
@@ -464,7 +467,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                       cash_paid: e.target.value,
                     })
                   }
-                  className="border h-8 text-xs focus-visible:border-primary"
+                  className={`border h-8 text-xs focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                   placeholder="0"
                 />
               </div>
@@ -475,7 +478,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
 
         {/* Notlar */}
         <div>
-          <div className="text-xs font-medium text-muted-foreground pb-2">
+          <div className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-muted-foreground"} pb-2`}>
             Ek Bilgiler
           </div>
           <FormField
@@ -487,7 +490,7 @@ export function MemberForm({ member, onSubmit, onCancel }: MemberFormProps) {
                   <Input
                     placeholder="Ödeme yöntemi, notlar..."
                     {...field}
-                    className="border-2 focus-visible:border-primary"
+                    className={`border-2 focus-visible:border-primary ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
                   />
                 </FormControl>
                 <FormMessage />

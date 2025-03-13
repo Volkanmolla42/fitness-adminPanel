@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trainer } from "@/types";
 
+import React from "react";
 interface DeleteTrainerDialogProps {
   trainer: Trainer | null;
   isOpen: boolean;

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import { useTheme } from "@/contexts/theme-context";
 
 interface AppointmentCardProps {
   appointment: {
@@ -142,6 +143,8 @@ const AppointmentCard = ({
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const handleChangeStatus = (status: string) => {
     setPendingStatus(status);
@@ -168,7 +171,9 @@ const AppointmentCard = ({
   return (
     <>
       <Card
-        className="group h-max transform transition-all duration-300 hover:shadow-lg relative border-gray-300 overflow-hidden border-l-4 bg-white cursor-pointer"
+        className={`group h-max transform transition-all duration-300 hover:shadow-lg relative border-gray-300 overflow-hidden border-l-4 cursor-pointer ${
+          isDark ? "bg-gray-800 border-gray-700" : "bg-white"
+        }`}
         style={{
           borderLeftColor:
             appointment.status === "scheduled"
@@ -183,7 +188,11 @@ const AppointmentCard = ({
         onClick={() => setIsMemberModalOpen(true)}
       >
         <div
-          className="text-blue-600 z-50 absolute bottom-4 right-4 cursor-pointer flex items-center border border-blue-300 rounded-md p-2 hover:bg-blue-50"
+          className={`z-50 absolute bottom-4 right-4 cursor-pointer flex items-center rounded-md p-2 ${
+            isDark
+              ? "text-blue-400 border-blue-600 hover:bg-blue-900/40"
+              : "text-blue-600 border border-blue-300 hover:bg-blue-50"
+          }`}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(appointment);
@@ -218,7 +227,7 @@ const AppointmentCard = ({
                 {appointment.status === "scheduled" && (
                   <>
                     <DropdownMenuItem
-                      className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-50"
+                      className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-50 dark:text-yellow-400 dark:focus:text-yellow-400 dark:focus:bg-yellow-950/50"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleChangeStatus("in-progress");
@@ -228,7 +237,7 @@ const AppointmentCard = ({
                       <span>Başlat</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                      className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:text-red-400 dark:focus:bg-red-950/50"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleChangeStatus("cancelled");
@@ -242,7 +251,7 @@ const AppointmentCard = ({
 
                 {appointment.status === "in-progress" && (
                   <DropdownMenuItem
-                    className="text-green-600 focus:text-green-600 focus:bg-green-50"
+                    className="text-green-600 focus:text-green-600 focus:bg-green-50 dark:text-green-400 dark:focus:text-green-400 dark:focus:bg-green-950/50"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleChangeStatus("completed");
@@ -256,7 +265,7 @@ const AppointmentCard = ({
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:text-red-400 dark:focus:bg-red-950/50"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsDeleteModalOpen(true);
@@ -273,24 +282,24 @@ const AppointmentCard = ({
             {/* Tarih ve Saat */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
               <div className="flex items-center space-x-2">
-                <div className="bg-gray-50 p-1.5 sm:p-2 rounded-lg">
-                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+                <div className={`p-1.5 sm:p-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-50"}`}>
+                  <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${isDark ? "text-gray-300" : "text-gray-600"}`} />
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <span
                       className={`text-xl sm:text-2xl font-bold tracking-tight ${
                         isUpcoming || isAboutToStart
-                          ? "text-orange-500"
-                          : "text-gray-900"
+                          ? "text-orange-500 dark:text-orange-400"
+                          : isDark ? "text-gray-100" : "text-gray-900"
                       }`}
                     >
                       {appointment.time.slice(0, 5)}
                     </span>
                     {isAboutToStart && appointment.status === "scheduled" && (
-                      <div className="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded-full">
-                        <Timer className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 mr-1" />
-                        <span className="text-xs font-medium text-orange-600 whitespace-nowrap">
+                      <div className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${isDark ? "bg-orange-900/50" : "bg-orange-100"}`}>
+                        <Timer className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 dark:text-orange-400 mr-1" />
+                        <span className="text-xs font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
                           Başlamak Üzere
                         </span>
                       </div>
@@ -298,15 +307,15 @@ const AppointmentCard = ({
                     {isUpcoming &&
                       !isAboutToStart &&
                       appointment.status === "scheduled" && (
-                        <div className="flex items-center bg-orange-100 px-1.5 sm:px-2 py-0.5 rounded-full">
-                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 mr-1" />
-                          <span className="text-xs font-medium text-orange-600 whitespace-nowrap">
+                        <div className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${isDark ? "bg-orange-900/50" : "bg-orange-100"}`}>
+                          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 dark:text-orange-400 mr-1" />
+                          <span className="text-xs font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
                             Yaklaşıyor
                           </span>
                         </div>
                       )}
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-500">
+                  <span className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     {(() => {
                       const appointmentDate = new Date(appointment.date);
                       const isAppointmentToday = isToday(appointmentDate);
@@ -323,9 +332,11 @@ const AppointmentCard = ({
               </div>
 
               {appointment.status === "in-progress" && (
-                <div className="flex items-center bg-yellow-50 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto">
-                  <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 mr-1 sm:mr-1.5" />
-                  <span className="text-xs sm:text-sm font-medium text-yellow-700">
+                <div className={`flex items-center px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto ${
+                  isDark ? "bg-yellow-900/30" : "bg-yellow-50"
+                }`}>
+                  <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400 mr-1 sm:mr-1.5" />
+                  <span className="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-400">
                     {remainingTime}dk kaldı
                   </span>
                 </div>
@@ -339,16 +350,18 @@ const AppointmentCard = ({
                   <img
                     src={member.avatar}
                     alt={`${member.firstName} ${member.lastName}`}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-white shadow-sm"
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
                   />
                 ) : (
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm">
-                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
+                  <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-sm ${
+                    isDark ? "bg-gradient-to-br from-gray-700 to-gray-800" : "bg-gradient-to-br from-gray-100 to-gray-200"
+                  }`}>
+                    <User className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isDark ? "text-gray-300" : "text-gray-600"}`} />
                   </div>
                 )}
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                    <span className="text-sm sm:text-base font-medium text-gray-900">
+                    <span className={`text-sm sm:text-base font-medium ${isDark ? "text-gray-100" : "text-gray-900"}`}>
                       {member.firstName && member.lastName
                         ? `${member.firstName} ${member.lastName}`
                         : "Üye adı bulunamadı"}
@@ -357,13 +370,13 @@ const AppointmentCard = ({
                       <span className="text-sm text-gray-400 hidden sm:inline">
                         •
                       </span>
-                      <span className="text-xs sm:text-sm text-gray-600 sm:ml-2">
+                      <span className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-600"} sm:ml-2`}>
                         {trainer.firstName} {trainer.lastName}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-0.5">
-                    <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 mr-1.5" />
+                  <div className={`flex items-center text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-500"} mt-0.5`}>
+                    <Package className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${isDark ? "text-gray-500" : "text-gray-400"} mr-1.5`} />
                     <span className="truncate">{service.name}</span>
                     <span className="mx-1.5">•</span>
                     <span>{service.duration}dk</span>
@@ -374,7 +387,9 @@ const AppointmentCard = ({
 
             {/* Notlar */}
             {appointment.notes && (
-              <div className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 rounded-lg p-2 sm:p-2.5 border border-gray-100/80">
+              <div className={`text-xs sm:text-sm ${
+                isDark ? "text-gray-300 bg-gray-700/50 border-gray-600/80" : "text-gray-600 bg-gray-50/50 border-gray-100/80"
+              } rounded-lg p-2 sm:p-2.5 border`}>
                 {appointment.notes}
               </div>
             )}
@@ -399,14 +414,14 @@ const AppointmentCard = ({
             <div className="mt-4 flex justify-center space-x-4">
               <Button
                 variant="outline"
-                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
+                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-400 dark:hover:bg-gray-800"
                 onClick={() => setIsModalOpen(false)}
               >
                 İptal
               </Button>
               <Button
                 variant="outline"
-                className="w-full h-9 text-green-600 border-2 border-green-600 hover:bg-green-50"
+                className="w-full h-9 text-green-600 border-2 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-900/20"
                 onClick={() => {
                   setIsModalOpen(false);
                   if (pendingStatus) {
@@ -436,14 +451,14 @@ const AppointmentCard = ({
             <div className="mt-4 flex justify-center space-x-4">
               <Button
                 variant="outline"
-                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50"
+                className="w-full h-9 text-gray-600 border-2 border-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-400 dark:hover:bg-gray-800"
                 onClick={() => setIsDeleteModalOpen(false)}
               >
                 İptal
               </Button>
               <Button
                 variant="outline"
-                className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50"
+                className="w-full h-9 text-red-600 border-2 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-500 dark:hover:bg-red-900/20"
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   onDelete(appointment.id);

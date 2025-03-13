@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trainer } from "@/types";
 import { TrainerCard } from "./TrainerCard";
 import React from "react";
+import { useTheme } from "@/contexts/theme-context";
 interface TrainerListProps {
   title: string;
   trainers: Trainer[];
@@ -12,7 +13,7 @@ interface TrainerListProps {
   onTrainerSelect: (trainer: Trainer) => void;
 }
 
-export const TrainerList = ({
+export const TrainerList: React.FC<TrainerListProps> = ({
   title,
   trainers,
   isBusy,
@@ -20,14 +21,23 @@ export const TrainerList = ({
   getCurrentAppointment,
   getRemainingMinutes,
   onTrainerSelect,
-}: TrainerListProps) => {
+}) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <h3 className={`font-semibold text-lg ${isBusy ? "text-primary" : ""}`}>
+        <h3
+          className={`font-semibold text-lg ${isBusy ? "text-primary" : ""} ${
+            isDark ? "text-gray-200" : ""
+          }`}
+        >
           {title}
         </h3>
-        <Badge variant="secondary">{trainers.length}</Badge>
+        <Badge variant="secondary" className={isDark ? "bg-gray-700 text-gray-300" : ""}>
+          {trainers.length}
+        </Badge>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {trainers.map((trainer) => (
@@ -45,3 +55,5 @@ export const TrainerList = ({
     </div>
   );
 };
+
+export default TrainerList;
