@@ -354,13 +354,13 @@ export function MemberPaymentsCard() {
 
   return (
     <div className="col-span-2 relative">
-      <Card className="shadow-md">
-        <CardHeader className="bg-muted/30 pb-3">
+      <Card className="shadow-md pb-4 dark:bg-gray-800/50 border dark:border-gray-700 overflow-hidden">
+        <CardHeader className="bg-muted/30 dark:bg-gray-800 pb-3 border-b dark:border-gray-700">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <CardTitle>
+            <CardTitle className="text-xl dark:text-gray-100">
               Üye Ödemeleri
               {filteredPayments.length > 0 && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
+                <span className="text-sm font-normal text-muted-foreground ml-2 dark:text-gray-400">
                   ({filteredPayments.length} kayıt)
                 </span>
               )}
@@ -370,14 +370,14 @@ export function MemberPaymentsCard() {
                 onClick={() => fetchMemberPayments()} 
                 variant="outline" 
                 size="sm"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 hover:bg-muted/50 dark:hover:bg-gray-700 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
                 Yenile
               </Button>
               <Button 
                 onClick={() => setIsAddingPayment(true)}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-white dark:bg-primary dark:text-black dark:hover:bg-primary/80 transition-colors"
                 size="sm"
               >
                 <Plus className="h-4 w-4" />
@@ -386,10 +386,10 @@ export function MemberPaymentsCard() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-0">
+          <div>
             {/* Arama ve Filtreleme */}
-            <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-md">
+            <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-md border-b dark:border-gray-700">
               <div className="flex-1 flex gap-2">
                 <div className="flex-1 relative">
                   <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -399,12 +399,12 @@ export function MemberPaymentsCard() {
                     placeholder="Üye adı ara..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9"
+                    className="w-full pl-9 h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -417,8 +417,8 @@ export function MemberPaymentsCard() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "justify-start text-left font-normal w-full sm:w-[220px]",
-                        !dateRange && "text-muted-foreground"
+                        "justify-start text-left font-normal w-full sm:w-[220px] h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 transition-colors",
+                        !dateRange && "text-muted-foreground dark:text-gray-400"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -436,7 +436,7 @@ export function MemberPaymentsCard() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
+                  <PopoverContent className="w-auto p-0 dark:bg-gray-800 dark:border-gray-700" align="end">
                     <Calendar
                       initialFocus
                       mode="range"
@@ -444,6 +444,7 @@ export function MemberPaymentsCard() {
                       selected={dateRange}
                       onSelect={setDateRange}
                       numberOfMonths={2}
+                      className="dark:bg-gray-800"
                     />
                   </PopoverContent>
                 </Popover>
@@ -451,17 +452,17 @@ export function MemberPaymentsCard() {
                   <Button
                     variant="ghost"
                     onClick={clearFilters}
-                    className="px-3"
+                    className="px-3 h-10 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
                     title="Filtreleri temizle"
                   >
-                    <X className="h-4 w-4" />
+                    <FilterX className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             </div>
 
             {/* Tablo */}
-            <div className="overflow-hidden rounded-md border">
+            <div className="px-1">
               {filteredPayments.length > 0 ? (
                 <MemberPaymentsTable
                   columns={columns({
@@ -473,11 +474,11 @@ export function MemberPaymentsCard() {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <div className="rounded-full bg-muted p-3 mb-3">
-                    <Search className="h-6 w-6 text-muted-foreground" />
+                  <div className="rounded-full bg-muted p-3 mb-3 dark:bg-gray-700">
+                    <Search className="h-6 w-6 text-muted-foreground dark:text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium mb-1">Kayıt bulunamadı</h3>
-                  <p className="text-muted-foreground text-sm max-w-md mb-4">
+                  <h3 className="text-lg font-medium mb-1 dark:text-gray-200">Kayıt bulunamadı</h3>
+                  <p className="text-muted-foreground text-sm max-w-md mb-4 dark:text-gray-400">
                     {searchTerm || dateRange 
                       ? "Arama kriterlerinize uygun ödeme kaydı bulunamadı. Lütfen farklı bir arama terimi deneyin veya filtreleri temizleyin."
                       : "Henüz hiç ödeme kaydı eklenmemiş. Yeni bir ödeme eklemek için 'Yeni Ödeme' düğmesine tıklayın."}
@@ -486,7 +487,7 @@ export function MemberPaymentsCard() {
                     <Button 
                       variant="outline" 
                       onClick={clearFilters}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <FilterX className="h-4 w-4" />
                       Filtreleri Temizle
