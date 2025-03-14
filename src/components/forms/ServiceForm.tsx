@@ -7,12 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
 import type { Database } from "@/types/supabase";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type ServiceInput = Omit<Service, "id" | "created_at">;
@@ -52,7 +47,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
     setIsSubmitting(true);
     try {
       // Clean the existing name by removing session count and VIP/Standart suffix
-      let cleanName = data.name.replace(/ \(\d+ Ders\)( - (VIP|Standart))?$/, '');
+      const cleanName = data.name.replace(/ \(\d+ Ders\)( - (VIP|Standart))?$/, '');
       
       const modifiedData = {
         ...data,

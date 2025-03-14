@@ -199,7 +199,12 @@ const ReportsPage = () => {
             : selectedDateRange === "month"
             ? startOfMonth(now)
             : startOfYear(now),
-        end: now,
+        end:
+          selectedDateRange === "week"
+            ? endOfWeek(now, { locale: tr })
+            : selectedDateRange === "month"
+            ? endOfMonth(now)
+            : endOfYear(now),
       };
     }
 
@@ -404,7 +409,7 @@ const ReportsPage = () => {
                   
                   },
                   {
-                    title: "Bu Ayki Gelir",
+                    title: `${format(new Date(), "MMMM", { locale: tr })} Ayının Geliri`,
                     value: metrics.currentMonthRevenue.toLocaleString("tr-TR", {
                       style: "currency",
                       currency: "TRY",
