@@ -33,14 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTheme } from "@/contexts/theme-context";
 
 type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export function MemberPaymentsCard() {
-  const { theme } = useTheme();
   const [editingPayment, setEditingPayment] = useState<MemberPayment | null>(
     null
   );
@@ -514,7 +512,7 @@ export function MemberPaymentsCard() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="member_name" className="text-right">
+              <Label htmlFor="member_name" className="text-right dark:text-gray-200">
                 Üye Adı
               </Label>
               <Select
@@ -528,14 +526,15 @@ export function MemberPaymentsCard() {
                   fetchMemberPackages(value);
                 }}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                   <SelectValue placeholder="Üye seçin" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {members.map((member) => (
                     <SelectItem
                       key={member.id}
                       value={`${member.first_name} ${member.last_name}`}
+                      className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
                     >
                       {`${member.first_name} ${member.last_name}`}
                     </SelectItem>
@@ -545,7 +544,7 @@ export function MemberPaymentsCard() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="package_name" className="text-right">
+              <Label htmlFor="package_name" className="text-right dark:text-gray-200">
                 Paket Adı
               </Label>
               <Select
@@ -554,12 +553,16 @@ export function MemberPaymentsCard() {
                   setFormData({ ...formData, package_name: value })
                 }
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                   <SelectValue placeholder="Paket seçin" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {selectedMemberPackages.map((pkg) => (
-                    <SelectItem key={pkg.id} value={pkg.name}>
+                    <SelectItem 
+                      key={pkg.id} 
+                      value={pkg.name}
+                      className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
+                    >
                       {pkg.name} - {pkg.price}₺
                     </SelectItem>
                   ))}
@@ -568,7 +571,7 @@ export function MemberPaymentsCard() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="credit_card_paid" className="text-right">
+              <Label htmlFor="credit_card_paid" className="text-right dark:text-gray-200">
                 Kredi Kartı
               </Label>
               <Input
@@ -584,11 +587,11 @@ export function MemberPaymentsCard() {
                       e.target.value === "" ? "0" : e.target.value,
                   })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cash_paid" className="text-right">
+              <Label htmlFor="cash_paid" className="text-right dark:text-gray-200">
                 Nakit
               </Label>
               <Input
@@ -603,11 +606,11 @@ export function MemberPaymentsCard() {
                     cash_paid: e.target.value === "" ? "0" : e.target.value,
                   })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="created_at" className="text-right">
+              <Label htmlFor="created_at" className="text-right dark:text-gray-200">
                 Ödeme Tarihi
               </Label>
               <Input
@@ -618,7 +621,7 @@ export function MemberPaymentsCard() {
                 onChange={(e) =>
                   setFormData({ ...formData, created_at: e.target.value })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
           </div>
@@ -630,6 +633,7 @@ export function MemberPaymentsCard() {
               type="submit"
               onClick={handleEditSubmit}
               disabled={isLoading}
+              className="dark:bg-primary dark:hover:bg-primary/90"
             >
               {isLoading ? "Güncelleniyor..." : "Güncelle"}
             </Button>
@@ -669,16 +673,16 @@ export function MemberPaymentsCard() {
       </Dialog>
 
       <Dialog open={isAddingPayment} onOpenChange={setIsAddingPayment}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Yeni Ödeme Ekle</DialogTitle>
-            <DialogDescription className={theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}>
+            <DialogTitle className="dark:text-gray-100">Yeni Ödeme Ekle</DialogTitle>
+            <DialogDescription className="dark:text-gray-300 text-gray-500">
               Yeni bir üye ödemesi eklemek için aşağıdaki formu doldurun.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="member_name" className="text-right">
+              <Label htmlFor="member_name" className="text-right dark:text-gray-200">
                 Üye adı
               </Label>
               <Select
@@ -692,14 +696,15 @@ export function MemberPaymentsCard() {
                   fetchMemberPackages(value);
                 }}
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                   <SelectValue placeholder="Üye seçin" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {members.map((member) => (
                     <SelectItem
                       key={member.id}
                       value={`${member.first_name} ${member.last_name}`}
+                      className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
                     >
                       {`${member.first_name} ${member.last_name}`}
                     </SelectItem>
@@ -708,7 +713,7 @@ export function MemberPaymentsCard() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="package_name" className="text-right">
+              <Label htmlFor="package_name" className="text-right dark:text-gray-200">
                 Paket Adı
               </Label>
               <Select
@@ -717,12 +722,16 @@ export function MemberPaymentsCard() {
                   setNewPayment({ ...newPayment, package_name: value })
                 }
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                   <SelectValue placeholder="Paket seçin" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {selectedMemberPackages.map((pkg) => (
-                    <SelectItem key={pkg.id} value={pkg.name}>
+                    <SelectItem 
+                      key={pkg.id} 
+                      value={pkg.name}
+                      className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
+                    >
                       {pkg.name} - {pkg.price}₺
                     </SelectItem>
                   ))}
@@ -730,7 +739,7 @@ export function MemberPaymentsCard() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="credit_card_paid" className="text-right">
+              <Label htmlFor="credit_card_paid" className="text-right dark:text-gray-200">
                 Kredi Kartı
               </Label>
               <Input
@@ -746,11 +755,11 @@ export function MemberPaymentsCard() {
                       e.target.value === "" ? "0" : e.target.value,
                   })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cash_paid" className="text-right">
+              <Label htmlFor="cash_paid" className="text-right dark:text-gray-200">
                 Nakit
               </Label>
               <Input
@@ -765,11 +774,11 @@ export function MemberPaymentsCard() {
                     cash_paid: e.target.value === "" ? "0" : e.target.value,
                   })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="created_at" className="text-right">
+              <Label htmlFor="created_at" className="text-right dark:text-gray-200">
                 Ödeme Tarihi
               </Label>
               <Input
@@ -780,7 +789,7 @@ export function MemberPaymentsCard() {
                 onChange={(e) =>
                   setNewPayment({ ...newPayment, created_at: e.target.value })
                 }
-                className="col-span-3"
+                className="col-span-3 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"
               />
             </div>
           </div>
@@ -789,6 +798,7 @@ export function MemberPaymentsCard() {
               type="submit"
               onClick={handleAddPayment}
               disabled={isLoading}
+              className="dark:bg-primary dark:hover:bg-primary/90"
             >
               {isLoading ? "Ekleniyor..." : "Ekle"}
             </Button>
