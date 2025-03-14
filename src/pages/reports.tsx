@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -10,12 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Download,
-  Calendar,
-  Package2,
-  Users,
   RefreshCw,
-  Wallet,
-  TrendingUp,
 } from "lucide-react";
 import {
   startOfWeek,
@@ -48,6 +42,7 @@ import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
 import { TrainerClassesChart } from "@/components/reports/TrainerClassesChart";
+import { PerformanceMetrics } from "@/components/reports/PerformanceMetrics";
 import { LoadingSpinner } from "@/App";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -253,7 +248,7 @@ const ReportsPage = () => {
       totalRevenue,
       totalPackages,
       uniqueMembers: members.length,
-      totalAppointments: appointments.length,
+      totalAppointments: filteredData.length,
       currentMonthRevenue,
     };
   };
@@ -336,23 +331,7 @@ const ReportsPage = () => {
           <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
             <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
             <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
-              <Select
-                value={selectedDateRange}
-                onValueChange={(
-                  value: "all" | "week" | "month" | "year" | "custom"
-                ) => setSelectedDateRange(value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Tarih aralığı seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tüm Zamanlar</SelectItem>
-                  <SelectItem value="week">Bu Hafta</SelectItem>
-                  <SelectItem value="month">Bu Ay</SelectItem>
-                  <SelectItem value="year">Bu Yıl</SelectItem>
-                  <SelectItem value="custom">Özel Aralık</SelectItem>
-                </SelectContent>
-              </Select>
+             
 
               {selectedDateRange === "custom" && (
                 <DatePickerWithRange
@@ -377,88 +356,39 @@ const ReportsPage = () => {
           </div>
 
           <div ref={reportRef} className="space-y-6">
-            {/* Metrics Overview */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Performans Metrikleri</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-                {[
-                  
-                  {
-                    title: "Toplam Satılan Paket",
-                    value: metrics.totalPackages,
-                    icon: Package2,
-                    color: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950 dark:to-blue-900 dark:border-blue-800",
-                    iconColor: "text-blue-500 dark:text-blue-400",
-                   
-               
-                  },
-                  {
-                    title: "Üye Sayısı",
-                    value: metrics.uniqueMembers,
-                    icon: Users,
-                    color: "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950 dark:to-purple-900 dark:border-purple-800",
-                    iconColor: "text-purple-500 dark:text-purple-400",
-                
-                  },
-                  {
-                    title: "Randevu Sayısı",
-                    value: metrics.totalAppointments,
-                    icon: Calendar,
-                    color: "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-950 dark:to-amber-900 dark:border-amber-800",
-                    iconColor: "text-amber-500 dark:text-amber-400",
-                  
-                  },
-                  {
-                    title: `${format(new Date(), "MMMM", { locale: tr })} Ayının Geliri`,
-                    value: metrics.currentMonthRevenue.toLocaleString("tr-TR", {
-                      style: "currency",
-                      currency: "TRY",
-                    }),
-                    icon: TrendingUp,
-                    color: "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 dark:from-pink-950 dark:to-pink-900 dark:border-pink-800",
-                    iconColor: "text-pink-500 dark:text-pink-400",
-                  },
-                  {
-                    title: "Toplam Gelir",
-                    value: metrics.totalRevenue.toLocaleString("tr-TR", {
-                      style: "currency",
-                      currency: "TRY",
-                    }),
-                    icon: Wallet,
-                    color: "bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950 dark:to-green-900 dark:border-green-800",
-                    iconColor: "text-green-500 dark:text-green-400",
-                    
-                  
-                  },
-                  
-                ].map((item, index) => (
-                  <Card 
-                    key={index} 
-                    className={`relative overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 ${item.color}`}
-                  >
-                    <div className="p-5">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className={`p-2 rounded-lg ${item.iconColor} bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50`}>
-                          <item.icon className="h-5 w-5" />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-medium text-muted-foreground">{item.title}</h3>
-                        <p className="text-2xl font-bold">{item.value}</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Performans Metrikleri</h3>
+
+                <Select
+                  value={selectedDateRange}
+                  onValueChange={(
+                    value: "all" | "week" | "month" | "year" | "custom"
+                  ) => setSelectedDateRange(value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Tarih aralığı seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tüm Zamanlar</SelectItem>
+                    <SelectItem value="week">Bu Hafta</SelectItem>
+                    <SelectItem value="month">Bu Ay</SelectItem>
+                    <SelectItem value="year">Bu Yıl</SelectItem>
+                    <SelectItem value="custom">Özel Aralık</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <PerformanceMetrics metrics={metrics} />
+              <div className="mt-6">
+                <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
               </div>
             </div>
             <MemberPaymentsCard />
-            <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PackageIncomeCard />
               <ServiceUsageStats data={serviceUsageData} />
               <RevenueChart data={revenueChartData} />
-              <AppointmentDistribution appointments={filteredData} />
+              <AppointmentDistribution appointments={appointments} />
             </div>
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
