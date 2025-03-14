@@ -392,7 +392,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             "py-0 px-2 w-64 z-[52]",
             theme === 'dark' 
               ? 'bg-background border-border' 
-              : 'bg-pink-50/80 border-pink-100'
+              : 'bg-pink-200 border-pink-200'
           )}
         >
           <SheetTitle className="hidden">FitAdmin Menu</SheetTitle>
