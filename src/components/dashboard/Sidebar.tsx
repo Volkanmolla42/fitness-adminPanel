@@ -339,7 +339,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             "w-64": !isCollapsed,
             "w-20": isCollapsed,
           },
-          theme === 'dark' ? 'bg-background' : 'bg-pink-200/80',
+          theme === 'dark' ? 'bg-background' : 'bg-pink-100/80',
           theme === 'dark' ? 'border-border' : 'border-pink-100',
           className
         )}
@@ -357,7 +357,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             "absolute -right-4 top-8 h-8 w-8 rounded-full border-2 shadow-md",
             theme === 'dark' 
               ? 'bg-background hover:bg-accent border-border' 
-              : 'bg-pink-50 hover:bg-pink-100 border-pink-200 text-pink-700'
+              : 'bg-pink-50 hover:bg-pink-100 border-pink-100 text-pink-700'
           )}
           onClick={toggleCollapse}
         >
@@ -392,7 +392,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             "py-0 px-2 w-64 z-[52]",
             theme === 'dark' 
               ? 'bg-background border-border' 
-              : 'bg-pink-200 border-pink-200'
+              : 'bg-pink-100 border-pink-100'
           )}
         >
           <SheetTitle className="hidden">FitAdmin Menu</SheetTitle>
