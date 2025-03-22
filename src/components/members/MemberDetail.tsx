@@ -4,13 +4,10 @@ import {
   Crown,
   Pencil,
   Phone,
-  Mail,
-  Calendar,
   History,
   Trash2,
-  Notebook,
   Package2,
-  ChevronDown,
+  Calendar,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
@@ -24,11 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 import { ServiceProgress } from "./ServiceProgress";
 
@@ -54,13 +46,10 @@ export const MemberDetail = ({
   appointments,
   onEdit,
   onDelete,
-
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPackagesDialog, setShowPackagesDialog] = useState(false);
-  const [isContactOpen, setIsContactOpen] = useState(false);
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
   const isVip = member.membership_type === "vip";
 
   // Filter appointments for this member
@@ -84,26 +73,26 @@ export const MemberDetail = ({
       acc[serviceId] = (acc[serviceId] || 0) + 1;
       return acc;
     }, {} as { [key: string]: number });
-    
+
     // Her bir servis için tamamlanan randevuları bul
     return Object.entries(serviceCount).map(([serviceId, count]) => {
       const service = services[serviceId];
-      
+
       const serviceAppointments = appointments.filter(
         (apt) =>
           apt.service_id === serviceId &&
           apt.member_id === member.id &&
           (apt.status === "completed" || apt.status === "cancelled")
       );
-      
+
       // Tamamlanan seans sayısı
       const completedSessions = serviceAppointments.length;
-      
+
       return {
         serviceId,
         service,
         completedSessions,
-        totalPackages: count
+        totalPackages: count,
       };
     });
   }, [member, services, appointments]);
@@ -115,14 +104,14 @@ export const MemberDetail = ({
     }
   };
   return (
-    <div className="p-3 relative">
+    <div className="p-2 relative">
       {/* Services Summary */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {/* Üst Bilgi Kartı */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden">
           {/* Üst Kısım */}
-          <div className="p-4 flex items-center gap-3">
-            <Avatar className="h-12 w-12 border-2 border-primary/10">
+          <div className="p-2 flex items-center gap-3">
+            <Avatar className="h-16 w-16 border-2 border-primary/10">
               <AvatarImage src={member.avatar_url || undefined} />
               <AvatarFallback className="bg-primary/10 text-base font-medium">
                 {member.first_name[0]}
@@ -131,8 +120,8 @@ export const MemberDetail = ({
             </Avatar>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold truncate">
+              <div className="flex items-center gap-1">
+                <h2 className="font-medium truncate">
                   {member.first_name} {member.last_name}
                 </h2>
                 {isVip && (
@@ -140,16 +129,27 @@ export const MemberDetail = ({
                     variant="secondary"
                     className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 shrink-0"
                   >
-                    <Crown className="w-3 h-3 mr-1" />
                     VIP
+                    <Crown className="w-3 h-3 ml-1" />
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {member.membership_type === "vip" ? "VIP Üye" : "Standart Üye"}
-              </p>
-            </div>
 
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(member.start_date).toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  {member.phone}
+                </span>
+              </div>
+            </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <Button
                 variant="outline"
@@ -171,76 +171,16 @@ export const MemberDetail = ({
           </div>
         </div>
 
-        {/* İletişim ve Not Kartı */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* İletişim Bilgileri */}
-          <Collapsible
-            open={isContactOpen}
-            onOpenChange={setIsContactOpen}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Phone className="w-4 h-4" />
-                İletişim Bilgileri
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  isContactOpen ? "transform rotate-180" : ""
-                }`}
-              />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 pt-0 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-primary" />
-                  <span>{member.phone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="flex items-center gap-2">
-                    <Mail className="size-4"/>
-                    {member.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  <span>
-                    {new Date(member.start_date).toLocaleDateString("tr-TR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Notlar */}
-          <Collapsible
-            open={isNotesOpen}
-            onOpenChange={setIsNotesOpen}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden"
-          >
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Notebook className="w-4 h-4" />
-                Notlar
-              </div>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  isNotesOpen ? "transform rotate-180" : ""
-                }`}
-              />
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 pt-0">
-                <p className="text-sm text-muted-foreground">
-                  {member.notes || "Not bulunmuyor"}
-                </p>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+        {member.notes ? (
+          <div className="bg-white px-4 dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden">
+            <div className="text-xs font-medium mb-2 text-muted-foreground flex items-center gap-1">
+              Not
+            </div>
+            <p className="text-xs">{member.notes}</p>
+          </div>
+        ) : (
+          ""
+        )}
 
         {/* Paketler Kartı */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
@@ -258,14 +198,16 @@ export const MemberDetail = ({
           </div>
 
           <div className="grid gap-2">
-            {memberServices.map(({ serviceId, service, completedSessions, totalPackages }) => (
-              <ServiceProgress 
-                key={serviceId}
-                service={service}
-                completedSessions={completedSessions}
-                totalPackages={totalPackages}
-              />
-            ))}
+            {memberServices.map(
+              ({ serviceId, service, completedSessions, totalPackages }) => (
+                <ServiceProgress
+                  key={serviceId}
+                  service={service}
+                  completedSessions={completedSessions}
+                  totalPackages={totalPackages}
+                />
+              )
+            )}
           </div>
         </div>
 
@@ -304,7 +246,6 @@ export const MemberDetail = ({
         </DialogContent>
       </Dialog>
 
-
       {/* Packages Dialog */}
       <Dialog open={showPackagesDialog} onOpenChange={setShowPackagesDialog}>
         <DialogContent className="max-w-3xl">
@@ -322,14 +263,21 @@ export const MemberDetail = ({
                 Aktif Paketler
               </h4>
               <div className="grid gap-2">
-                {memberServices.map(({ serviceId, service, completedSessions, totalPackages }) => (
-                  <ServiceProgress 
-                    key={serviceId}
-                    service={service}
-                    completedSessions={completedSessions}
-                    totalPackages={totalPackages}
-                  />
-                ))}
+                {memberServices.map(
+                  ({
+                    serviceId,
+                    service,
+                    completedSessions,
+                    totalPackages,
+                  }) => (
+                    <ServiceProgress
+                      key={serviceId}
+                      service={service}
+                      completedSessions={completedSessions}
+                      totalPackages={totalPackages}
+                    />
+                  )
+                )}
               </div>
             </div>
           </div>
