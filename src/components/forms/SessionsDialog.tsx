@@ -658,7 +658,7 @@ export function SessionsDialog({
                     suggestedSlot &&
                     !session.date &&
                     !session.time && (
-                      <div className="mb-3 flex items-center justify-between gap-2">
+                      <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="text-sm text-muted-foreground">
                           <span className="font-medium">Önerilen:</span>{" "}
                           {format(suggestedSlot.date, "d MMMM yyyy, EEEE", {
