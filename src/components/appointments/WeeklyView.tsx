@@ -92,10 +92,6 @@ export default function WeeklyView({
     return days[dayIndex];
   };
 
-  const formatTime = (time: string) => {
-    return time.slice(0, 5);
-  };
-
   const getMemberName = (memberId: string) => {
     const member = members.find((m) => m.id === memberId);
     return member ? `${member.first_name} ${member.last_name}` : "";
@@ -175,42 +171,51 @@ export default function WeeklyView({
     return appointmentsByDayAndHour.get(`${dayIndex}-${timeSlot}`) || [];
   };
 
+  // Belirli gün ve saat için katılımcı bilgilerini hesapla
+  const calculateParticipantInfo = (dayIndex: number, timeSlot: string) => {
+    const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
+    
+    // Maksimum katılımcı sayısını belirle
+    const maxParticipants = appointments[0]?.service?.max_participants || 4;
+    
+    // Mevcut katılımcı sayısını hesapla
+    const totalParticipants = appointments.reduce(
+      (total: number, { appointments }) => total + (appointments?.length || 1),
+      0
+    );
+
+    return {
+      appointments,
+      maxParticipants,
+      totalParticipants,
+      hasVipAppointment: appointments.some(({ service }) => service?.isVipOnly)
+    };
+  };
+
   // Belirli gün ve saatte kontenjan var mı kontrol et
   const hasAvailableSlot = (dayIndex: number, timeSlot: string) => {
+    // 1. Tarih ve zaman hesaplamaları
     const currentDate = new Date();
     const slotDate = weekDates[dayIndex];
     const [hour, minute] = timeSlot.split(":").map(Number);
     const slotDateTime = new Date(slotDate);
     slotDateTime.setHours(hour, minute, 0, 0);
 
-    // Geçmiş tarih ve saatler için false döndür
+    // Geçmiş tarih ve saatler için hemen false döndür
     if (slotDateTime < currentDate) {
       return false;
     }
 
-    const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
+    const { hasVipAppointment, totalParticipants, maxParticipants } = calculateParticipantInfo(dayIndex, timeSlot);
 
-    // Hiç randevu yoksa, kontenjan vardır
-    if (appointments.length === 0) {
-      return true;
-    }
+    // VIP randevusu varsa veya kontenjan doluysa false döndür
+    return !hasVipAppointment && totalParticipants < maxParticipants;
+  };
 
-    // VIP randevusu varsa, kontenjan yoktur
-    const hasVipAppointment = appointments.some(
-      ({ service }) => service.isVipOnly
-    );
-    if (hasVipAppointment) {
-      return false;
-    }
-
-    // Standart randevular için toplam katılımcı sayısını kontrol et
-    const totalParticipants = appointments.reduce(
-      (total: number, { appointments }) => total + appointments.length,
-      0
-    );
-    const MAX_STANDARD_PARTICIPANTS = 4;
-
-    return totalParticipants < MAX_STANDARD_PARTICIPANTS;
+  // Belirli gün ve saatte kaç tane boş slot olduğunu hesapla
+  const calculateAvailableSlots = (dayIndex: number, timeSlot: string) => {
+    const { totalParticipants, maxParticipants } = calculateParticipantInfo(dayIndex, timeSlot);
+    return Math.max(0, maxParticipants - totalParticipants);
   };
 
   const handlePreviousWeek = () => {
@@ -220,6 +225,37 @@ export default function WeeklyView({
   const handleNextWeek = () => {
     setSelectedDate(addWeeks(selectedDate, 1));
   };
+
+  // Boş slot için buton oluştur
+  const renderAddButton = (dayIndex: number, timeSlot: string, index: number) => (
+    <button
+      key={index}
+      onClick={() =>
+        onAddAppointment(
+          format(weekDates[dayIndex], "yyyy-MM-dd"),
+          timeSlot
+        )
+      }
+      className={`w-full h-6 flex items-center justify-center text-green-600 ${
+        isDark ? "bg-green-900/50 hover:bg-green-900/70" : "bg-green-50 hover:bg-green-200"
+      } rounded transition-colors ${index > 0 ? "ml-1" : ""}`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+  );
 
   if (!selectedTrainerId) {
     return (
@@ -360,32 +396,23 @@ export default function WeeklyView({
                               }`}
                             
                             >
-                              <div className="flex items-center">
-                                {service.name}
-                                {appointments.length > 1 && (
-                                  <span className={`ml-1 text-[10px] px-1 py-0.5 rounded-full ${
-                                    isDark ? "bg-white/20" : "bg-white/50"
-                                  }`}>
-                                    {appointments.length}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                                  isDark ? "bg-white/20" : "bg-white/80"
-                                } text-muted-foreground`}>
-                                  {formatTime(appointments[0].time)}
-                                </span>
-                                {service.max_participants > 1 &&
+                              <div className="flex flexcol items-center gap-1">
+                              {service.name}
+                              {service.max_participants > 1 &&
                                   appointments.length > 1 && (
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                                       isDark ? "bg-white/20" : "bg-white/80"
-                                    } text-muted-foreground`}>
+                                    }`}>
                                       {appointments.length}/
-                                      {service.max_participants}
-                                    </span>
-                                  )}
-                              </div>
+                                     {service.max_participants}
+                                   </span>
+                                 )}
+                                 <span>
+                                
+                              </span>
+                             </div>
+                              
+                              
                             </div>
                             <div className="p-0.5">
                               {appointments.map((appointment) => (
@@ -423,7 +450,7 @@ export default function WeeklyView({
                                   }`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className={`font-medium truncate ${
+                                    <span className={`truncate text-sm ${
                                       isDark ? "text-gray-300" : ""
                                     }`}>
                                       {getMemberName(appointment.member_id)}
@@ -436,32 +463,11 @@ export default function WeeklyView({
                         )
                       )}
                       {hasAvailableSlot(dayIndex, timeSlot) && (
-                        <button
-                          onClick={() =>
-                            onAddAppointment(
-                              format(weekDates[dayIndex], "yyyy-MM-dd"),
-                              timeSlot
-                            )
-                          }
-                          className={`w-full h-6 flex items-center justify-center text-green-600 ${
-                            isDark ? "bg-green-900/50 hover:bg-green-900/70" : "bg-green-50 hover:bg-green-200"
-                          } rounded transition-colors`}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                          </svg>
-                        </button>
+                        <div className="flex">
+                          {Array.from({ length: calculateAvailableSlots(dayIndex, timeSlot) }).map((_, index) => 
+                            renderAddButton(dayIndex, timeSlot, index)
+                          )}
+                        </div>
                       )}
                     </div>
                   </TableCell>
