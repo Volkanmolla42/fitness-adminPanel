@@ -53,7 +53,7 @@ const NEW_TIME_SLOTS = [
   "16:30",
   "20:00",
   "21:00",
-  "22:00"
+  "22:00",
 ];
 interface WeeklyViewProps {
   appointments: Appointment[];
@@ -76,9 +76,12 @@ export default function WeeklyView({
   const isDark = theme === "dark";
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">("new");
+  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">(
+    "new"
+  );
 
-  const TIME_SLOTS = selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
+  const TIME_SLOTS =
+    selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
 
   const getDayName = (dayIndex: number) => {
     const days = [
@@ -174,10 +177,10 @@ export default function WeeklyView({
   // Belirli gün ve saat için katılımcı bilgilerini hesapla
   const calculateParticipantInfo = (dayIndex: number, timeSlot: string) => {
     const appointments = getAppointmentsForDayAndHour(dayIndex, timeSlot);
-    
+
     // Maksimum katılımcı sayısını belirle
     const maxParticipants = appointments[0]?.service?.max_participants || 4;
-    
+
     // Mevcut katılımcı sayısını hesapla
     const totalParticipants = appointments.reduce(
       (total: number, { appointments }) => total + (appointments?.length || 1),
@@ -188,7 +191,7 @@ export default function WeeklyView({
       appointments,
       maxParticipants,
       totalParticipants,
-      hasVipAppointment: appointments.some(({ service }) => service?.isVipOnly)
+      hasVipAppointment: appointments.some(({ service }) => service?.isVipOnly),
     };
   };
 
@@ -206,7 +209,8 @@ export default function WeeklyView({
       return false;
     }
 
-    const { hasVipAppointment, totalParticipants, maxParticipants } = calculateParticipantInfo(dayIndex, timeSlot);
+    const { hasVipAppointment, totalParticipants, maxParticipants } =
+      calculateParticipantInfo(dayIndex, timeSlot);
 
     // VIP randevusu varsa veya kontenjan doluysa false döndür
     return !hasVipAppointment && totalParticipants < maxParticipants;
@@ -214,7 +218,10 @@ export default function WeeklyView({
 
   // Belirli gün ve saatte kaç tane boş slot olduğunu hesapla
   const calculateAvailableSlots = (dayIndex: number, timeSlot: string) => {
-    const { totalParticipants, maxParticipants } = calculateParticipantInfo(dayIndex, timeSlot);
+    const { totalParticipants, maxParticipants } = calculateParticipantInfo(
+      dayIndex,
+      timeSlot
+    );
     return Math.max(0, maxParticipants - totalParticipants);
   };
 
@@ -227,17 +234,20 @@ export default function WeeklyView({
   };
 
   // Boş slot için buton oluştur
-  const renderAddButton = (dayIndex: number, timeSlot: string, index: number) => (
+  const renderAddButton = (
+    dayIndex: number,
+    timeSlot: string,
+    index: number
+  ) => (
     <button
       key={index}
       onClick={() =>
-        onAddAppointment(
-          format(weekDates[dayIndex], "yyyy-MM-dd"),
-          timeSlot
-        )
+        onAddAppointment(format(weekDates[dayIndex], "yyyy-MM-dd"), timeSlot)
       }
       className={`w-full h-6 flex items-center justify-center text-green-600 ${
-        isDark ? "bg-green-900/50 hover:bg-green-900/70" : "bg-green-50 hover:bg-green-200"
+        isDark
+          ? "bg-green-900/50 hover:bg-green-900/70"
+          : "bg-green-50 hover:bg-green-200"
       } rounded transition-colors ${index > 0 ? "ml-1" : ""}`}
     >
       <svg
@@ -259,9 +269,11 @@ export default function WeeklyView({
 
   if (!selectedTrainerId) {
     return (
-      <div className={`flex justify-center items-center h-[400px] rounded-lg shadow ${
-        isDark ? "bg-gray-800 text-gray-300" : "bg-white text-gray-500"
-      }`}>
+      <div
+        className={`flex justify-center items-center h-[400px] rounded-lg shadow ${
+          isDark ? "bg-gray-800 text-gray-300" : "bg-white text-gray-500"
+        }`}
+      >
         <p className="text-lg">Lütfen bir antrenör seçin</p>
       </div>
     );
@@ -271,44 +283,75 @@ export default function WeeklyView({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className={isDark ? "text-gray-300" : "text-gray-700"}>Saat aralığını seçin</span>
+          <span className={isDark ? "text-gray-300" : "text-gray-700"}>
+            Saat aralığını seçin
+          </span>
           <Select
             value={selectedTimeType}
             onValueChange={(value: "old" | "new") => setSelectedTimeType(value)}
           >
-            <SelectTrigger className={`w-[180px] ${
-              isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white"
-            }`}>
+            <SelectTrigger
+              className={`w-[180px] ${
+                isDark
+                  ? "bg-gray-800 border-gray-700 text-gray-300"
+                  : "bg-white"
+              }`}
+            >
               <SelectValue placeholder="Saat tipini seçin" />
             </SelectTrigger>
-            <SelectContent className={isDark ? "bg-gray-800 border-gray-700" : ""}>
-              <SelectItem value="old" className={isDark ? "text-gray-300" : ""}>Normal Saatler</SelectItem>
-              <SelectItem value="new" className={isDark ? "text-gray-300" : ""}>Ramazan Saatleri</SelectItem>
+            <SelectContent
+              className={isDark ? "bg-gray-800 border-gray-700" : ""}
+            >
+              <SelectItem value="old" className={isDark ? "text-gray-300" : ""}>
+                Normal Saatler
+              </SelectItem>
+              <SelectItem value="new" className={isDark ? "text-gray-300" : ""}>
+                Ramazan Saatleri
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
-      <div className={`flex items-center justify-between p-4 rounded-lg shadow ${
-        isDark ? "bg-gray-800" : "bg-white"
-      }`}>
-        <Button variant="outline" size="icon" onClick={handlePreviousWeek} 
-          className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}>
-          <ChevronLeftIcon className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`} />
+      <div
+        className={`flex items-center justify-between p-4 rounded-lg shadow ${
+          isDark ? "bg-gray-800" : "bg-white"
+        }`}
+      >
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handlePreviousWeek}
+          className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}
+        >
+          <ChevronLeftIcon
+            className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`}
+          />
         </Button>
 
         <div className="flex items-center gap-2">
-          <span className={`text-lg font-semibold ${isDark ? "text-gray-300" : ""}`}>
+          <span
+            className={`text-lg font-semibold ${isDark ? "text-gray-300" : ""}`}
+          >
             {format(weekStart, "d MMMM", { locale: tr })} -{" "}
             {format(weekEnd, "d MMMM yyyy", { locale: tr })}
           </span>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" 
-                className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}>
-                <CalendarIcon className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`} />
+              <Button
+                variant="outline"
+                size="icon"
+                className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}
+              >
+                <CalendarIcon
+                  className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`}
+                />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className={`w-auto p-0 ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
+            <PopoverContent
+              className={`w-auto p-0 ${
+                isDark ? "bg-gray-800 border-gray-700" : ""
+              }`}
+            >
               <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -321,35 +364,59 @@ export default function WeeklyView({
           </Popover>
         </div>
 
-        <Button variant="outline" size="icon" onClick={handleNextWeek}
-          className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}>
-          <ChevronRightIcon className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`} />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleNextWeek}
+          className={isDark ? "border-gray-700 hover:bg-gray-700" : ""}
+        >
+          <ChevronRightIcon
+            className={`h-4 w-4 ${isDark ? "text-gray-300" : ""}`}
+          />
         </Button>
       </div>
 
-      <div className={`rounded-lg shadow overflow-x-auto ${isDark ? "bg-gray-800" : "bg-white"}`}>
-        <Table className={`border-2 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
+      <div
+        className={`rounded-lg shadow overflow-x-auto ${
+          isDark ? "bg-gray-800" : "bg-white"
+        }`}
+      >
+        <Table
+          className={`border-2 ${
+            isDark ? "border-gray-700" : "border-gray-300"
+          }`}
+        >
           <TableHeader>
-            <TableRow className={`border-b-2 ${isDark ? "border-gray-700" : "border-gray-300"}`}>
-              <TableHead className={`w-[50px] border-r-2 ${
-                isDark 
-                  ? "bg-gray-900/50 border-gray-700 text-gray-300" 
-                  : "bg-muted/50 border-gray-300"
-              }`}>
+            <TableRow
+              className={`border-b-2 ${
+                isDark ? "border-gray-700" : "border-gray-300"
+              }`}
+            >
+              <TableHead
+                className={`w-[50px] border-r-2 ${
+                  isDark
+                    ? "bg-gray-900/50 border-gray-700 text-gray-300"
+                    : "bg-muted/50 border-gray-300"
+                }`}
+              >
                 <div className="text-sm font-semibold">Saat</div>
               </TableHead>
               {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
                 <TableHead
                   key={dayIndex}
                   className={`min-w-[140px] border-r-2 last:border-r-0 ${
-                    isDark 
-                      ? "bg-gray-900/50 border-gray-700 text-gray-300" 
+                    isDark
+                      ? "bg-gray-900/50 border-gray-700 text-gray-300"
                       : "bg-muted/50 border-gray-300"
                   }`}
                 >
                   <div className="text-sm font-semibold">
                     {getDayName(dayIndex)}
-                    <div className={`text-xs font-normal ${isDark ? "text-gray-400" : ""}`}>
+                    <div
+                      className={`text-xs font-normal ${
+                        isDark ? "text-gray-400" : ""
+                      }`}
+                    >
                       {format(weekDates[dayIndex], "d MMMM", { locale: tr })}
                     </div>
                   </div>
@@ -360,11 +427,13 @@ export default function WeeklyView({
           <TableBody>
             {TIME_SLOTS.map((timeSlot) => (
               <TableRow key={timeSlot}>
-                <TableCell className={`font-medium text-sm p-1.5 border-r-2 ${
-                  isDark 
-                    ? "bg-gray-900/50 border-gray-700 text-gray-300" 
-                    : "bg-muted/50 border-gray-300"
-                }`}>
+                <TableCell
+                  className={`font-medium text-sm p-1.5 border-r-2 ${
+                    isDark
+                      ? "bg-gray-900/50 border-gray-700 text-gray-300"
+                      : "bg-muted/50 border-gray-300"
+                  }`}
+                >
                   {timeSlot}
                 </TableCell>
                 {[0, 1, 2, 3, 4, 5].map((dayIndex) => (
@@ -387,32 +456,29 @@ export default function WeeklyView({
                               className={`text-xs font-medium px-2 py-1.5 flex items-center justify-between cursor-pointer hover:opacity-80
                               ${
                                 service.isVipOnly
-                                  ? isDark 
-                                    ? "bg-purple-900 text-purple-100" 
+                                  ? isDark
+                                    ? "bg-purple-900 text-purple-100"
                                     : "bg-purple-300 text-purple-900"
-                                  : isDark 
-                                    ? "bg-blue-900 text-blue-100" 
-                                    : "bg-blue-300 text-blue-900"
+                                  : isDark
+                                  ? "bg-blue-900 text-blue-100"
+                                  : "bg-blue-300 text-blue-900"
                               }`}
-                            
                             >
                               <div className="flex flexcol items-center gap-1">
-                              {service.name}
-                              {service.max_participants > 1 &&
+                                {service.name}
+                                {service.max_participants > 1 &&
                                   appointments.length > 1 && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                                      isDark ? "bg-white/20" : "bg-white/80"
-                                    }`}>
+                                    <span
+                                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                        isDark ? "bg-white/20" : "bg-white/80"
+                                      }`}
+                                    >
                                       {appointments.length}/
-                                     {service.max_participants}
-                                   </span>
-                                 )}
-                                 <span>
-                                
-                              </span>
-                             </div>
-                              
-                              
+                                      {service.max_participants}
+                                    </span>
+                                  )}
+                                <span></span>
+                              </div>
                             </div>
                             <div className="p-0.5">
                               {appointments.map((appointment) => (
@@ -426,33 +492,35 @@ export default function WeeklyView({
                                   hover:opacity-80 transition-opacity
                                   ${
                                     service.isVipOnly
-                                      ? isDark 
-                                        ? "bg-purple-900/50 hover:bg-purple-900/70" 
+                                      ? isDark
+                                        ? "bg-purple-900/50 hover:bg-purple-900/70"
                                         : "bg-purple-200 hover:bg-purple-100"
-                                      : isDark 
-                                        ? "bg-blue-900/50 hover:bg-blue-900/70" 
-                                        : "bg-blue-200 hover:bg-blue-100"
+                                      : isDark
+                                      ? "bg-blue-900/50 hover:bg-blue-900/70"
+                                      : "bg-blue-200 hover:bg-blue-100"
                                   }
                                   ${
                                     appointment.status === "completed"
-                                      ? isDark 
-                                        ? "!bg-green-900/50 hover:!bg-green-900/70" 
+                                      ? isDark
+                                        ? "!bg-green-900/50 hover:!bg-green-900/70"
                                         : "!bg-green-50 hover:!bg-green-100"
                                       : appointment.status === "in-progress"
-                                      ? isDark 
-                                        ? "!bg-yellow-900/50 hover:!bg-yellow-900/70" 
+                                      ? isDark
+                                        ? "!bg-yellow-900/50 hover:!bg-yellow-900/70"
                                         : "!bg-yellow-50 hover:!bg-yellow-100"
                                       : appointment.status === "cancelled"
-                                      ? isDark 
-                                        ? "!bg-red-900/50 hover:!bg-red-900/70" 
+                                      ? isDark
+                                        ? "!bg-red-900/50 hover:!bg-red-900/70"
                                         : "!bg-red-50 hover:!bg-red-100"
                                       : ""
                                   }`}
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className={`truncate text-sm ${
-                                      isDark ? "text-gray-300" : ""
-                                    }`}>
+                                    <span
+                                      className={`truncate text-sm ${
+                                        isDark ? "text-gray-300" : ""
+                                      }`}
+                                    >
                                       {getMemberName(appointment.member_id)}
                                     </span>
                                   </div>
@@ -464,7 +532,9 @@ export default function WeeklyView({
                       )}
                       {hasAvailableSlot(dayIndex, timeSlot) && (
                         <div className="flex">
-                          {Array.from({ length: calculateAvailableSlots(dayIndex, timeSlot) }).map((_, index) => 
+                          {Array.from({
+                            length: calculateAvailableSlots(dayIndex, timeSlot),
+                          }).map((_, index) =>
                             renderAddButton(dayIndex, timeSlot, index)
                           )}
                         </div>
