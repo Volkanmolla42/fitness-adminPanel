@@ -275,7 +275,7 @@ function AppointmentsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col space-y-4 px-4">
+      <div className="flex flex-col space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="w-full md:w-auto">
             <AppointmentFilters
