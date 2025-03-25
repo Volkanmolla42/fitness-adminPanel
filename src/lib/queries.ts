@@ -221,3 +221,23 @@ export const deleteAppointment = async (id: string) => {
 
   if (error) throw error;
 };
+
+// Delete an appointment by ID
+export async function deleteAppointmentById(appointmentId: string) {
+  try {
+    const { error } = await supabase
+      .from("appointments")
+      .delete()
+      .eq("id", appointmentId);
+
+    if (error) {
+      console.error("Error deleting appointment:", error);
+      throw error;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error in deleteAppointmentById:", error);
+    return { success: false, error };
+  }
+}
