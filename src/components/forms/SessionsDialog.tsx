@@ -528,49 +528,75 @@ export function SessionsDialog({
       <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] flex flex-col p-4 md:p-6">
         <DialogHeader>
           <DialogTitle>
-            {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
+            <span className="flex text-base text-muted-foreground items-center gap-2">
+              {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
+              <span className="text-gray-50 mx-2">
+                ({member.first_name} {member.last_name})
+              </span>
+            </span>
           </DialogTitle>
-          <DialogDescription>
-            {appointment
-              ? "Randevunun tarih ve saatini değiştirebilirsiniz."
-              : calculateTotalSessions() && calculateTotalSessions() > 1
-              ? `${calculateTotalSessions()} seansın tarih ve saatlerini seçin.`
-              : "Randevunun tarih ve saatini seçin."}
-          </DialogDescription>
         </DialogHeader>
 
         {/* Seans Bilgileri Kartı */}
-        <div className="bg-muted/50 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h4 className="text-sm font-medium">Üye Seans Bilgileri</h4>
+        <div className="bg-muted/50 rounded-lg px-4 py-2">
+          <div className="flex items-center">
+            <div className="space-y-1 w-full">
+              <h4 className="text-sm text-muted-foreground ">
+                {selectedService && member && (
+                  <span className="">
+                    
+                    <span className="text-gray-50 mx-2">
+                      {selectedService.name}
+                    </span>
+                    paketine ait seans bilgileri
+                  </span>
+                )}
+              </h4>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
                   <span className="text-sm text-muted-foreground">
-                    Tamamlanan: {calculateCompletedSessions()}
+                    Tamamlanan: <span className="text-green-500">
+                      {calculateCompletedSessions()}
+                    </span>
                   </span>
+                
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    Planlanan: {calculateScheduledSessions()}
+                    Planlanan: <span className="text-blue-400">
+                      {calculateScheduledSessions()}
+                    </span>
                   </span>
+                  
                 </div>
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Toplam: {calculateTotalSessions()}
-                  </span>
-                </div>
-                <div className="flex items-center text-red-700 gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>
-                    Kalan:{" "}
-                    {calculateTotalSessions() -
-                      (calculateCompletedSessions() +
-                        calculateScheduledSessions())}
-                  </span>
+                <div className="flex items-center ml-auto gap-2">
+                  {(() => {
+                    const remainingSessions = calculateTotalSessions() -
+                      (calculateCompletedSessions() + calculateScheduledSessions());
+                    
+                    if (remainingSessions > 0) {
+                      return (
+                        <div className="flex items-center gap-2 text-green-500 font-medium">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span>{remainingSessions} Seans Eklenebilir</span>
+                        </div>
+                      );
+                    } else if (remainingSessions === 0) {
+                      return (
+                        <div className="flex items-center gap-2 text-orange-500 font-medium">
+                          <AlertCircle className="w-5 h-5" />
+                          <span>Tüm Seanslar Kullanıldı</span>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="flex items-center gap-2 text-red-500 font-medium">
+                          <XCircle className="w-5 h-5" />
+                          <span>Seans Limiti Aşıldı ({Math.abs(remainingSessions)})</span>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             </div>
