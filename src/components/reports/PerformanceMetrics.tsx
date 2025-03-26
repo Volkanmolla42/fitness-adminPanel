@@ -11,6 +11,12 @@ interface PerformanceMetricsProps {
     totalAppointments: number;
     currentMonthRevenue: number;
     totalRevenue: number;
+    packageChangeRate: number;
+    memberChangeRate: number;
+    appointmentChangeRate: number;
+    revenueChangeRate: number;
+    currentMonthRevenueChangeRate: number;
+    comparisonLabel: string;
   };
 }
 
@@ -22,6 +28,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
       icon: Package2,
       color: "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 dark:from-blue-950 dark:to-blue-900 dark:border-blue-800",
       iconColor: "text-blue-500 dark:text-blue-400",
+      changeRate: metrics.packageChangeRate,
+      changeLabel: metrics.comparisonLabel,
     },
     {
       title: "Üye Sayısı",
@@ -29,6 +37,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
       icon: Users,
       color: "bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 dark:from-purple-950 dark:to-purple-900 dark:border-purple-800",
       iconColor: "text-purple-500 dark:text-purple-400",
+      changeRate: metrics.memberChangeRate,
+      changeLabel: metrics.comparisonLabel,
     },
     {
       title: "Randevu Sayısı",
@@ -36,6 +46,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
       icon: Calendar,
       color: "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-950 dark:to-amber-900 dark:border-amber-800",
       iconColor: "text-amber-500 dark:text-amber-400",
+      changeRate: metrics.appointmentChangeRate,
+      changeLabel: metrics.comparisonLabel,
     },
     {
       title: `${format(new Date(), "MMMM", { locale: tr })} Ayının Geliri`,
@@ -46,6 +58,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
       icon: TrendingUp,
       color: "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 dark:from-pink-950 dark:to-pink-900 dark:border-pink-800",
       iconColor: "text-pink-500 dark:text-pink-400",
+      changeRate: metrics.currentMonthRevenueChangeRate,
+      changeLabel: "Önceki aya göre",
     },
     {
       title: "Toplam Gelir",
@@ -56,6 +70,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
       icon: Wallet,
       color: "bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950 dark:to-green-900 dark:border-green-800",
       iconColor: "text-green-500 dark:text-green-400",
+      changeRate: metrics.revenueChangeRate,
+      changeLabel: metrics.comparisonLabel,
     },
   ];
 
@@ -70,6 +86,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ metrics 
             icon={item.icon}
             color={item.color}
             iconColor={item.iconColor}
+            changeRate={item.changeRate}
+            changeLabel={item.changeLabel}
           />
         ))}
       </div>

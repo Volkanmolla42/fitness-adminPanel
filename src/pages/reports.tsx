@@ -55,7 +55,7 @@ const ReportsPage = () => {
   const reportRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
     "all" | "week" | "month" | "year" | "custom"
-  >("all");
+  >("year");
   const [customDateRange, setCustomDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -175,32 +175,87 @@ const ReportsPage = () => {
   const calculateMetrics = () => {
     const now = new Date();
     let dateRange;
+    let comparisonDateRange; 
+    let comparisonLabel = ""; 
+    
     if (selectedDateRange === "all") {
       dateRange = null;
+      comparisonDateRange = null;
+      comparisonLabel = "Tüm zamana göre";
     } else if (
       selectedDateRange === "custom" &&
       customDateRange?.from &&
       customDateRange?.to
     ) {
+      const from = customDateRange.from;
+      const to = customDateRange.to;
+      const dayDiff = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+      
       dateRange = {
-        start: customDateRange.from,
-        end: customDateRange.to,
+        start: from,
+        end: to,
       };
+      
+      const comparisonStart = new Date(from);
+      comparisonStart.setDate(comparisonStart.getDate() - dayDiff - 1);
+      const comparisonEnd = new Date(from);
+      comparisonEnd.setDate(comparisonEnd.getDate() - 1);
+      
+      comparisonDateRange = {
+        start: comparisonStart,
+        end: comparisonEnd
+      };
+      
+      comparisonLabel = "Önceki döneme göre";
     } else {
-      dateRange = {
-        start:
-          selectedDateRange === "week"
-            ? startOfWeek(now, { locale: tr })
-            : selectedDateRange === "month"
-            ? startOfMonth(now)
-            : startOfYear(now),
-        end:
-          selectedDateRange === "week"
-            ? endOfWeek(now, { locale: tr })
-            : selectedDateRange === "month"
-            ? endOfMonth(now)
-            : endOfYear(now),
-      };
+      if (selectedDateRange === "week") {
+        dateRange = {
+          start: startOfWeek(now, { locale: tr }),
+          end: endOfWeek(now, { locale: tr }),
+        };
+        
+        const lastWeekStart = new Date(dateRange.start);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+        const lastWeekEnd = new Date(dateRange.end);
+        lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
+        
+        comparisonDateRange = {
+          start: lastWeekStart,
+          end: lastWeekEnd
+        };
+        
+        comparisonLabel = "Önceki haftaya göre";
+      } else if (selectedDateRange === "month") {
+        dateRange = {
+          start: startOfMonth(now),
+          end: endOfMonth(now),
+        };
+        
+        const lastMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
+        const lastMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
+        
+        comparisonDateRange = {
+          start: lastMonthStart,
+          end: lastMonthEnd
+        };
+        
+        comparisonLabel = "Önceki aya göre";
+      } else { 
+        dateRange = {
+          start: startOfYear(now),
+          end: endOfYear(now),
+        };
+        
+        const lastYearStart = startOfYear(new Date(now.getFullYear() - 1));
+        const lastYearEnd = endOfYear(new Date(now.getFullYear() - 1));
+        
+        comparisonDateRange = {
+          start: lastYearStart,
+          end: lastYearEnd
+        };
+        
+        comparisonLabel = "Önceki yıla göre";
+      }
     }
 
     const isInDateRange = (date: Date) => {
@@ -210,8 +265,15 @@ const ReportsPage = () => {
         end: dateRange.end,
       });
     };
+    
+    const isInComparisonDateRange = (date: Date) => {
+      if (!comparisonDateRange) return false;
+      return isWithinInterval(date, {
+        start: comparisonDateRange.start,
+        end: comparisonDateRange.end,
+      });
+    };
 
-    // Bu ayki gelir için tarih aralığı
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);
     
@@ -225,31 +287,80 @@ const ReportsPage = () => {
     let totalRevenue = 0;
     let totalPackages = 0;
     let currentMonthRevenue = 0;
+    
+    let comparisonRevenue = 0;
+    let comparisonPackages = 0;
+    
+    const comparisonAppointments = comparisonDateRange ? appointments.filter((appointment) => {
+      const appointmentDate = new Date(appointment.date);
+      return isInComparisonDateRange(appointmentDate);
+    }).length : 0;
+    
+    const comparisonMembers = comparisonDateRange ? members.filter((member) => {
+      const memberCreationDate = new Date(member.created_at);
+      return isInComparisonDateRange(memberCreationDate);
+    }).length : 0;
 
     memberPayments.forEach((payment) => {
       const paymentDate = new Date(payment.created_at);
+      const revenue = Number(payment.credit_card_paid) + Number(payment.cash_paid);
+      
       if (isInDateRange(paymentDate)) {
-        const revenue =
-          Number(payment.credit_card_paid) + Number(payment.cash_paid);
         totalRevenue += revenue;
         totalPackages += 1;
       }
       
-      // Bu ayki gelir hesaplaması
+      if (isInComparisonDateRange(paymentDate)) {
+        comparisonRevenue += revenue;
+        comparisonPackages += 1;
+      }
+      
       if (isInCurrentMonth(paymentDate)) {
-        const revenue =
-          Number(payment.credit_card_paid) + Number(payment.cash_paid);
         currentMonthRevenue += revenue;
       }
     });
 
+    const filteredMembers = members.filter((member) => {
+      const memberCreationDate = new Date(member.created_at);
+      return isInDateRange(memberCreationDate);
+    });
+    
+    const calculateChangeRate = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0; 
+      return ((current - previous) / previous) * 100;
+    };
+    
+    const packageChangeRate = calculateChangeRate(totalPackages, comparisonPackages);
+    const memberChangeRate = calculateChangeRate(filteredMembers.length, comparisonMembers);
+    const appointmentChangeRate = calculateChangeRate(filteredData.length, comparisonAppointments);
+    const revenueChangeRate = calculateChangeRate(totalRevenue, comparisonRevenue);
+    
+    const lastMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
+    const lastMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
+    
+    let lastMonthRevenue = 0;
+    
+    memberPayments.forEach((payment) => {
+      const paymentDate = new Date(payment.created_at);
+      if (isWithinInterval(paymentDate, { start: lastMonthStart, end: lastMonthEnd })) {
+        lastMonthRevenue += Number(payment.credit_card_paid) + Number(payment.cash_paid);
+      }
+    });
+    
+    const currentMonthRevenueChangeRate = calculateChangeRate(currentMonthRevenue, lastMonthRevenue);
    
     return {
       totalRevenue,
       totalPackages,
-      uniqueMembers: members.length,
+      uniqueMembers: filteredMembers.length,
       totalAppointments: filteredData.length,
       currentMonthRevenue,
+      packageChangeRate,
+      memberChangeRate,
+      appointmentChangeRate,
+      revenueChangeRate,
+      currentMonthRevenueChangeRate,
+      comparisonLabel
     };
   };
 
@@ -257,17 +368,68 @@ const ReportsPage = () => {
     if (!reportRef.current) return;
 
     try {
-      const canvas = await html2canvas(reportRef.current);
-      const imgData = canvas.toDataURL("image/png");
+      toast.info("PDF oluşturuluyor, lütfen bekleyin...");
+      
+      const scale = 2;
+      const options = {
+        scale: scale,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff"
+      };
+      
+      const canvas = await html2canvas(reportRef.current, options);
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
+      
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const margin = 10;
+      const contentWidth = pdfWidth - (margin * 2);
+      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+      
+      pdf.setFontSize(18);
+      pdf.setTextColor(44, 62, 80); 
+      pdf.text("Fitness Merkezi Raporu", pdfWidth / 2, margin + 5, { align: "center" });
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100); 
+      const currentDate = format(new Date(), "dd MMMM yyyy", { locale: tr });
+      pdf.text(`Oluşturulma Tarihi: ${currentDate}`, pdfWidth / 2, margin + 12, { align: "center" });
+      
+      let dateRangeText = "Tarih Aralığı: Tüm Zamanlar";
+      if (selectedDateRange === "week") {
+        dateRangeText = "Tarih Aralığı: Bu Hafta";
+      } else if (selectedDateRange === "month") {
+        dateRangeText = "Tarih Aralığı: Bu Ay";
+      } else if (selectedDateRange === "year") {
+        dateRangeText = "Tarih Aralığı: Bu Yıl";
+      } else if (selectedDateRange === "custom" && customDateRange.from && customDateRange.to) {
+        const fromDate = format(customDateRange.from, "dd.MM.yyyy");
+        const toDate = format(customDateRange.to, "dd.MM.yyyy");
+        dateRangeText = `Tarih Aralığı: ${fromDate} - ${toDate}`;
+      }
+      
+      pdf.text(dateRangeText, pdfWidth / 2, margin + 18, { align: "center" });
+      
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, margin + 22, pdfWidth - margin, margin + 22);
+      
+      const yPos = margin + 25;
+      pdf.addImage(imgData, "JPEG", margin, yPos, contentWidth, contentHeight);
+      
+      const footerY = pdfHeight - 10;
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(" Fitness Merkezi Yönetim Sistemi", margin, footerY);
+      pdf.text("Sayfa 1/1", pdfWidth - margin, footerY, { align: "right" });
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`fitness-report-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      pdf.save(`fitness-raporu-${format(new Date(), "yyyy-MM-dd")}.pdf`);
 
       toast.success("Rapor başarıyla PDF olarak indirildi.");
-    } catch {
+    } catch (error) {
+      console.error("PDF oluşturma hatası:", error);
       toast.error("PDF oluşturulurken bir hata oluştu.");
     }
   };
@@ -331,14 +493,7 @@ const ReportsPage = () => {
           <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
             <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
             <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
-             
-
-              {selectedDateRange === "custom" && (
-                <DatePickerWithRange
-                  date={customDateRange}
-                  setDate={setCustomDateRange}
-                />
-              )}
+              
 
               <Button onClick={generatePDF} className="w-full md:w-auto">
                 <Download className="mr-2 h-4 w-4" />
@@ -357,9 +512,9 @@ const ReportsPage = () => {
 
           <div ref={reportRef} className="space-y-6">
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Performans Metrikleri</h3>
-
+                <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <Select
                   value={selectedDateRange}
                   onValueChange={(
@@ -377,7 +532,16 @@ const ReportsPage = () => {
                     <SelectItem value="custom">Özel Aralık</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {selectedDateRange === "custom" && (
+                  <DatePickerWithRange
+                    date={customDateRange}
+                    setDate={setCustomDateRange}
+                  />
+                )}
               </div>
+              </div>
+              
               <PerformanceMetrics metrics={metrics} />
               <div className="mt-6">
                 <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
