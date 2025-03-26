@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Package2, ChevronDown, User } from "lucide-react";
+import { Calendar, Clock, Package2, ChevronDown, User, Trash2 } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { useMemo, useState, useCallback } from "react";
 import { format, isToday, isTomorrow, isYesterday, parseISO, isFuture } from "date-fns";
@@ -20,6 +20,18 @@ import { cn } from "@/lib/utils";
 import React from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/contexts/theme-context";
+import { deleteAppointmentById } from "@/lib/queries";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -34,6 +46,7 @@ interface AppointmentHistoryProps {
   services: { [key: string]: Service };
   trainers: { [key: string]: Trainer };
   member: Member;
+  onAppointmentDeleted?: (appointmentId: string) => void;
 }
 
 interface StatusConfig {
@@ -163,9 +176,10 @@ const getAppointmentCardStyle = (date: string, status: AppointmentStatus, isDark
 interface AppointmentCardProps {
   appointment: Appointment;
   trainer: Trainer | undefined;
+  onDelete?: (appointmentId: string) => void;
 }
 
-const AppointmentCard = React.memo(({ appointment, trainer }: AppointmentCardProps) => {
+const AppointmentCard = React.memo(({ appointment, trainer, onDelete }: AppointmentCardProps) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const cardStyle = getAppointmentCardStyle(appointment.date, appointment.status as AppointmentStatus, isDark);
@@ -204,6 +218,29 @@ const AppointmentCard = React.memo(({ appointment, trainer }: AppointmentCardPro
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        
+        {onDelete && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => onDelete(appointment.id)}
+                  className={`p-1.5 rounded-full transition-colors ${
+                    isDark 
+                      ? "text-red-400 hover:bg-red-900/30 hover:text-red-300" 
+                      : "text-red-500 hover:bg-red-100 hover:text-red-600"
+                  }`}
+                  aria-label="Randevuyu sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Randevuyu sil</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   );
@@ -215,12 +252,14 @@ interface ServiceGroupProps {
   serviceName: string;
   appointments: Appointment[];
   trainers: { [key: string]: Trainer };
+  onDelete?: (appointmentId: string) => void;
 }
 
 const ServiceGroup = React.memo(({ 
   serviceName, 
   appointments,
-  trainers 
+  trainers,
+  onDelete
 }: ServiceGroupProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const { theme } = useTheme();
@@ -270,6 +309,7 @@ const ServiceGroup = React.memo(({
             key={appointment.id}
             appointment={appointment}
             trainer={trainers[appointment.trainer_id]}
+            onDelete={onDelete}
           />
         ))}
       </CollapsibleContent>
@@ -286,21 +326,68 @@ export const AppointmentHistory = ({
   services,
   trainers,
   member,
+  onAppointmentDeleted,
 }: AppointmentHistoryProps) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<string | null>(null);
+  const [localAppointments, setLocalAppointments] = useState<Appointment[]>(appointments);
+  
+  // Appointments değiştiğinde localAppointments'ı güncelle
+  React.useEffect(() => {
+    setLocalAppointments(appointments);
+  }, [appointments]);
   
   const filteredAppointments = useMemo(() => {
     const filterAndSort = (appointments: Appointment[]) => sortAppointments(appointments);
     
     return {
-      all: filterAndSort(appointments),
-      completed: filterAndSort(appointments.filter((apt) => apt.status === "completed")),
-      cancelled: filterAndSort(appointments.filter((apt) => apt.status === "cancelled")),
-      scheduled: filterAndSort(appointments.filter((apt) => apt.status === "scheduled")),
-      "in-progress": filterAndSort(appointments.filter((apt) => apt.status === "in-progress")),
+      all: filterAndSort(localAppointments),
+      completed: filterAndSort(localAppointments.filter((apt) => apt.status === "completed")),
+      cancelled: filterAndSort(localAppointments.filter((apt) => apt.status === "cancelled")),
+      scheduled: filterAndSort(localAppointments.filter((apt) => apt.status === "scheduled")),
+      "in-progress": filterAndSort(localAppointments.filter((apt) => apt.status === "in-progress")),
     };
-  }, [appointments]);
+  }, [localAppointments]);
+
+  const handleDeleteAppointment = useCallback((appointmentId: string) => {
+    setAppointmentToDelete(appointmentId);
+  }, []);
+  
+  const confirmDelete = async () => {
+    if (!appointmentToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await deleteAppointmentById(appointmentToDelete);
+      
+      if (result.success) {
+        // Yerel state'i güncelle
+        setLocalAppointments(prev => prev.filter(apt => apt.id !== appointmentToDelete));
+        
+        // Parent bileşene bildir
+        if (onAppointmentDeleted) {
+          onAppointmentDeleted(appointmentToDelete);
+        }
+        
+        toast.success("Randevu başarıyla silindi");
+      } else {
+        toast.error("Randevu silinirken bir hata oluştu");
+        console.error("Silme hatası:", result.error);
+      }
+    } catch (error) {
+      toast.error("Randevu silinirken bir hata oluştu");
+      console.error("Silme hatası:", error);
+    } finally {
+      setIsDeleting(false);
+      setAppointmentToDelete(null);
+    }
+  };
+  
+  const cancelDelete = () => {
+    setAppointmentToDelete(null);
+  };
 
   const tabs = useMemo(() => [
     { value: "completed", label: "Tamamlanan", count: filteredAppointments.completed.length },
@@ -309,7 +396,7 @@ export const AppointmentHistory = ({
     { value: "in-progress", label: "Devam Eden", count: filteredAppointments["in-progress"].length },
     { value: "all", label: "Tümü", count: filteredAppointments.all.length },
   ], [filteredAppointments]);
-
+  
   const groupedAppointments = useMemo(() => {
     const groupByService = (appointments: Appointment[]) => {
       const groups: { [key: string]: Appointment[] } = {};
@@ -360,45 +447,74 @@ export const AppointmentHistory = ({
               serviceName={serviceName}
               appointments={appointments}
               trainers={trainers}
+              onDelete={handleDeleteAppointment}
             />
           ))}
       </div>
     );
-  }, [groupedAppointments, trainers, isDark]);
+  }, [groupedAppointments, trainers, handleDeleteAppointment, isDark]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`h-[85vh] max-w-3xl overflow-hidden flex flex-col ${isDark ? "bg-gray-900 text-gray-200" : ""}`}>
-        <DialogHeader className="pb-2">
-          <DialogTitle className={`flex items-center gap-2 text-xl ${isDark ? "text-gray-100" : ""}`}>
-            <span className="font-semibold">{member.first_name} {member.last_name}</span>
-            <span className={isDark ? "text-gray-400" : "text-muted-foreground"}>-</span>
-            <span>Randevu Geçmişi</span>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto pr-2">
-          <Tabs defaultValue="completed" className="w-full">
-            <TabsList className={`w-full mb-4 grid grid-cols-5 ${isDark ? "bg-gray-800" : ""}`}>
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className={`flex items-center gap-1 ${isDark ? "data-[state=active]:bg-gray-700 data-[state=active]:text-gray-100" : ""}`}>
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <Badge variant="secondary" className={`ml-1 ${isDark ? "bg-gray-700 text-gray-300" : ""}`}>
-                      {tab.count}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+    <>
+      <AlertDialog open={!!appointmentToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+        <AlertDialogContent className={isDark ? "bg-gray-900 text-gray-100 border-gray-800" : ""}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Randevuyu Sil</AlertDialogTitle>
+            <AlertDialogDescription className={isDark ? "text-gray-400" : ""}>
+              Bu randevuyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className={isDark ? "bg-gray-800 text-gray-200 hover:bg-gray-700" : ""}
+              disabled={isDeleting}
+            >
+              İptal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Siliniyor..." : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className={`h-[85vh] max-w-3xl overflow-hidden flex flex-col ${isDark ? "bg-gray-900 text-gray-200" : ""}`}>
+          <DialogHeader className="pb-2">
+            <DialogTitle className={`flex items-center gap-2 text-xl ${isDark ? "text-gray-100" : ""}`}>
+              <span className="font-semibold">{member.first_name} {member.last_name}</span>
+              <span className={isDark ? "text-gray-400" : "text-muted-foreground"}>-</span>
+              <span>Randevu Geçmişi</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <Tabs defaultValue="completed" className="w-full">
+              <TabsList className={`w-full mb-4 grid grid-cols-5 ${isDark ? "bg-gray-800" : ""}`}>
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className={`flex items-center gap-1 ${isDark ? "data-[state=active]:bg-gray-700 data-[state=active]:text-gray-100" : ""}`}>
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <Badge variant="secondary" className={`ml-1 ${isDark ? "bg-gray-700 text-gray-300" : ""}`}>
+                        {tab.count}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {tabs.map((tab) => (
-              <TabsContent key={tab.value} value={tab.value} className="mt-4">
-                {renderTabContent(tab.value)}
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      </DialogContent>
-    </Dialog>
+              {tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value} className="mt-4">
+                  {renderTabContent(tab.value)}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

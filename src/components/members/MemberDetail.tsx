@@ -37,6 +37,7 @@ interface MemberDetailProps {
   onEdit: (member: Member) => void;
   onDelete: (id: string) => Promise<void>;
   onUpdate?: (member: Member) => Promise<void>;
+  onAppointmentDeleted?: (appointmentId: string) => void;
 }
 
 export const MemberDetail = ({
@@ -46,6 +47,7 @@ export const MemberDetail = ({
   appointments,
   onEdit,
   onDelete,
+  onAppointmentDeleted,
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -103,6 +105,7 @@ export const MemberDetail = ({
       setShowDeleteDialog(false);
     }
   };
+
   return (
     <div className="p-2 relative">
       {/* Services Summary */}
@@ -302,6 +305,7 @@ export const MemberDetail = ({
           services={services}
           trainers={trainers}
           member={member}
+          onAppointmentDeleted={onAppointmentDeleted}
         />
       )}
     </div>
