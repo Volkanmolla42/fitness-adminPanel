@@ -531,7 +531,7 @@ export function SessionsDialog({
             <span className="flex text-base text-muted-foreground items-center gap-2">
               {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
               <span className="text-gray-50 mx-2">
-                ({member.first_name} {member.last_name})
+                ({member?.first_name} {member?.last_name})
               </span>
             </span>
           </DialogTitle>
