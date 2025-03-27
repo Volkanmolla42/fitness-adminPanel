@@ -25,6 +25,7 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  isWithinInterval,
 } from "date-fns";
 
 export const useAppointments = () => {
@@ -40,6 +41,8 @@ export const useAppointments = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState<FilterType>("today");
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [activeNotifications, setActiveNotifications] = useState<
     Array<{ id: string; message: string }>
   >([]);
@@ -83,6 +86,15 @@ export const useAppointments = () => {
             appointmentDate >= startOfMonth(now) &&
             appointmentDate <= endOfMonth(now)
           );
+        }
+        case "custom": {
+          if (startDate && endDate) {
+            return (
+              appointmentDate >= startOfDay(startDate) &&
+              appointmentDate <= endOfDay(endDate)
+            );
+          }
+          return false;
         }
       }
     }).length;
@@ -195,6 +207,16 @@ export const useAppointments = () => {
           new Date(appointment.date) >= startOfMonth(now) &&
           new Date(appointment.date) <= endOfMonth(now)
       );
+    } else if (activeFilter === "custom" && startDate && endDate) {
+      filtered = filtered.filter(
+        (appointment) => {
+          const appointmentDate = new Date(appointment.date);
+          return isWithinInterval(appointmentDate, {
+            start: startOfDay(startDate),
+            end: endOfDay(endDate)
+          });
+        }
+      );
     }
 
     // Sort appointments based on status and date
@@ -231,6 +253,8 @@ export const useAppointments = () => {
     members,
     trainers,
     services,
+    startDate,
+    endDate,
   ]);
 
   // Grouped appointments
@@ -364,6 +388,15 @@ export const useAppointments = () => {
     );
   }, [acknowledgedNotifications]);
 
+  // Handle date range change
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+    if (start && end) {
+      setActiveFilter("custom");
+    }
+  };
+
   return {
     appointments,
     members,
@@ -388,6 +421,9 @@ export const useAppointments = () => {
     updateAppointment,
     createAppointment,
     deleteAppointment,
+    startDate,
+    endDate,
+    handleDateRangeChange,
   };
 };
 

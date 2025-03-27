@@ -15,7 +15,6 @@ import WeeklyView from "@/components/appointments/WeeklyView";
 import TableView from "@/components/appointments/TableView";
 import AppointmentGroups from "@/components/appointments/AppointmentGroups";
 import { useAppointments } from "@/hooks/useAppointments";
-import { Notification } from "@/components/ui/notification";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "@/types/supabase";
 import { LoadingSpinner } from "@/App";
@@ -39,14 +38,15 @@ function AppointmentsPage() {
     currentTime,
     activeFilter,
     setActiveFilter,
-    activeNotifications,
-    setActiveNotifications,
     createAppointment,
     updateAppointment,
     deleteAppointment,
-    setAcknowledgedNotifications,
     groupedAppointments,
     getFilteredCount,
+    filteredAppointments,
+    startDate,
+    endDate,
+    handleDateRangeChange,
   } = useAppointments();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -147,55 +147,60 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className={`space-y-4 container m-0 p-0`}>
-      {/* Bildirimler */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
-        {activeNotifications.map((notification, index) => (
-          <Notification
-            key={notification.id}
-            message={notification.message}
-            index={index}
-            onAcknowledge={() => {
-              setAcknowledgedNotifications((prev) => new Set([...prev, notification.id]));
-              setActiveNotifications((prev) => prev.filter((n) => n.id !== notification.id));
-            }}
-          />
-        ))}
-      </div>
-      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-end">
-        <div className="flex flex-col space-y-4">
+    <div className={`space-y-6 container m-0 p-0`}>
+      <div className="flex flex-col space-y-6">
+        {/* Başlık ve Tarih Bölümü */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div>
-            <h2 className={`text-3xl font-bold ${isDark ? "text-gray-100" : "text-gray-900"}`}>Randevular</h2>
-            <p className={`text-sm md:text-base ${isDark ? "text-gray-400" : "text-muted-foreground"}`}>
+            <h2
+              className={`text-3xl font-bold ${
+                isDark ? "text-gray-100" : "text-gray-900"
+              }`}
+            >
+              Randevular
+            </h2>
+            <p
+              className={`text-sm md:text-base ${
+                isDark ? "text-gray-400" : "text-muted-foreground"
+              }`}
+            >
               Randevuları görüntüle, düzenle ve yönet
             </p>
           </div>
-          <div className="flex items-center flex-wrap gap-2">
-            <div className={`text-sm md:text-base font-bold px-3 py-1 rounded-md ${
-              isDark ? "bg-gray-800 text-gray-300" : "bg-muted text-gray-700"
-            }`}>
-              {currentTime.toLocaleDateString("tr-TR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}{" "}
-              -{" "}
-              {currentTime.toLocaleTimeString("tr-TR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
+          <div
+            className={`text-sm md:text-base font-medium px-3 py-1.5 rounded-md mt-2 sm:mt-0 ${
+              isDark
+                ? "bg-gray-800/80 text-gray-300"
+                : "bg-muted/80 text-gray-700"
+            }`}
+          >
+            {currentTime.toLocaleDateString("tr-TR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}{" "}
+            -{" "}
+            {currentTime.toLocaleTimeString("tr-TR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className={`flex flex-wrap items-center gap-2 p-1 rounded-lg ${
-            isDark ? "bg-gray-800/50" : "bg-muted/50"
-          }`}>
+
+        {/* Görünüm Seçenekleri ve Randevu Ekle */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3">
+          <div
+            className={`flex flex-wrap items-center gap-2 p-1 rounded-lg shadow-sm ${
+              isDark
+                ? "bg-gray-800/70 border border-gray-700/50"
+                : "bg-muted/70 border border-gray-200/50"
+            }`}
+          >
             <Button
               variant={viewMode === "weekly" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("weekly")}
-              className={`flex-1 sm:flex-none ${
+              className={`flex-1 sm:flex-none transition-colors ${
                 isDark && viewMode !== "weekly" ? "hover:bg-gray-700" : ""
               }`}
             >
@@ -206,7 +211,7 @@ function AppointmentsPage() {
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
-              className={`flex-1 sm:flex-none ${
+              className={`flex-1 sm:flex-none transition-colors ${
                 isDark && viewMode !== "list" ? "hover:bg-gray-700" : ""
               }`}
             >
@@ -217,7 +222,7 @@ function AppointmentsPage() {
               variant={viewMode === "table" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("table")}
-              className={`flex-1 sm:flex-none ${
+              className={`flex-1 sm:flex-none transition-colors ${
                 isDark && viewMode !== "table" ? "hover:bg-gray-700" : ""
               }`}
             >
@@ -238,16 +243,28 @@ function AppointmentsPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className={`w-full sm:w-auto p-4 ${
-                isDark 
-                  ? "bg-green-600 hover:bg-green-700 text-white" 
-                  : "bg-primary hover:bg-primary/90"
-              }`}>
-                <span className={`text-xl mr-2 ${isDark ? "text-white" : "text-green-500"}`}>+</span>
+              <Button
+                className={`w-full sm:w-auto px-4 py-2 transition-all duration-200 shadow-sm ${
+                  isDark
+                    ? "bg-green-600 hover:bg-green-700 text-white hover:shadow-md"
+                    : "bg-primary hover:bg-primary/90 hover:shadow-md"
+                }`}
+              >
+                <span
+                  className={`text-xl mr-2 ${
+                    isDark ? "text-white" : "text-white"
+                  }`}
+                >
+                  +
+                </span>
                 <span>Randevu Ekle</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className={`sm:max-w-[425px] ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
+            <DialogContent
+              className={`sm:max-w-[425px] ${
+                isDark ? "bg-gray-800 border-gray-700" : ""
+              }`}
+            >
               <DialogHeader>
                 <DialogTitle className={isDark ? "text-gray-100" : ""}>
                   {selectedAppointment ? "Randevu Düzenle" : "Yeni Randevu"}
@@ -273,42 +290,40 @@ function AppointmentsPage() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
 
-      <div className="flex flex-col space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="w-full md:w-auto">
+        {/* Filtreler Bölümü */}
+        <div
+          className={`p-4 rounded-lg shadow-sm flex flex-col space-y-2 ${
+            isDark
+              ? "bg-gray-800/70 border border-gray-700/50"
+              : "bg-white border border-gray-200/50"
+          }`}
+        >
+          <div>
+            {/* Tüm Filtreler */}
             <AppointmentFilters
               trainers={trainers}
               selectedTrainerId={selectedTrainerId}
               onTrainerChange={setSelectedTrainerId}
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+              getFilteredCount={getFilteredCount}
+              viewMode={viewMode}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              startDate={startDate}
+              endDate={endDate}
+              onDateRangeChange={handleDateRangeChange}
             />
           </div>
         </div>
 
-        <div className={`min-h-[400px]`}>
-          {viewMode === "list" && (
-            <AppointmentGroups
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              activeFilter={activeFilter}
-              setActiveFilter={setActiveFilter}
-              getFilteredCount={getFilteredCount}
-              groupedAppointments={groupedAppointments}
-              members={members}
-              trainers={trainers}
-              services={services}
-              onStatusChange={handleStatusChange}
-              onEdit={(appointment) => {
-                setSelectedAppointment(appointment);
-                setDefaultDate(undefined);
-                setDefaultTime(undefined);
-                setIsDialogOpen(true);
-              }}
-              onDelete={handleDeleteAppointment}
-            />
-          )}
-
+        {/* İçerik Alanı */}
+        <div
+          className={`min-h-[500px] bg-opacity-50 rounded-lg ${
+            isDark ? "bg-gray-800/30" : "bg-gray-50/70"
+          } p-4 shadow-sm`}
+        >
           {viewMode === "weekly" && (
             <WeeklyView
               appointments={appointments}
@@ -327,10 +342,24 @@ function AppointmentsPage() {
               }}
             />
           )}
+          {viewMode === "list" && (
+            <AppointmentGroups
+              groupedAppointments={groupedAppointments}
+              members={members}
+              trainers={trainers}
+              services={services}
+              onStatusChange={handleStatusChange}
+              onEdit={(appointment) => {
+                setSelectedAppointment(appointment);
+                setIsDialogOpen(true);
+              }}
+              onDelete={handleDeleteAppointment}
+            />
+          )}
 
           {viewMode === "table" && (
             <TableView
-              appointments={appointments}
+              appointments={filteredAppointments}
               members={members}
               trainers={trainers}
               services={services}

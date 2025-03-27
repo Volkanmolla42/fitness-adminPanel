@@ -1,15 +1,12 @@
 import React, { useState } from "react";
 import { Appointment, Member, Service, Trainer } from "@/types/appointments";
 import AppointmentCard from "./AppointmentCard";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
 import { useTheme } from "@/contexts/theme-context";
 
 interface AppointmentGroupsProps {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
   groupedAppointments: Record<string, Appointment[]>;
   members: Member[];
   trainers: Trainer[];
@@ -17,14 +14,9 @@ interface AppointmentGroupsProps {
   onStatusChange: (id: string, status: string) => void;
   onEdit: (appointment: Appointment) => void;
   onDelete: (id: string) => void;
-  activeFilter: string;
-  setActiveFilter: (filter: "today" | "tomorrow" | "weekly" | "monthly" | "all") => void;
-  getFilteredCount: (filter: "today" | "tomorrow" | "weekly" | "monthly" | "all") => number;
 }
 
 const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
-  searchQuery,
-  onSearchChange,
   groupedAppointments,
   members,
   trainers,
@@ -32,9 +24,6 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
   onStatusChange,
   onEdit,
   onDelete,
-  activeFilter,
-  setActiveFilter,
-  getFilteredCount,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -137,72 +126,6 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
 
   return (
     <div className="space-y-2">
-      <div className={`flex flex-wrap gap-2 p-1 ${isDark ? "bg-gray-800/50" : "bg-muted/50"} rounded-lg`}>
-        <Button
-          variant={activeFilter === "today" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveFilter("today")}
-          className={`flex-1 ${isDark && activeFilter !== "today" ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : ""}`}
-        >
-          Bugün
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}>
-            {getFilteredCount("today")}
-          </span>
-        </Button>
-        <Button
-          variant={activeFilter === "tomorrow" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveFilter("tomorrow")}
-          className={`flex-1 ${isDark && activeFilter !== "tomorrow" ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : ""}`}
-        >
-          Yarın
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}>
-            {getFilteredCount("tomorrow")}
-          </span>
-        </Button>
-        <Button
-          variant={activeFilter === "weekly" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveFilter("weekly")}
-          className={`flex-1 ${isDark && activeFilter !== "weekly" ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : ""}`}
-        >
-          Bu Hafta
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}>
-            {getFilteredCount("weekly")}
-          </span>
-        </Button>
-        <Button
-          variant={activeFilter === "monthly" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveFilter("monthly")}
-          className={`flex-1 ${isDark && activeFilter !== "monthly" ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : ""}`}
-        >
-          Bu Ay
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}>
-            {getFilteredCount("monthly")}
-          </span>
-        </Button>
-        <Button
-          variant={activeFilter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setActiveFilter("all")}
-          className={`flex-1 ${isDark && activeFilter !== "all" ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : ""}`}
-        >
-          Tümü
-          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}>
-            {getFilteredCount("all")}
-          </span>
-        </Button>
-      </div>
-      <div className="relative flex-1">
-        <Search className={`absolute left-2 top-2.5 h-4 w-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
-        <Input
-          placeholder="Ara..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className={`pl-8 w-full ${isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""}`}
-        />
-      </div>
       {/* Devam Eden Randevular */}
       {groupedAppointments["in-progress"]?.length > 0 && (
         <div className={isDark 
@@ -213,7 +136,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
             <h3 className={`text-lg font-semibold ${isDark ? "text-yellow-300" : "text-yellow-800"} flex items-center`}>
               <div className={`w-2 h-2 ${isDark ? "bg-yellow-400" : "bg-yellow-500"} rounded-full mr-2`} />
               Devam Eden Randevular ({groupedAppointments["in-progress"]?.length})
-            </h3>
+                </h3>
             <Button
               variant="ghost"
               size="sm"
@@ -221,8 +144,8 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
               className={isDark ? "text-yellow-300 hover:bg-yellow-900/30" : "text-yellow-800"}
             >
               {visibleGroups["in-progress"] ? <ChevronUp /> : <ChevronDown />}
-            </Button>
-          </div>
+                </Button>
+              </div>
           {visibleGroups["in-progress"] && renderAppointments(groupedAppointments["in-progress"], "in-progress")}
         </div>
       )}
@@ -246,7 +169,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
             >
               {visibleGroups["scheduled"] ? <ChevronUp /> : <ChevronDown />}
             </Button>
-          </div>
+            </div>
           {visibleGroups["scheduled"] && renderAppointments(groupedAppointments["scheduled"], "scheduled")}
         </div>
       )}
@@ -272,8 +195,8 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
             </Button>
           </div>
           {visibleGroups["completed"] && renderAppointments(groupedAppointments["completed"], "completed")}
-        </div>
-      )}
+          </div>
+        )}
 
       {/* İptal Edilmiş Randevular */}
       {groupedAppointments["cancelled"]?.length > 0 && (
@@ -296,7 +219,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
             </Button>
           </div>
           {visibleGroups["cancelled"] && renderAppointments(groupedAppointments["cancelled"], "cancelled")}
-        </div>
+      </div>
       )}
     </div>
   );
