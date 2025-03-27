@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
-
+import { WORKING_HOURS } from "@/constants/timeSlots";
 import type { Database } from "@/types/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -71,8 +71,8 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
       categories: trainer?.categories || [],
       start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
       working_hours: trainer?.working_hours || {
-        start: "10:00",
-        end: "19:00",
+        start: WORKING_HOURS.start,
+        end: WORKING_HOURS.end,
       },
     },
   });
