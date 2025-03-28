@@ -20,7 +20,12 @@ import {
 import { tr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Trash2Icon,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -278,7 +283,9 @@ export default function WeeklyView({
   );
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
 
   const handleDeleteAppointment = async () => {
     if (!selectedAppointmentId) return;
@@ -511,7 +518,7 @@ export default function WeeklyView({
                               {appointments.map((appointment) => (
                                 <div
                                   key={appointment.id}
-                                  className={`p-2 rounded text-sm mb-0.5 last:mb-0 cursor-pointer 
+                                  className={`rounded text-sm mb-0.5 last:mb-0 cursor-pointer 
                                   hover:opacity-80 transition-opacity
                                   ${
                                     service.isVipOnly
@@ -538,12 +545,16 @@ export default function WeeklyView({
                                       : ""
                                   }`}
                                 >
-                                  <div className="flex items-center justify-between gap-2">
+                                  <div
+                                    className="flex items-center p-2 border rounded justify-between gap-2"
+                                    onClick={() =>
+                                      onAppointmentClick(appointment)
+                                    }
+                                  >
                                     <span
                                       className={`truncate text-sm ${
                                         isDark ? "text-gray-300" : ""
                                       }`}
-                                      onClick={() => onAppointmentClick(appointment)}
                                     >
                                       {getMemberName(appointment.member_id)}
                                     </span>
@@ -553,7 +564,9 @@ export default function WeeklyView({
                                       className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedAppointmentId(appointment.id);
+                                        setSelectedAppointmentId(
+                                          appointment.id
+                                        );
                                         setDeleteDialogOpen(true);
                                       }}
                                     >
@@ -584,25 +597,31 @@ export default function WeeklyView({
         </Table>
       </div>
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className={isDark ? "bg-gray-800 text-gray-300 border-gray-700" : ""}>
+        <DialogContent
+          className={isDark ? "bg-gray-800 text-gray-300 border-gray-700" : ""}
+        >
           <DialogHeader>
-            <DialogTitle className={isDark ? "text-gray-300" : ""}>Randevu Silme Onayı</DialogTitle>
+            <DialogTitle className={isDark ? "text-gray-300" : ""}>
+              Randevu Silme Onayı
+            </DialogTitle>
             <DialogDescription className={isDark ? "text-gray-400" : ""}>
-              Bu randevuyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              Bu randevuyu silmek istediğinizden emin misiniz? Bu işlem geri
+              alınamaz.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              className={isDark ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600" : ""}
+              className={
+                isDark
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                  : ""
+              }
             >
               İptal
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteAppointment}
-            >
+            <Button variant="destructive" onClick={handleDeleteAppointment}>
               Sil
             </Button>
           </DialogFooter>
