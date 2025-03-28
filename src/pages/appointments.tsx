@@ -292,29 +292,27 @@ function AppointmentsPage() {
         </div>
         {/* Filtreler Bölümü */}
         <div
-          className={`p-4 rounded-lg shadow-sm flex flex-col space-y-2 ${
+          className={`p-4 rounded-lg shadow-md flex flex-col space-y-2 ${
             isDark
               ? "bg-gray-800/70 border border-gray-700/50"
-              : "bg-white border border-gray-200/50"
+              : "bg-gray-300/70 border border-gray-200/50"
           }`}
         >
-          <div>
-            {/* Tüm Filtreler */}
-            <AppointmentFilters
-              trainers={trainers}
-              selectedTrainerId={selectedTrainerId}
-              onTrainerChange={setSelectedTrainerId}
-              activeFilter={activeFilter}
-              setActiveFilter={setActiveFilter}
-              getFilteredCount={getFilteredCount}
-              viewMode={viewMode}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              startDate={startDate}
-              endDate={endDate}
-              onDateRangeChange={handleDateRangeChange}
-            />
-          </div>
+          {/* Tüm Filtreler */}
+          <AppointmentFilters
+            trainers={trainers}
+            selectedTrainerId={selectedTrainerId}
+            onTrainerChange={setSelectedTrainerId}
+            activeFilter={activeFilter}
+            setActiveFilter={setActiveFilter}
+            getFilteredCount={getFilteredCount}
+            viewMode={viewMode}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            startDate={startDate}
+            endDate={endDate}
+            onDateRangeChange={handleDateRangeChange}
+          />
         </div>
         {/* İçerik Alanı */}
         <div

@@ -9,7 +9,15 @@ import { Trainer } from "@/types/appointments";
 import React, { useState } from "react";
 import { useTheme } from "@/contexts/theme-context";
 import { Button } from "@/components/ui/button";
-import { Calendar, Check, ChevronDown, FilterX, Search, User2, X } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  ChevronDown,
+  FilterX,
+  Search,
+  User2,
+  X,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -69,42 +77,48 @@ export function AppointmentFilters({
 
   // Aktif filtrelerin listesini oluştur
   const activeFilters = [];
-  
+
   if (selectedTrainerId) {
-    const selectedTrainer = trainers.find(t => t.id === selectedTrainerId);
+    const selectedTrainer = trainers.find((t) => t.id === selectedTrainerId);
     if (selectedTrainer) {
       activeFilters.push({
         type: "trainer",
-        label: `Antrenör: ${selectedTrainer.first_name} ${selectedTrainer.last_name}`
+        label: `Antrenör: ${selectedTrainer.first_name} ${selectedTrainer.last_name}`,
       });
     }
   }
-  
+
   if (searchQuery) {
     activeFilters.push({
       type: "search",
-      label: `Arama: ${searchQuery}`
+      label: `Arama: ${searchQuery}`,
     });
   }
-  
+
   if (activeFilter !== "all") {
     const filterLabels = {
       today: "Bugün",
       tomorrow: "Yarın",
       weekly: "Bu Hafta",
       monthly: "Bu Ay",
-      custom: "Özel Tarih Aralığı"
+      custom: "Özel Tarih Aralığı",
     };
-    
+
     if (activeFilter === "custom" && startDate && endDate) {
       activeFilters.push({
         type: "date",
-        label: `Tarih: ${format(startDate, "d MMM", { locale: tr })} - ${format(endDate, "d MMM", { locale: tr })}`
+        label: `Tarih: ${format(startDate, "d MMM", { locale: tr })} - ${format(
+          endDate,
+          "d MMM",
+          { locale: tr }
+        )}`,
       });
     } else {
       activeFilters.push({
         type: "date",
-        label: `Tarih: ${filterLabels[activeFilter as keyof typeof filterLabels]}`
+        label: `Tarih: ${
+          filterLabels[activeFilter as keyof typeof filterLabels]
+        }`,
       });
     }
   }
@@ -114,6 +128,7 @@ export function AppointmentFilters({
       <div className="flex gap-2">
         {/* Antrenör Seçimi */}
         <Select
+          defaultOpen
           value={selectedTrainerId || "all"}
           onValueChange={(value) =>
             onTrainerChange(value === "all" ? null : value)
@@ -233,7 +248,6 @@ export function AppointmentFilters({
             isDark ? "bg-gray-700/50" : "bg-gray-100/70"
           } rounded-lg p-1`}
         >
-         
           <Button
             variant={activeFilter === "today" ? "default" : "outline"}
             size="sm"
@@ -329,8 +343,8 @@ export function AppointmentFilters({
               {getFilteredCount("all")}
             </span>
           </Button>
-           {/* Özel Tarih Aralığı Seçici */}
-           <div className="flex-1">
+          {/* Özel Tarih Aralığı Seçici */}
+          <div className="flex-1">
             <Popover open={isDateRangeOpen} onOpenChange={setIsDateRangeOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -385,11 +399,13 @@ export function AppointmentFilters({
                         Temizle
                       </Button>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label
-                          className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                          className={`text-xs ${
+                            isDark ? "text-gray-300" : "text-gray-700"
+                          }`}
                         >
                           Başlangıç Tarihi
                         </Label>
@@ -459,7 +475,9 @@ export function AppointmentFilters({
 
                       <div className="space-y-1">
                         <Label
-                          className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                          className={`text-xs ${
+                            isDark ? "text-gray-300" : "text-gray-700"
+                          }`}
                         >
                           Bitiş Tarihi
                         </Label>
@@ -532,7 +550,7 @@ export function AppointmentFilters({
                       </div>
                     </div>
                   </div>
-                  
+
                   <Button
                     size="sm"
                     onClick={() => {
@@ -543,9 +561,7 @@ export function AppointmentFilters({
                     }}
                     disabled={!startDate || !endDate}
                     className={`w-full ${
-                      isDark && (!startDate || !endDate)
-                        ? "opacity-50"
-                        : ""
+                      isDark && (!startDate || !endDate) ? "opacity-50" : ""
                     }`}
                   >
                     Tarihleri Uygula
@@ -557,17 +573,29 @@ export function AppointmentFilters({
         </div>
       )}
       {/* Aktif Filtreler ve Temizleme Butonu */}
-      {(activeFilters.length > 0 && viewMode !== "weekly") && (
-        <div className={`flex flex-wrap items-center justify-between gap-2 mt-3 p-2 rounded-lg ${isDark ? "bg-gray-800/50" : "bg-gray-50"}`}>
+      {activeFilters.length > 0 && viewMode !== "weekly" && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-2 mt-3 p-2 rounded-lg ${
+            isDark ? "bg-gray-800/50" : "bg-gray-50"
+          }`}
+        >
           <div className="flex flex-wrap gap-2 items-center">
-            <span className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            <span
+              className={`text-xs font-medium ${
+                isDark ? "text-gray-400" : "text-gray-500"
+              }`}
+            >
               Aktif Filtreler:
             </span>
             {activeFilters.map((filter, index) => (
-              <Badge 
-                key={index} 
-                variant="outline" 
-                className={`flex items-center gap-1 px-2 py-1 ${isDark ? "bg-gray-700 text-gray-200 border-gray-600" : "bg-white text-gray-700 border-gray-200"}`}
+              <Badge
+                key={index}
+                variant="outline"
+                className={`flex items-center gap-1 px-2 py-1 ${
+                  isDark
+                    ? "bg-gray-700 text-gray-200 border-gray-600"
+                    : "bg-white text-gray-700 border-gray-200"
+                }`}
               >
                 {filter.label}
                 <button
@@ -579,7 +607,9 @@ export function AppointmentFilters({
                       onDateRangeChange(null, null);
                     }
                   }}
-                  className={`ml-1 rounded-full p-0.5 hover:bg-gray-200 ${isDark ? "hover:bg-gray-600" : ""}`}
+                  className={`ml-1 rounded-full p-0.5 hover:bg-gray-200 ${
+                    isDark ? "hover:bg-gray-600" : ""
+                  }`}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -590,7 +620,11 @@ export function AppointmentFilters({
             variant="outline"
             size="sm"
             onClick={resetAllFilters}
-            className={`flex items-center gap-1 ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border-gray-600" : "bg-white hover:bg-gray-100"}`}
+            className={`flex items-center gap-1 ${
+              isDark
+                ? "bg-gray-700 text-gray-300 hover:bg-gray-600 border-gray-600"
+                : "bg-white hover:bg-gray-100"
+            }`}
           >
             <FilterX className="h-3.5 w-3.5" />
             <span className="text-xs">Tüm Filtreleri Temizle</span>
