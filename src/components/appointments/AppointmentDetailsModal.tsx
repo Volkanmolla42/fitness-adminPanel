@@ -15,10 +15,12 @@ import {
   Activity,
   History,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { getStatusText } from "./AppointmentCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -68,6 +70,7 @@ const AppointmentDetailsModal = ({
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const fetchAppointmentHistory = async () => {
     try {
@@ -143,6 +146,46 @@ const AppointmentDetailsModal = ({
     }
   };
 
+  // WhatsApp mesajı gönder
+  const sendWhatsAppMessage = () => {
+    try {
+      setIsSendingMessage(true);
+      
+      // Telefon numarası kontrolü
+      if (!member.phone_number) {
+        toast.error("Üyenin telefon numarası bulunamadı.");
+        return;
+      }
+      
+      // Telefon numarasını formatla (başında + olmadan ve boşluklar olmadan)
+      const phoneNumber = member.phone_number.replace(/\s+/g, "");
+      
+      // Tarih ve saat bilgisini formatla
+      const appointmentDate = format(new Date(appointment.date), "d MMMM yyyy", { locale: tr });
+      const appointmentTime = appointment.time.slice(0, 5);
+      
+      // Mesaj içeriğini hazırla
+      const message = 
+        `Merhaba ${member.firstName} hanım, ${appointmentDate} tarihinde saat ${appointmentTime}'de ${service.name} randevunuz bulunmaktadır. ` +
+        `Antrenörünüz ${trainer.firstName} ${trainer.lastName} olacaktır. ` +
+        `Randevu süresi ${service.duration} dakikadır. ` +
+        `Hatırlatma için teşekkür ederiz.`;
+      
+      // WhatsApp linkini oluştur
+      const whatsappUrl = `https://wa.me/90${phoneNumber}?text=${encodeURIComponent(message)}`;
+      
+      // Yeni sekmede aç
+      window.open(whatsappUrl, "_blank");
+      
+      toast.success("WhatsApp mesajı hazırlandı.");
+    } catch (error) {
+      console.error("WhatsApp mesajı gönderilirken hata oluştu:", error);
+      toast.error("Mesaj hazırlanırken bir hata oluştu.");
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   // Modal açıldığında randevu geçmişini çek
   useEffect(() => {
     if (showHistory) {
@@ -159,15 +202,17 @@ const AppointmentDetailsModal = ({
               <Calendar className="h-5 w-5 text-primary" />
               <span className="font-semibold">Randevu Detayları</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => setShowHistory(true)}
-            >
-              <History className="h-4 w-4" />
-              Randevu Geçmişi
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setShowHistory(true)}
+              >
+                <History className="h-4 w-4" />
+                Randevu Geçmişi
+              </Button>
+            </div>
           </DialogTitle>
 
           <div className="grid gap-6 py-4">
@@ -196,10 +241,10 @@ const AppointmentDetailsModal = ({
                         className={`text-xs ${
                           member.membership_type === "vip"
                             ? "bg-yellow-500/90 hover:bg-yellow-500"
-                            : "bg-gray-500/90 hover:bg-gray-500"
+                            : "bg-gray-400/90 hover:bg-gray-400"
                         } transition-colors cursor-default`}
                       >
-                        {member.membership_type.toUpperCase()}
+                        {member.membership_type === "vip" ? "VIP" : "Standart"}
                       </Badge>
                     )}
                   </h3>
@@ -214,13 +259,15 @@ const AppointmentDetailsModal = ({
                       </a>
                     )}
                     {member.phone_number && (
-                      <a
-                        href={`tel:${member.phone_number}`}
-                        className="text-sm text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors group"
-                      >
-                        <Phone className="h-4 w-4 group-hover:text-primary transition-colors" />
-                        {member.phone_number}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`tel:${member.phone_number}`}
+                          className="text-sm text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors group"
+                        >
+                          <Phone className="h-4 w-4 group-hover:text-primary transition-colors" />
+                          {member.phone_number}
+                        </a>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -229,9 +276,25 @@ const AppointmentDetailsModal = ({
 
             {/* Randevu Detayları Bölümü */}
             <div className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+
               <h3 className="font-medium text-xs sm:text-sm text-muted-foreground tracking-wide">
                 RANDEVU DETAYLARI
               </h3>
+              {member.phone_number && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 py-0 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={sendWhatsAppMessage}
+                            disabled={isSendingMessage}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            {"WhatsApp'tan Bildir"}
+                          </Button>
+                        )}
+              </div>
+              
               <div className="grid gap-3 bg-muted/50 p-4 rounded-lg hover:bg-muted/60 transition-colors">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
