@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Search, PackageOpen } from "lucide-react";
+import { Search, PackageOpen, AlertTriangle } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { MemberCard } from "./MemberCard";
 import React, { useMemo, useEffect, useState } from "react";
@@ -16,6 +16,144 @@ type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
+
+// Paket durumu için tip tanımı
+export type PackageStatus = "completed" | "almostCompleted" | "active";
+
+// Paket durumunu kontrol eden yardımcı fonksiyonlar
+export const checkPackageStatus = {
+  /**
+   * Bir üyenin tüm paketlerinin durumunu kontrol eder
+   * @param member Üye
+   * @param services Servisler
+   * @param appointments Randevular
+   * @returns Paket durumu: completed (bitmiş), almostCompleted (bitmeye yakın), active (aktif)
+   */
+  getMemberPackageStatus: (
+    member: Member,
+    services: { [key: string]: Service },
+    appointments: Appointment[]
+  ): PackageStatus => {
+    // Eğer üyenin hiç paketi yoksa "active" döndür
+    if (member.subscribed_services.length === 0) return "active";
+    
+    // Üyenin aldığı paketleri ve sayılarını hesapla
+    const serviceCount = member.subscribed_services.reduce((acc, serviceId) => {
+      acc[serviceId] = (acc[serviceId] || 0) + 1;
+      return acc;
+    }, {} as { [key: string]: number });
+    
+    // Her bir paket için durum kontrolü yap
+    const packageStatuses = Object.entries(serviceCount).map(([serviceId, totalPackages]) => {
+      return checkPackageStatus.getServicePackageStatus(
+        serviceId,
+        totalPackages,
+        member.id,
+        services,
+        appointments
+      );
+    });
+    
+    // Eğer tüm paketler bitmişse "completed" döndür
+    if (packageStatuses.every(status => status === "completed")) {
+      return "completed";
+    }
+    
+    // Eğer en az bir paket bitmeye yakınsa "almostCompleted" döndür
+    if (packageStatuses.some(status => status === "almostCompleted")) {
+      return "almostCompleted";
+    }
+    
+    // Diğer durumlarda "active" döndür
+    return "active";
+  },
+  
+  /**
+   * Bir servis paketinin durumunu kontrol eder
+   * @param serviceId Servis ID
+   * @param totalPackages Toplam paket sayısı
+   * @param memberId Üye ID
+   * @param services Servisler
+   * @param appointments Randevular
+   * @returns Paket durumu: completed (bitmiş), almostCompleted (bitmeye yakın), active (aktif)
+   */
+  getServicePackageStatus: (
+    serviceId: string,
+    totalPackages: number,
+    memberId: string,
+    services: { [key: string]: Service },
+    appointments: Appointment[]
+  ): PackageStatus => {
+    const service = services[serviceId];
+    if (!service) return "active";
+    
+    const sessionsPerPackage = service?.session_count || 0;
+    const totalSessionsAvailable = totalPackages * sessionsPerPackage;
+    
+    // Bu üyenin bu servise ait tüm randevuları
+    const serviceAppointments = appointments.filter(
+      (apt) =>
+        apt.service_id === serviceId &&
+        apt.member_id === memberId
+    );
+    
+    // Tamamlanan ve iptal edilen randevuları say
+    const completedAppointments = serviceAppointments.filter(apt => apt.status === "completed");
+    const cancelledAppointments = serviceAppointments.filter(apt => apt.status === "cancelled");
+    const usedSessions = completedAppointments.length + cancelledAppointments.length;
+    
+    // Planlanan randevuları say
+    const plannedAppointments = serviceAppointments.filter(apt => apt.status === "scheduled");
+    
+    // Kalan seans sayısını hesapla (planlananlar dahil değil)
+    const remainingSessions = totalSessionsAvailable - usedSessions;
+    
+    // Eğer kullanılan seans sayısı toplam seans sayısına eşit veya fazlaysa
+    // VE planlanan randevu yoksa, bu paket bitmiş demektir
+    if (usedSessions >= totalSessionsAvailable && plannedAppointments.length === 0) {
+      return "completed";
+    }
+    
+    // Eğer kalan seans sayısı 3 veya daha azsa ve planlanan randevu sayısı 3 veya daha azsa
+    // bu paket bitmeye yakın demektir
+    if (remainingSessions <= 3 && plannedAppointments.length <= 3) {
+      return "almostCompleted";
+    }
+    
+    // Diğer durumlarda paket aktif demektir
+    return "active";
+  },
+  
+  /**
+   * Bir üyenin tüm paketlerinin bitip bitmediğini kontrol eder
+   * @param member Üye
+   * @param services Servisler
+   * @param appointments Randevular
+   * @returns Tüm paketler bitmişse true, değilse false
+   */
+  hasCompletedAllPackages: (
+    member: Member,
+    services: { [key: string]: Service },
+    appointments: Appointment[]
+  ): boolean => {
+    return checkPackageStatus.getMemberPackageStatus(member, services, appointments) === "completed";
+  },
+  
+  /**
+   * Bir üyenin paketlerinin bitmeye yakın olup olmadığını kontrol eder
+   * @param member Üye
+   * @param services Servisler
+   * @param appointments Randevular
+   * @returns Paketler bitmeye yakınsa true, değilse false
+   */
+  hasAlmostCompletedPackages: (
+    member: Member,
+    services: { [key: string]: Service },
+    appointments: Appointment[]
+  ): boolean => {
+    return checkPackageStatus.getMemberPackageStatus(member, services, appointments) === "almostCompleted";
+  }
+};
 
 interface MemberListProps {
   members: Member[];
@@ -48,47 +186,7 @@ export const MemberList = ({
 }: MemberListProps) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [packageFilter, setPackageFilter] = useState<"all" | "completed">("all");
-
-  // Paketi bitmiş üyeleri hesaplama fonksiyonu
-  const hasCompletedAllPackages = (member: Member) => {
-    // Üyenin aldığı paketleri ve sayılarını hesapla
-    const serviceCount = member.subscribed_services.reduce((acc, serviceId) => {
-      acc[serviceId] = (acc[serviceId] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number });
-
-    // Eğer üyenin hiç paketi yoksa false döndür
-    if (Object.keys(serviceCount).length === 0) return false;
-    
-    // Her bir paket için kontrol yap
-    return Object.entries(serviceCount).every(([serviceId, totalPackages]) => {
-      const service = services[serviceId];
-      if (!service) return false;
-      
-      const sessionsPerPackage = service?.session_count || 0;
-      const totalSessionsAvailable = totalPackages * sessionsPerPackage;
-      
-      // Bu üyenin bu servise ait tüm randevuları
-      const serviceAppointments = appointments.filter(
-        (apt) =>
-          apt.service_id === serviceId &&
-          apt.member_id === member.id
-      );
-      
-      // Tamamlanan ve iptal edilen randevuları say
-      const completedAppointments = serviceAppointments.filter(apt => apt.status === "completed");
-      const cancelledAppointments = serviceAppointments.filter(apt => apt.status === "cancelled");
-      const usedSessions = completedAppointments.length + cancelledAppointments.length;
-      
-      // Planlanan randevuları say
-      const plannedAppointments = serviceAppointments.filter(apt => apt.status === "scheduled");
-      
-      // Eğer kullanılan seans sayısı toplam seans sayısına eşit veya fazlaysa
-      // VE planlanan randevu yoksa, bu paket bitmiş demektir
-      return usedSessions >= totalSessionsAvailable && plannedAppointments.length === 0;
-    });
-  };
+  const [packageFilter, setPackageFilter] = useState<"all" | "completed" | "almostCompleted">("all");
 
   // Filtreleme ve istatistik hesaplamalarını useMemo ile optimize ediyoruz
   const { filteredMembers, stats } = useMemo(() => {
@@ -115,13 +213,14 @@ export const MemberList = ({
         // Paket filtresini kontrol et
         const matchesPackageFilter = 
           packageFilter === "all" || 
-          (packageFilter === "completed" && hasCompletedAllPackages(member));
+          (packageFilter === "completed" && checkPackageStatus.hasCompletedAllPackages(member, services, appointments)) ||
+          (packageFilter === "almostCompleted" && checkPackageStatus.hasAlmostCompletedPackages(member, services, appointments));
 
         return matchesSearch && matchesFilter && matchesTrainer && matchesPackageFilter;
       })
       .sort((a, b) => {
-        // Paketi bitenler önce gösterilsin
-        if (packageFilter === "completed") return 0;
+        // Paketi bitenler veya bitmeye yakın olanlar önce gösterilsin
+        if (packageFilter === "completed" || packageFilter === "almostCompleted") return 0;
         
         // VIP üyeleri önce göster
         if (a.membership_type === "vip" && b.membership_type !== "vip") return -1;
@@ -139,7 +238,8 @@ export const MemberList = ({
       vip: members.filter((m) => m.membership_type === "vip").length,
       filteredBasic: filtered.filter((m) => m.membership_type === "basic").length,
       filteredVip: filtered.filter((m) => m.membership_type === "vip").length,
-      completedPackages: members.filter(hasCompletedAllPackages).length
+      completedPackages: members.filter(m => checkPackageStatus.hasCompletedAllPackages(m, services, appointments)).length,
+      almostCompletedPackages: members.filter(m => checkPackageStatus.hasAlmostCompletedPackages(m, services, appointments)).length
     };
 
     return { filteredMembers: filtered, stats: memberStats };
@@ -172,9 +272,9 @@ export const MemberList = ({
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:space-x-2 w-full">
           <Select
             value={packageFilter}
-            onValueChange={(value: "all" | "completed") => setPackageFilter(value)}
+            onValueChange={(value: "all" | "completed" | "almostCompleted") => setPackageFilter(value)}
           >
-            <SelectTrigger className={`w-full md:w-[200px] ${
+            <SelectTrigger className={`w-full md:w-[220px] ${
               isDark ? "bg-gray-800 text-gray-200 border-gray-700" : ""
             }`}>
               <SelectValue placeholder="Paket Durumu" />
@@ -185,6 +285,12 @@ export const MemberList = ({
                 <div className="flex items-center gap-1.5">
                   <PackageOpen className="h-4 w-4 text-red-500" />
                   <span>Paketi Bitenler ({stats.completedPackages})</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="almostCompleted" className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span>Paketi Bitmeye Yakın ({stats.almostCompletedPackages})</span>
                 </div>
               </SelectItem>
             </SelectContent>

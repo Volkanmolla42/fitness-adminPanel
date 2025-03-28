@@ -70,6 +70,13 @@ export const ServiceProgress = ({ service, appointments, totalPackages }: Servic
         <span className="mr-auto">
           {service?.name || "Yükleniyor..."}
         </span>
+        {totalPackages > 1 && (
+          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+            isDark ? 'bg-gray-600 text-gray-200' : 'bg-gray-200 text-gray-700'
+          }`}>
+            {totalPackages}x
+          </span>
+        )}
       </Badge>
       
       <div className="flex flex-col gap-2">
@@ -112,7 +119,7 @@ export const ServiceProgress = ({ service, appointments, totalPackages }: Servic
               {/* Boş randevular (gri) */}
               {pkg.empty > 0 && (
                 <div 
-                  className={`h-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`} 
+                  className={`h-full ${isDark ? 'bg-gray-600/50' : 'bg-gray-300'}`}
                   style={{ width: `${(pkg.empty / pkg.total) * 100}%` }}
                 />
               )}
