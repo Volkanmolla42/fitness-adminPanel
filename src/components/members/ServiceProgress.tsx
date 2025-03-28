@@ -1,133 +1,142 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { CheckCircle2 } from "lucide-react";
-import cn from "classnames";
 import type { Database } from "@/types/supabase";
 import { useTheme } from "@/contexts/theme-context";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
+type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 
 export interface ServiceProgressProps {
   service: Service;
-  completedSessions: number;
+  appointments: Appointment[];
   totalPackages: number;
 }
 
-export const ServiceProgress = ({ service, completedSessions, totalPackages }: ServiceProgressProps) => {
+export const ServiceProgress = ({ service, appointments, totalPackages }: ServiceProgressProps) => {
   const { theme } = useTheme();
+  const isDark = theme === "dark";
   const sessionsPerPackage = service?.session_count || 0;
   
-  // Eğer üye bu paketten sadece 1 tane almışsa ve seans sayısını aşmışsa
-  // gerçek tamamlanan seans sayısını göster
-  if (totalPackages === 1 && completedSessions > sessionsPerPackage) {
-    return (
-      <div className={`w-full p-2.5 rounded-lg shadow-sm border transition-colors ${
-        theme === 'dark'
-          ? 'bg-gray-800/80 border-primary/20 hover:bg-gray-800'
-          : 'bg-primary/5 border-primary/10 hover:bg-primary/10'
-      }`}>
-        <Badge
-          variant="outline"
-          className={`px-3 py-1 flex items-center gap-2 mb-1.5 font-medium ${
-            theme === 'dark'
-              ? 'bg-gray-700/80 text-gray-200 border-gray-600'
-              : 'bg-background/80'
-          }`}
-        >
-          <span className="mr-auto">
-            {service?.name || "Yükleniyor..."}
-          </span>
-        </Badge>
-        <div className="flex items-center gap-2.5">
-          <Progress
-            value={100}
-            className={`h-2.5 rounded-full ${
-              theme === 'dark'
-                ? 'bg-green-800/40 [&>div]:bg-green-500'
-                : 'bg-green-100/70 [&>div]:bg-green-600'
-            }`}
-          />
-          <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 font-medium ${
-            theme === 'dark' ? 'text-gray-300' : ''
-          }`}>
-            {completedSessions}/{sessionsPerPackage}
-            <CheckCircle2 className={`size-4 ml-0.5 ${
-              theme === 'dark' ? 'text-green-500' : 'text-green-600'
-            }`} />
-          </span>
-        </div>
-      </div>
-    );
+  // Randevuları tarihe göre sırala (eskiden yeniye)
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.time}`);
+    const dateB = new Date(`${b.date}T${b.time}`);
+    return dateA.getTime() - dateB.getTime();
+  });
+  
+  // Paketleri oluştur
+  const packages = [];
+  let remainingAppointments = [...sortedAppointments];
+  
+  for (let i = 0; i < totalPackages; i++) {
+    const packageAppointments = remainingAppointments.slice(0, sessionsPerPackage);
+    remainingAppointments = remainingAppointments.slice(sessionsPerPackage);
+    
+    // Bu paket için durumlarına göre randevuları ayır
+    const packageCompletedAppointments = packageAppointments.filter(apt => apt.status === "completed");
+    const packagePlannedAppointments = packageAppointments.filter(apt => apt.status === "scheduled");
+    const packageCancelledAppointments = packageAppointments.filter(apt => apt.status === "cancelled");
+    
+    // Bu paketteki toplam randevu sayısı
+    const packageTotalAppointments = packageAppointments.length;
+    
+    // Bu paketteki boş randevu sayısı
+    const packageEmptySlots = sessionsPerPackage - packageTotalAppointments;
+    
+    packages.push({
+      completed: packageCompletedAppointments.length,
+      planned: packagePlannedAppointments.length,
+      cancelled: packageCancelledAppointments.length,
+      empty: packageEmptySlots,
+      total: sessionsPerPackage,
+      isComplete: packageTotalAppointments === sessionsPerPackage && packageEmptySlots === 0
+    });
   }
-  
-  // Tamamlanan seansların kaç pakete denk geldiğini hesapla
-  const completedPackages = Math.floor(completedSessions / sessionsPerPackage);
-  
-  // Son paketteki tamamlanan seans sayısı
-  const currentPackageCompletedSessions = completedSessions % sessionsPerPackage || 
-    (completedSessions > 0 && completedSessions === completedPackages * sessionsPerPackage ? sessionsPerPackage : 0);
-  
-  // İlerleme yüzdesi (son paket için)
-  const progress = (currentPackageCompletedSessions / sessionsPerPackage) * 100;
-  
-  const isCompleted = progress >= 100;
   
   return (
     <div className={`w-full p-2.5 rounded-lg shadow-sm border transition-colors ${
-      theme === 'dark'
+      isDark
         ? 'bg-gray-800/80 border-primary/20 hover:bg-gray-800'
         : 'bg-primary/5 border-primary/10 hover:bg-primary/10'
     }`}>
       <Badge
         variant="outline"
         className={`px-3 py-1 flex items-center gap-2 mb-1.5 font-medium ${
-          theme === 'dark'
+          isDark
             ? 'bg-gray-700/80 text-gray-200 border-gray-600'
             : 'bg-background/80'
         }`}
       >
-        {totalPackages > 1 && (
-          <span className="text-red-500 font-semibold">{totalPackages} ×</span>
-        )}
         <span className="mr-auto">
           {service?.name || "Yükleniyor..."}
         </span>
       </Badge>
-      <div className="flex items-center gap-2.5">
-        <Progress
-          value={progress}
-          className={cn(
-            "h-2.5 rounded-full",
-            isCompleted 
-              ? theme === 'dark'
-                ? "bg-green-800/40 [&>div]:bg-green-500" 
-                : "bg-green-100/70 [&>div]:bg-green-600"
-              : theme === 'dark'
-                ? "bg-gray-700 [&>div]:bg-primary" 
-                : "bg-primary/10 [&>div]:bg-primary"
-          )}
-        />
-        <span className={`text-xs whitespace-nowrap flex items-center gap-1.5 font-medium ${
-          theme === 'dark' ? 'text-gray-300' : ''
-        }`}>
-          {currentPackageCompletedSessions}/{sessionsPerPackage}
-          {(completedPackages > 0 || isCompleted) && (
-            <span className="ml-1.5 flex items-center">
-              {isCompleted ? (
-                <CheckCircle2 className={`size-4 ml-0.5 ${
-                  theme === 'dark' ? 'text-green-500' : 'text-green-600'
-                }`} />
-              ) : (
-                <span className={`text-xs italic ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-muted-foreground'
-                }`}>
-                  ({completedPackages} kez tamamlandı)
+      
+      <div className="flex flex-col gap-2">
+        {packages.map((pkg, index) => (
+          <div key={index} className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : ''}`}>
+                 {index + 1}. Paket
+              </span>
+              <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : ''}`}>
+                {pkg.completed + pkg.planned + pkg.cancelled}/{pkg.total}
+              </span>
+            </div>
+            
+            <div className="h-2.5 w-full rounded-full overflow-hidden flex">
+              {/* Tamamlanan randevular (yeşil) */}
+              {pkg.completed > 0 && (
+                <div 
+                  className={`h-full ${isDark ? 'bg-green-500' : 'bg-green-600'}`} 
+                  style={{ width: `${(pkg.completed / pkg.total) * 100}%` }}
+                />
+              )}
+              
+              {/* Planlanan randevular (mavi) */}
+              {pkg.planned > 0 && (
+                <div 
+                  className={`h-full ${isDark ? 'bg-blue-500' : 'bg-blue-600'}`} 
+                  style={{ width: `${(pkg.planned / pkg.total) * 100}%` }}
+                />
+              )}
+              
+              {/* İptal edilen randevular (kırmızı) */}
+              {pkg.cancelled > 0 && (
+                <div 
+                  className={`h-full ${isDark ? 'bg-red-500' : 'bg-red-600'}`} 
+                  style={{ width: `${(pkg.cancelled / pkg.total) * 100}%` }}
+                />
+              )}
+              
+              {/* Boş randevular (gri) */}
+              {pkg.empty > 0 && (
+                <div 
+                  className={`h-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`} 
+                  style={{ width: `${(pkg.empty / pkg.total) * 100}%` }}
+                />
+              )}
+            </div>
+            
+            <div className="flex flex-wrap gap-2 text-xs mt-0.5">
+              {pkg.completed > 0 && (
+                <span className={`${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                  {pkg.completed} tamamlanan
                 </span>
               )}
-            </span>
-          )}
-        </span>
+              {pkg.planned > 0 && (
+                <span className={`${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                  {pkg.planned} planlanan
+                </span>
+              )}
+              {pkg.cancelled > 0 && (
+                <span className={`${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                  {pkg.cancelled} iptal
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

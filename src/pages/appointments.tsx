@@ -290,7 +290,6 @@ function AppointmentsPage() {
             </DialogContent>
           </Dialog>
         </div>
-
         {/* Filtreler Bölümü */}
         <div
           className={`p-4 rounded-lg shadow-sm flex flex-col space-y-2 ${
@@ -317,7 +316,6 @@ function AppointmentsPage() {
             />
           </div>
         </div>
-
         {/* İçerik Alanı */}
         <div
           className={`min-h-[500px] bg-opacity-50 rounded-lg ${

@@ -76,24 +76,21 @@ export const MemberDetail = ({
       return acc;
     }, {} as { [key: string]: number });
 
-    // Her bir servis için tamamlanan randevuları bul
+    // Her bir servis için ilgili randevuları bul
     return Object.entries(serviceCount).map(([serviceId, count]) => {
       const service = services[serviceId];
 
+      // Bu üyenin bu servise ait tüm randevuları
       const serviceAppointments = appointments.filter(
         (apt) =>
           apt.service_id === serviceId &&
-          apt.member_id === member.id &&
-          (apt.status === "completed" || apt.status === "cancelled")
+          apt.member_id === member.id
       );
-
-      // Tamamlanan seans sayısı
-      const completedSessions = serviceAppointments.length;
 
       return {
         serviceId,
         service,
-        completedSessions,
+        appointments: serviceAppointments,
         totalPackages: count,
       };
     });
@@ -202,11 +199,11 @@ export const MemberDetail = ({
 
           <div className="grid gap-2">
             {memberServices.map(
-              ({ serviceId, service, completedSessions, totalPackages }) => (
+              ({ serviceId, service, appointments, totalPackages }) => (
                 <ServiceProgress
                   key={serviceId}
                   service={service}
-                  completedSessions={completedSessions}
+                  appointments={appointments}
                   totalPackages={totalPackages}
                 />
               )
@@ -270,13 +267,13 @@ export const MemberDetail = ({
                   ({
                     serviceId,
                     service,
-                    completedSessions,
+                    appointments,
                     totalPackages,
                   }) => (
                     <ServiceProgress
                       key={serviceId}
                       service={service}
-                      completedSessions={completedSessions}
+                      appointments={appointments}
                       totalPackages={totalPackages}
                     />
                   )
