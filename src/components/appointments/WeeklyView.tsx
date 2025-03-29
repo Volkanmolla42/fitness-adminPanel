@@ -16,6 +16,7 @@ import {
   addWeeks,
   subWeeks,
   endOfWeek,
+  parseISO,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,6 +26,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   Trash2Icon,
+  MessageCircle,
 } from "lucide-react";
 import {
   Popover,
@@ -113,6 +115,41 @@ export default function WeeklyView({
   const getMemberName = (memberId: string) => {
     const member = members.find((m) => m.id === memberId);
     return member ? `${member.first_name} ${member.last_name}` : "";
+  };
+
+  const getMemberPhone = (memberId: string) => {
+    const member = members.find((m) => m.id === memberId);
+    return member?.phone || "";
+  };
+
+  const createWhatsAppMessage = (appointment: Appointment) => {
+    const memberName = getMemberName(appointment.member_id);
+    const service = services.find(s => s.id === appointment.service_id);
+    const serviceName = service ? service.name : "";
+    const appointmentDate = format(parseISO(appointment.date), "d MMMM yyyy", { locale: tr });
+    
+    // Saat formatını düzelt (saniye bilgisini kaldır)
+    const appointmentTime = appointment.time.split(":").slice(0, 2).join(":");
+    
+    return `Merhaba ${memberName}, ${serviceName} randevunuz ${appointmentDate} tarihinde saat ${appointmentTime}'de bulunmaktadir. Lütfen zamanında gelmeyi unutmayınız. İyi günler dileriz.`;
+  };
+
+  const createWhatsAppLink = (phone: string, message: string) => {
+    // Önce telefon numarasındaki tüm boşlukları, parantezleri ve tire işaretlerini temizle
+    const cleanPhone = phone.replace(/[\s()-]/g, '');
+    
+    // Temizlenmiş numarayı WhatsApp formatına çevir
+    const formattedPhone = cleanPhone.startsWith("0") 
+      ? `9${cleanPhone.substring(1)}` // Baştaki 0'ı kaldır ve 9 ekle
+      : cleanPhone.startsWith("+90") 
+        ? cleanPhone.replace("+", "") // + işaretini kaldır
+        : cleanPhone.startsWith("90")
+          ? cleanPhone // Zaten 90 ile başlıyorsa değiştirme
+          : `90${cleanPhone}`; // Hiçbiri değilse başına 90 ekle
+    
+    const encodedMessage = encodeURIComponent(message);
+    
+    return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
   };
 
   // Hafta tarihlerini hesapla ve önbelleğe al
@@ -302,6 +339,18 @@ export default function WeeklyView({
     } finally {
       setDeleteDialogOpen(false);
     }
+  };
+
+  // Servis dialog state'leri
+  const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedServiceAppointments, setSelectedServiceAppointments] = useState<Appointment[]>([]);
+
+  // Servis adına tıklandığında üyeleri göster
+  const handleServiceClick = (service: Service, serviceAppointments: Appointment[]) => {
+    setSelectedService(service);
+    setSelectedServiceAppointments(serviceAppointments);
+    setServiceDialogOpen(true);
   };
 
   if (!selectedTrainerId) {
@@ -500,13 +549,19 @@ export default function WeeklyView({
                                   ? "bg-blue-900 text-blue-100"
                                   : "bg-blue-300 text-blue-900"
                               }`}
+                              onClick={() => handleServiceClick(service, appointments)}
                             >
+                              <span className="hover:underline underline-offset-2">
+
                               {service.name}
+                              </span>
                               {service.max_participants > 1 &&
                                 appointments.length > 1 && (
                                   <span
                                     className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                                      isDark ? "bg-white/20" : "bg-white/80"
+                                      isDark
+                                        ? "bg-white/20"
+                                        : "bg-white/80"
                                     }`}
                                   >
                                     {appointments.length}/
@@ -623,6 +678,115 @@ export default function WeeklyView({
             </Button>
             <Button variant="destructive" onClick={handleDeleteAppointment}>
               Sil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Servis Üyeleri Dialog */}
+      <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
+        <DialogContent
+          className={isDark ? "bg-gray-800 text-gray-300 border-gray-700" : ""}
+        >
+          <DialogHeader>
+            <DialogTitle className={isDark ? "text-gray-300" : ""}>
+              {selectedService?.name} - Üye Listesi
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[300px] overflow-y-auto">
+            {selectedServiceAppointments.length > 0 ? (
+              <div className={`rounded-md border ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                <Table>
+                  <TableHeader>
+                    <TableRow className={isDark ? "border-gray-700" : "border-gray-200"}>
+                      <TableHead className={isDark ? "text-gray-300" : ""}>Üye Adı</TableHead>
+                      <TableHead className={isDark ? "text-gray-300" : ""}>Durum</TableHead>
+                      <TableHead className={isDark ? "text-gray-300" : ""}>İşlemler</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedServiceAppointments.map((appointment) => {
+                      const memberPhone = getMemberPhone(appointment.member_id);
+                      const whatsappMessage = createWhatsAppMessage(appointment);
+                      const whatsappLink = createWhatsAppLink(memberPhone, whatsappMessage);
+                      
+                      return (
+                        <TableRow key={appointment.id} className={isDark ? "border-gray-700" : "border-gray-200"}>
+                          <TableCell className={isDark ? "text-gray-300" : ""}>
+                            {getMemberName(appointment.member_id)}
+                          </TableCell>
+                          <TableCell>
+                            <span 
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                appointment.status === "scheduled" 
+                                  ? isDark 
+                                    ? "bg-blue-900/50 text-blue-100" 
+                                    : "bg-blue-100 text-blue-800"
+                                  : appointment.status === "completed" 
+                                  ? isDark 
+                                    ? "bg-green-900/50 text-green-100" 
+                                    : "bg-green-100 text-green-800"
+                                  : appointment.status === "in-progress" 
+                                  ? isDark 
+                                    ? "bg-yellow-900/50 text-yellow-100" 
+                                    : "bg-yellow-100 text-yellow-800"
+                                  : isDark 
+                                    ? "bg-red-900/50 text-red-100" 
+                                    : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {appointment.status === "scheduled" 
+                                ? "Planlandı" 
+                                : appointment.status === "completed" 
+                                ? "Tamamlandı" 
+                                : appointment.status === "in-progress" 
+                                ? "Devam Ediyor" 
+                                : "İptal Edildi"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {memberPhone ? (
+                              <a 
+                                href={whatsappLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+                                  ${isDark 
+                                    ? "bg-green-900 text-green-100 hover:bg-green-800" 
+                                    : "bg-green-600 text-white hover:bg-green-700"}`}
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                                Hatırlat
+                              </a>
+                            ) : (
+                              <span className={`text-xs ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+                                Telefon bulunamadı
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className={`p-4 text-center ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                Bu servise kayıtlı üye bulunamadı.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setServiceDialogOpen(false)}
+              className={
+                isDark
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600"
+                  : ""
+              }
+            >
+              Kapat
             </Button>
           </DialogFooter>
         </DialogContent>
