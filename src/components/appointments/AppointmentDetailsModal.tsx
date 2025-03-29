@@ -150,33 +150,39 @@ const AppointmentDetailsModal = ({
   const sendWhatsAppMessage = () => {
     try {
       setIsSendingMessage(true);
-      
+
       // Telefon numarası kontrolü
       if (!member.phone_number) {
         toast.error("Üyenin telefon numarası bulunamadı.");
         return;
       }
-      
+
       // Telefon numarasını formatla (başında + olmadan ve boşluklar olmadan)
       const phoneNumber = member.phone_number.replace(/\s+/g, "");
-      
+
       // Tarih ve saat bilgisini formatla
-      const appointmentDate = format(new Date(appointment.date), "d MMMM yyyy", { locale: tr });
+      const appointmentDate = format(
+        new Date(appointment.date),
+        "d MMMM yyyy",
+        { locale: tr }
+      );
       const appointmentTime = appointment.time.slice(0, 5);
-      
+
       // Mesaj içeriğini hazırla
-      const message = 
+      const message =
         `Merhaba ${member.firstName} hanım, ${appointmentDate} tarihinde saat ${appointmentTime}'de ${service.name} randevunuz bulunmaktadır. ` +
         `Antrenörünüz ${trainer.firstName} ${trainer.lastName} olacaktır. ` +
         `Randevu süresi ${service.duration} dakikadır. ` +
         `Hatırlatma için teşekkür ederiz.`;
-      
+
       // WhatsApp linkini oluştur
-      const whatsappUrl = `https://wa.me/90${phoneNumber}?text=${encodeURIComponent(message)}`;
-      
+      const whatsappUrl = `https://wa.me/90${phoneNumber}?text=${encodeURIComponent(
+        message
+      )}`;
+
       // Yeni sekmede aç
       window.open(whatsappUrl, "_blank");
-      
+
       toast.success("WhatsApp mesajı hazırlandı.");
     } catch (error) {
       console.error("WhatsApp mesajı gönderilirken hata oluştu:", error);
@@ -277,24 +283,23 @@ const AppointmentDetailsModal = ({
             {/* Randevu Detayları Bölümü */}
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-2">
-
-              <h3 className="font-medium text-xs sm:text-sm text-muted-foreground tracking-wide">
-                RANDEVU DETAYLARI
-              </h3>
-              {member.phone_number && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 py-0 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={sendWhatsAppMessage}
-                            disabled={isSendingMessage}
-                          >
-                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                            {"WhatsApp'tan Bildir"}
-                          </Button>
-                        )}
+                <h3 className="font-medium text-xs sm:text-sm text-muted-foreground tracking-wide">
+                  RANDEVU DETAYLARI
+                </h3>
+                {member.phone_number && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 py-0 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={sendWhatsAppMessage}
+                    disabled={isSendingMessage}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    {"WhatsApp'tan Bildir"}
+                  </Button>
+                )}
               </div>
-              
+
               <div className="grid gap-3 bg-muted/50 p-4 rounded-lg hover:bg-muted/60 transition-colors">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
@@ -336,21 +341,7 @@ const AppointmentDetailsModal = ({
                   <Activity className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-sm">
                     <span className="text-muted-foreground">Durum:</span>{" "}
-                    <Badge
-                      variant="outline"
-                      className={`
-                        ${
-                          appointment.status === "completed"
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
-                            : appointment.status === "cancelled"
-                            ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
-                            : "bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100"
-                        }
-                        transition-colors font-medium
-                      `}
-                    >
-                      {getStatusText(appointment.status)}
-                    </Badge>
+                    <span>{getStatusText(appointment.status)}</span>
                   </span>
                 </div>
               </div>
@@ -411,9 +402,13 @@ const AppointmentDetailsModal = ({
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-primary shrink-0" />
                             <span className="font-medium">
-                              {format(new Date(historyItem.date), "d MMMM yyyy", {
-                                locale: tr,
-                              })}
+                              {format(
+                                new Date(historyItem.date),
+                                "d MMMM yyyy",
+                                {
+                                  locale: tr,
+                                }
+                              )}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
@@ -444,17 +439,20 @@ const AppointmentDetailsModal = ({
                       <div className="flex items-center gap-2 bg-muted/50 p-2 rounded">
                         <Package className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-muted-foreground">Hizmet:</span>
-                        <span className="font-medium">{historyItem.service.name}</span>
+                        <span className="font-medium">
+                          {historyItem.service.name}
+                        </span>
                         <span className="text-muted-foreground ml-auto">
                           {historyItem.service.duration} dk
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 bg-muted/50 p-2 rounded">
                         <UserCog className="h-4 w-4 text-primary shrink-0" />
                         <span className="text-muted-foreground">Antrenör:</span>
                         <span className="font-medium">
-                          {historyItem.trainer.firstName} {historyItem.trainer.lastName}
+                          {historyItem.trainer.firstName}{" "}
+                          {historyItem.trainer.lastName}
                         </span>
                       </div>
                     </div>

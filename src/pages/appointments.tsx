@@ -147,7 +147,7 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className={`space-y-6 container m-0 p-0`}>
+    <div className={`space-y-6 container p-0`}>
       <div className="flex flex-col space-y-6">
         {/* Başlık ve Tarih Bölümü */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
