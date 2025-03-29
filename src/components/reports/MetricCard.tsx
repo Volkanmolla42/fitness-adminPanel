@@ -36,9 +36,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           {changeRate !== undefined && (
             <div className={`flex items-center text-sm font-medium ${isPositiveChange ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {isPositiveChange ? (
-                <TrendingUp className="h-3.5 w-3.5 mr-1" />
+                <TrendingUp className="h-3.5 w-3.5 mr-2" />
               ) : (
-                <TrendingDown className="h-3.5 w-3.5 mr-1" />
+                <TrendingDown className="h-3.5 w-3.5 mr-2" />
               )}
               <span>{changeRateAbs.toFixed(1)}%</span>
             </div>
