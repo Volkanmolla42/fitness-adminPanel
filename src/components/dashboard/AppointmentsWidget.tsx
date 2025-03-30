@@ -173,7 +173,7 @@ const AppointmentsWidget = ({
                       <Clock className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-primary">
+                      <p className="text-xl font-bold">
                         {appointment.time.slice(0, 5)}
                       </p>
                       <p className="text-sm font-medium text-muted-foreground">
@@ -238,12 +238,7 @@ const AppointmentsWidget = ({
                 </div>
               </div>
               
-              <div className="mt-auto pt-3 border-t flex items-center gap-2 text-sm">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary">
-                    {trainer?.first_name?.[0]}{trainer?.last_name?.[0]}
-                  </span>
-                </div>
+              <div className="mt-auto pt-3 flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground font-medium">
                   {trainer?.first_name} {trainer?.last_name}
                 </span>
