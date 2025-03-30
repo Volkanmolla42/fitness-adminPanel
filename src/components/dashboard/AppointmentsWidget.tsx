@@ -134,10 +134,6 @@ const AppointmentsWidget = ({
           <h2 className="text-xl md:text-2xl font-semibold text-foreground">
             Yaklaşan randevular
           </h2>
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
-            <span>Canlı</span>
-          </Badge>
         </div>
         <Button
           variant="ghost"
@@ -196,12 +192,12 @@ const AppointmentsWidget = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                     {member?.first_name} {member?.last_name}
                   </h3>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-primary/60" />
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {service?.name}
                     </p>
                   </div>

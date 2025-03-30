@@ -261,7 +261,7 @@ export const MemberList = ({
       <div className="relative">
         <Search className={`absolute left-2 top-2.5 h-4 w-4 ${isDark ? "text-gray-400" : "text-muted-foreground"}`} />
         <Input
-          placeholder="İsim, email veya telefon ile ara..."
+          placeholder="Ad Soyad veya telefon ile ara..."
           value={searchTerm}
           onChange={(e) => onSearch(e.target.value)}
           className="pl-8"
