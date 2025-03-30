@@ -104,3 +104,39 @@
 .animate-pulse-border {
   animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Özel Scrollbar Tasarımı */
+@layer utilities {
+  /* Webkit tarayıcılar için scrollbar tasarımı (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/40 hover:bg-primary/60 rounded-full transition-colors duration-200;
+  }
+
+  /* Firefox için scrollbar tasarımı */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.4) hsl(var(--secondary) / 0.3);
+  }
+
+  /* Koyu tema için scrollbar renkleri */
+  .dark ::-webkit-scrollbar-track {
+    @apply bg-secondary/20;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-primary/50 hover:bg-primary/70;
+  }
+
+  .dark * {
+    scrollbar-color: hsl(var(--primary) / 0.5) hsl(var(--secondary) / 0.2);
+  }
+}
