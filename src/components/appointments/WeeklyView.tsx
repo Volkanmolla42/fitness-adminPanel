@@ -33,13 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Dialog,
   DialogContent,
@@ -50,28 +44,8 @@ import {
 } from "@/components/ui/dialog";
 import { deleteAppointmentById } from "@/lib/queries";
 import { toast } from "sonner";
-//import TIME_SLOTS  from "@/constants/timeSlots";
-// geçici olarak saatler
-const OLD_TIME_SLOTS = [
-  "10:00",
-  "11:30",
-  "13:00",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:00",
-  "19:00",
-];
-const NEW_TIME_SLOTS = [
-  "11:30",
-  "12:30",
-  "13:30",
-  "15:00",
-  "16:30",
-  "20:00",
-  "21:00",
-  "22:00",
-];
+import TIME_SLOTS from "@/constants/timeSlots";
+
 interface WeeklyViewProps {
   appointments: Appointment[];
   members: Member[];
@@ -92,13 +66,6 @@ export default function WeeklyView({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-
-  const [selectedTimeType, setSelectedTimeType] = useState<"old" | "new">(
-    "new"
-  );
-
-  const TIME_SLOTS =
-    selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
 
   const getDayName = (dayIndex: number) => {
     const days = [
@@ -373,37 +340,6 @@ export default function WeeklyView({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className={isDark ? "text-gray-300" : "text-gray-700"}>
-            Saat aralığını seçin
-          </span>
-          <Select
-            value={selectedTimeType}
-            onValueChange={(value: "old" | "new") => setSelectedTimeType(value)}
-          >
-            <SelectTrigger
-              className={`w-[180px] ${
-                isDark
-                  ? "bg-gray-800 border-gray-700 text-gray-300"
-                  : "bg-white"
-              }`}
-            >
-              <SelectValue placeholder="Saat tipini seçin" />
-            </SelectTrigger>
-            <SelectContent
-              className={isDark ? "bg-gray-800 border-gray-700" : ""}
-            >
-              <SelectItem value="old" className={isDark ? "text-gray-300" : ""}>
-                Normal Saatler
-              </SelectItem>
-              <SelectItem value="new" className={isDark ? "text-gray-300" : ""}>
-                Ramazan Saatleri
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
       <div
         className={`flex items-center justify-between p-4 rounded-lg shadow ${
           isDark ? "bg-gray-800" : "bg-white"

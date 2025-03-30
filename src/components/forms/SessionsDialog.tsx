@@ -30,27 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const OLD_TIME_SLOTS = [
-  "10:00",
-  "11:30",
-  "13:00",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:00",
-  "19:00",
-];
-
-const NEW_TIME_SLOTS = [
-  "11:30",
-  "12:30",
-  "13:30",
-  "15:00",
-  "16:30",
-  "20:00",
-  "21:00",
-  "22:00",
-];
+import TIME_SLOTS  from "@/constants/timeSlots";
 
 interface SessionsDialogProps {
   open: boolean;
@@ -88,11 +68,7 @@ export function SessionsDialog({
   member,
 }: SessionsDialogProps) {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-  const [selectedTimeType, setSelectedTimeType] = React.useState<"old" | "new">(
-    "old"
-  );
-  const TIME_SLOTS =
-    selectedTimeType === "old" ? OLD_TIME_SLOTS : NEW_TIME_SLOTS;
+
   const DATE_RESTRICTIONS = {
     excludedDays: [0] as number[], // 0: Pazar
   } as const;
@@ -645,20 +621,6 @@ export function SessionsDialog({
               >
                 +
               </Button>
-              <Select
-                value={selectedTimeType}
-                onValueChange={(value: "old" | "new") =>
-                  setSelectedTimeType(value)
-                }
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Saat dilimi seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="old">Normal Saatler</SelectItem>
-                  <SelectItem value="new">Ramazan Saatleri</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

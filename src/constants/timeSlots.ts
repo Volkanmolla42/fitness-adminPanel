@@ -1,5 +1,5 @@
  
- /** Ramazan saateri */
+ /** Ramazan saateri 
  const TIME_SLOTS = [
   "11:30",
   "12:30",
@@ -15,10 +15,11 @@ export const WORKING_HOURS = {
   start: "11:30",
   end: "23:00",
 };
+*/
 
-/**
- * Normal saatler
- * const TIME_SLOTS = [
+
+ // Normal saatler
+ const TIME_SLOTS = [
   "10:00",
   "11:30",
   "13:00",
@@ -33,4 +34,4 @@ export const WORKING_HOURS = {
   start: "10:00",
   end: "20:00",
 };
- */
+ 
