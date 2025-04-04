@@ -7,10 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {
-  Download,
-  RefreshCw,
-} from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import {
   startOfWeek,
   endOfWeek,
@@ -53,6 +50,7 @@ type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
 const ReportsPage = () => {
   const reportRef = useRef<HTMLDivElement>(null);
+  const metricsRef = useRef<HTMLDivElement>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<
     "all" | "week" | "month" | "year" | "custom"
   >("year");
@@ -175,9 +173,9 @@ const ReportsPage = () => {
   const calculateMetrics = () => {
     const now = new Date();
     let dateRange;
-    let comparisonDateRange; 
-    let comparisonLabel = ""; 
-    
+    let comparisonDateRange;
+    let comparisonLabel = "";
+
     if (selectedDateRange === "all") {
       dateRange = null;
       comparisonDateRange = null;
@@ -189,23 +187,25 @@ const ReportsPage = () => {
     ) {
       const from = customDateRange.from;
       const to = customDateRange.to;
-      const dayDiff = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-      
+      const dayDiff = Math.round(
+        (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
       dateRange = {
         start: from,
         end: to,
       };
-      
+
       const comparisonStart = new Date(from);
       comparisonStart.setDate(comparisonStart.getDate() - dayDiff - 1);
       const comparisonEnd = new Date(from);
       comparisonEnd.setDate(comparisonEnd.getDate() - 1);
-      
+
       comparisonDateRange = {
         start: comparisonStart,
-        end: comparisonEnd
+        end: comparisonEnd,
       };
-      
+
       comparisonLabel = "Önceki döneme göre";
     } else {
       if (selectedDateRange === "week") {
@@ -213,47 +213,51 @@ const ReportsPage = () => {
           start: startOfWeek(now, { locale: tr }),
           end: endOfWeek(now, { locale: tr }),
         };
-        
+
         const lastWeekStart = new Date(dateRange.start);
         lastWeekStart.setDate(lastWeekStart.getDate() - 7);
         const lastWeekEnd = new Date(dateRange.end);
         lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
-        
+
         comparisonDateRange = {
           start: lastWeekStart,
-          end: lastWeekEnd
+          end: lastWeekEnd,
         };
-        
+
         comparisonLabel = "Önceki haftaya göre";
       } else if (selectedDateRange === "month") {
         dateRange = {
           start: startOfMonth(now),
           end: endOfMonth(now),
         };
-        
-        const lastMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
-        const lastMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
-        
+
+        const lastMonthStart = startOfMonth(
+          new Date(now.getFullYear(), now.getMonth() - 1)
+        );
+        const lastMonthEnd = endOfMonth(
+          new Date(now.getFullYear(), now.getMonth() - 1)
+        );
+
         comparisonDateRange = {
           start: lastMonthStart,
-          end: lastMonthEnd
+          end: lastMonthEnd,
         };
-        
+
         comparisonLabel = "Önceki aya göre";
-      } else { 
+      } else {
         dateRange = {
           start: startOfYear(now),
           end: endOfYear(now),
         };
-        
+
         const lastYearStart = startOfYear(new Date(now.getFullYear() - 1));
         const lastYearEnd = endOfYear(new Date(now.getFullYear() - 1));
-        
+
         comparisonDateRange = {
           start: lastYearStart,
-          end: lastYearEnd
+          end: lastYearEnd,
         };
-        
+
         comparisonLabel = "Önceki yıla göre";
       }
     }
@@ -265,7 +269,7 @@ const ReportsPage = () => {
         end: dateRange.end,
       });
     };
-    
+
     const isInComparisonDateRange = (date: Date) => {
       if (!comparisonDateRange) return false;
       return isWithinInterval(date, {
@@ -276,7 +280,7 @@ const ReportsPage = () => {
 
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);
-    
+
     const isInCurrentMonth = (date: Date) => {
       return isWithinInterval(date, {
         start: currentMonthStart,
@@ -287,34 +291,74 @@ const ReportsPage = () => {
     let totalRevenue = 0;
     let totalPackages = 0;
     let currentMonthRevenue = 0;
-    
+
     let comparisonRevenue = 0;
     let comparisonPackages = 0;
-    
-    const comparisonAppointments = comparisonDateRange ? appointments.filter((appointment) => {
-      const appointmentDate = new Date(appointment.date);
-      return isInComparisonDateRange(appointmentDate);
-    }).length : 0;
-    
-    const comparisonMembers = comparisonDateRange ? members.filter((member) => {
-      const memberCreationDate = new Date(member.created_at);
-      return isInComparisonDateRange(memberCreationDate);
-    }).length : 0;
+
+    // Paket yenileme sayısını hesaplamak için
+    // Üye ve paket adına göre paket sayılarını takip etmek için
+    const memberPackageCounts = new Map<string, Map<string, number>>();
+    const comparisonMemberPackageCounts = new Map<
+      string,
+      Map<string, number>
+    >();
+
+    const comparisonAppointments = comparisonDateRange
+      ? appointments.filter((appointment) => {
+          const appointmentDate = new Date(appointment.date);
+          return isInComparisonDateRange(appointmentDate);
+        }).length
+      : 0;
+
+    const comparisonMembers = comparisonDateRange
+      ? members.filter((member) => {
+          const memberCreationDate = new Date(member.created_at);
+          return isInComparisonDateRange(memberCreationDate);
+        }).length
+      : 0;
 
     memberPayments.forEach((payment) => {
       const paymentDate = new Date(payment.created_at);
-      const revenue = Number(payment.credit_card_paid) + Number(payment.cash_paid);
-      
+      const revenue =
+        Number(payment.credit_card_paid) + Number(payment.cash_paid);
+
       if (isInDateRange(paymentDate)) {
         totalRevenue += revenue;
         totalPackages += 1;
+
+        // Üye başına paket sayısını takip et
+        const memberName = payment.member_name;
+        const packageName = payment.package_name;
+        if (memberName && packageName) {
+          if (!memberPackageCounts.has(memberName)) {
+            memberPackageCounts.set(memberName, new Map<string, number>());
+          }
+          const memberPackages = memberPackageCounts.get(memberName)!;
+          const count = memberPackages.get(packageName) || 0;
+          memberPackages.set(packageName, count + 1);
+        }
       }
-      
+
       if (isInComparisonDateRange(paymentDate)) {
         comparisonRevenue += revenue;
         comparisonPackages += 1;
+
+        // Karşılaştırma dönemi için üye başına paket sayısını takip et
+        const memberName = payment.member_name;
+        const packageName = payment.package_name;
+        if (memberName && packageName) {
+          if (!comparisonMemberPackageCounts.has(memberName)) {
+            comparisonMemberPackageCounts.set(
+              memberName,
+              new Map<string, number>()
+            );
+          }
+          const memberPackages = comparisonMemberPackageCounts.get(memberName)!;
+          const count = memberPackages.get(packageName) || 0;
+          memberPackages.set(packageName, count + 1);
+        }
       }
-      
+
       if (isInCurrentMonth(paymentDate)) {
         currentMonthRevenue += revenue;
       }
@@ -324,31 +368,137 @@ const ReportsPage = () => {
       const memberCreationDate = new Date(member.created_at);
       return isInDateRange(memberCreationDate);
     });
-    
-    const calculateChangeRate = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? 100 : 0; 
-      return ((current - previous) / previous) * 100;
-    };
-    
-    const packageChangeRate = calculateChangeRate(totalPackages, comparisonPackages);
-    const memberChangeRate = calculateChangeRate(filteredMembers.length, comparisonMembers);
-    const appointmentChangeRate = calculateChangeRate(filteredData.length, comparisonAppointments);
-    const revenueChangeRate = calculateChangeRate(totalRevenue, comparisonRevenue);
-    
-    const lastMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
-    const lastMonthEnd = endOfMonth(new Date(now.getFullYear(), now.getMonth() - 1));
-    
-    let lastMonthRevenue = 0;
-    
-    memberPayments.forEach((payment) => {
-      const paymentDate = new Date(payment.created_at);
-      if (isWithinInterval(paymentDate, { start: lastMonthStart, end: lastMonthEnd })) {
-        lastMonthRevenue += Number(payment.credit_card_paid) + Number(payment.cash_paid);
+
+    // Paket yenileme sayısını hesapla - bir üyenin aynı paketi birden fazla kez alması durumunda
+    let packageRenewalCount = 0;
+    // Yenileme yapan üyeleri takip etmek için set kullanıyoruz
+    const membersWithRenewals = new Set<string>();
+
+    memberPackageCounts.forEach((packageMap, memberName) => {
+      let memberHasRenewal = false;
+
+      packageMap.forEach((count) => {
+        // Bir paket birden fazla kez alınmışsa, fazladan alınan her paket yenileme sayılır
+        if (count > 1) {
+          packageRenewalCount += count - 1;
+          memberHasRenewal = true;
+        }
+      });
+
+      // Eğer üye en az bir paket yenilemişse, sete ekle
+      if (memberHasRenewal) {
+        membersWithRenewals.add(memberName);
       }
     });
-    
-    const currentMonthRevenueChangeRate = calculateChangeRate(currentMonthRevenue, lastMonthRevenue);
-   
+
+    // Karşılaştırma dönemi için paket yenileme sayısını hesapla
+    let comparisonPackageRenewalCount = 0;
+    // Karşılaştırma döneminde yenileme yapan üyeleri takip etmek için set
+    const comparisonMembersWithRenewals = new Set<string>();
+
+    if (comparisonDateRange) {
+      comparisonMemberPackageCounts.forEach((packageMap, memberName) => {
+        let memberHasRenewal = false;
+
+        packageMap.forEach((count) => {
+          if (count > 1) {
+            comparisonPackageRenewalCount += count - 1;
+            memberHasRenewal = true;
+          }
+        });
+
+        // Eğer üye en az bir paket yenilemişse, sete ekle
+        if (memberHasRenewal) {
+          comparisonMembersWithRenewals.add(memberName);
+        }
+      });
+    }
+
+    // Aylık ortalama gelir hesaplama
+    const currentMonthMembers = members.filter((member) => {
+      const memberCreationDate = new Date(member.created_at);
+      return isInCurrentMonth(memberCreationDate);
+    });
+
+    const averageRevenuePerMember =
+      currentMonthMembers.length > 0
+        ? currentMonthRevenue / currentMonthMembers.length
+        : 0;
+
+    const calculateChangeRate = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const packageChangeRate = calculateChangeRate(
+      totalPackages,
+      comparisonPackages
+    );
+    const packageRenewalChangeRate = calculateChangeRate(
+      packageRenewalCount,
+      comparisonPackageRenewalCount
+    );
+    const memberChangeRate = calculateChangeRate(
+      filteredMembers.length,
+      comparisonMembers
+    );
+    const appointmentChangeRate = calculateChangeRate(
+      filteredData.length,
+      comparisonAppointments
+    );
+    const revenueChangeRate = calculateChangeRate(
+      totalRevenue,
+      comparisonRevenue
+    );
+
+    const lastMonthStart = startOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 1)
+    );
+    const lastMonthEnd = endOfMonth(
+      new Date(now.getFullYear(), now.getMonth() - 1)
+    );
+
+    let lastMonthRevenue = 0;
+
+    memberPayments.forEach((payment) => {
+      const paymentDate = new Date(payment.created_at);
+      if (
+        isWithinInterval(paymentDate, {
+          start: lastMonthStart,
+          end: lastMonthEnd,
+        })
+      ) {
+        lastMonthRevenue +=
+          Number(payment.credit_card_paid) + Number(payment.cash_paid);
+      }
+    });
+
+    const currentMonthRevenueChangeRate = calculateChangeRate(
+      currentMonthRevenue,
+      lastMonthRevenue
+    );
+
+    // Yenileme yapan üye sayısı ve oranı
+    const membersWithRenewalCount = membersWithRenewals.size;
+    const membersWithRenewalPercentage =
+      filteredMembers.length > 0
+        ? (membersWithRenewalCount / filteredMembers.length) * 100
+        : 0;
+
+    // Karşılaştırma dönemi için yenileme yapan üye oranı
+    const comparisonMembersWithRenewalCount =
+      comparisonMembersWithRenewals.size;
+    const comparisonMembersWithRenewalPercentage =
+      comparisonMembers > 0
+        ? (comparisonMembersWithRenewalCount / comparisonMembers) * 100
+        : 0;
+
+    // Yenileme yapan üye oranı değişimi
+    const membersWithRenewalPercentageChangeRate = calculateChangeRate(
+      membersWithRenewalPercentage,
+      comparisonMembersWithRenewalPercentage
+    );
+
     return {
       totalRevenue,
       totalPackages,
@@ -356,48 +506,85 @@ const ReportsPage = () => {
       totalAppointments: filteredData.length,
       currentMonthRevenue,
       packageChangeRate,
+      packageRenewalChangeRate,
       memberChangeRate,
       appointmentChangeRate,
       revenueChangeRate,
       currentMonthRevenueChangeRate,
-      comparisonLabel
+      comparisonLabel,
+      packageRenewalCount,
+      averageRevenuePerMember,
+      membersWithRenewalCount,
+      membersWithRenewalPercentage,
+      membersWithRenewalPercentageChangeRate,
     };
   };
 
   const generatePDF = async () => {
-    if (!reportRef.current) return;
+    if (!metricsRef.current) return;
 
     try {
       toast.info("PDF oluşturuluyor, lütfen bekleyin...");
-      
+
+      // İçeriğin tamamen yüklenmesini bekle
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       const scale = 2;
       const options = {
         scale: scale,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: "#ffffff"
+        backgroundColor: "#ffffff",
+        logging: false,
+        removeContainer: true,
+        foreignObjectRendering: false,
+        imageTimeout: 15000,
+        onclone: (clonedDoc) => {
+          // PDF oluşturma için metin stillerini optimize et
+          Array.from(
+            clonedDoc.querySelectorAll(".text-transparent, .bg-clip-text")
+          ).forEach((el) => {
+            if (el instanceof HTMLElement) {
+              el.classList.remove("text-transparent", "bg-clip-text");
+              el.style.color = "#000000";
+            }
+          });
+        },
       };
-      
-      const canvas = await html2canvas(reportRef.current, options);
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      
+
+      const canvas = await html2canvas(metricsRef.current, options);
+      // Yüksek kalitede PNG formatını kullan
+      const imgData = canvas.toDataURL("image/png", 1.0);
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const margin = 10;
-      const contentWidth = pdfWidth - (margin * 2);
+      const contentWidth = pdfWidth - margin * 2;
       const contentHeight = (canvas.height * contentWidth) / canvas.width;
-      
+
       pdf.setFontSize(18);
-      pdf.setTextColor(44, 62, 80); 
-      pdf.text("Fitness Merkezi Raporu", pdfWidth / 2, margin + 5, { align: "center" });
-      
+      pdf.setTextColor(44, 62, 80);
+      pdf.text(
+        "Fitness Merkezi Performans Metrikleri",
+        pdfWidth / 2,
+        margin + 5,
+        {
+          align: "center",
+        }
+      );
+
       pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100); 
+      pdf.setTextColor(100, 100, 100);
       const currentDate = format(new Date(), "dd MMMM yyyy", { locale: tr });
-      pdf.text(`Oluşturulma Tarihi: ${currentDate}`, pdfWidth / 2, margin + 12, { align: "center" });
-      
+      pdf.text(
+        `Oluşturulma Tarihi: ${currentDate}`,
+        pdfWidth / 2,
+        margin + 12,
+        { align: "center" }
+      );
+
       let dateRangeText = "Tarih Aralığı: Tüm Zamanlar";
       if (selectedDateRange === "week") {
         dateRangeText = "Tarih Aralığı: Bu Hafta";
@@ -405,27 +592,33 @@ const ReportsPage = () => {
         dateRangeText = "Tarih Aralığı: Bu Ay";
       } else if (selectedDateRange === "year") {
         dateRangeText = "Tarih Aralığı: Bu Yıl";
-      } else if (selectedDateRange === "custom" && customDateRange.from && customDateRange.to) {
+      } else if (
+        selectedDateRange === "custom" &&
+        customDateRange.from &&
+        customDateRange.to
+      ) {
         const fromDate = format(customDateRange.from, "dd.MM.yyyy");
         const toDate = format(customDateRange.to, "dd.MM.yyyy");
         dateRangeText = `Tarih Aralığı: ${fromDate} - ${toDate}`;
       }
-      
+
       pdf.text(dateRangeText, pdfWidth / 2, margin + 18, { align: "center" });
-      
+
       pdf.setDrawColor(200, 200, 200);
       pdf.line(margin, margin + 22, pdfWidth - margin, margin + 22);
-      
+
       const yPos = margin + 25;
       pdf.addImage(imgData, "JPEG", margin, yPos, contentWidth, contentHeight);
-      
+
       const footerY = pdfHeight - 10;
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
-      pdf.text(" Fitness Merkezi Yönetim Sistemi", margin, footerY);
+      pdf.text("Loca Fit Studio Performans Raporu", margin, footerY);
       pdf.text("Sayfa 1/1", pdfWidth - margin, footerY, { align: "right" });
 
-      pdf.save(`fitness-raporu-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      pdf.save(
+        `fitness-performans-metrikleri-${format(new Date(), "yyyy-MM-dd")}.pdf`
+      );
 
       toast.success("Rapor başarıyla PDF olarak indirildi.");
     } catch (error) {
@@ -493,8 +686,6 @@ const ReportsPage = () => {
           <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
             <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
             <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
-              
-
               <Button onClick={generatePDF} className="w-full md:w-auto">
                 <Download className="mr-2 h-4 w-4" />
                 PDF İndir
@@ -511,40 +702,44 @@ const ReportsPage = () => {
           </div>
 
           <div ref={reportRef} className="space-y-6">
-            <div className="mb-6">
+            <div ref={metricsRef} className="mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Performans Metrikleri</h3>
                 <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <Select
-                  value={selectedDateRange}
-                  onValueChange={(
-                    value: "all" | "week" | "month" | "year" | "custom"
-                  ) => setSelectedDateRange(value)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Tarih aralığı seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tüm Zamanlar</SelectItem>
-                    <SelectItem value="week">Bu Hafta</SelectItem>
-                    <SelectItem value="month">Bu Ay</SelectItem>
-                    <SelectItem value="year">Bu Yıl</SelectItem>
-                    <SelectItem value="custom">Özel Aralık</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {selectedDateRange === "custom" && (
-                  <DatePickerWithRange
-                    date={customDateRange}
-                    setDate={setCustomDateRange}
-                  />
-                )}
+                  <Select
+                    value={selectedDateRange}
+                    onValueChange={(
+                      value: "all" | "week" | "month" | "year" | "custom"
+                    ) => setSelectedDateRange(value)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Tarih aralığı seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tüm Zamanlar</SelectItem>
+                      <SelectItem value="week">Bu Hafta</SelectItem>
+                      <SelectItem value="month">Bu Ay</SelectItem>
+                      <SelectItem value="year">Bu Yıl</SelectItem>
+                      <SelectItem value="custom">Özel Aralık</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {selectedDateRange === "custom" && (
+                    <DatePickerWithRange
+                      date={customDateRange}
+                      setDate={setCustomDateRange}
+                    />
+                  )}
+                </div>
               </div>
-              </div>
-              
+
               <PerformanceMetrics metrics={metrics} />
               <div className="mt-6">
-                <TrainerClassesChart appointments={filteredData} trainers={trainers} services={services} />
+                <TrainerClassesChart
+                  appointments={filteredData}
+                  trainers={trainers}
+                  services={services}
+                />
               </div>
             </div>
             <MemberPaymentsCard />
@@ -553,8 +748,6 @@ const ReportsPage = () => {
               <ServiceUsageStats data={serviceUsageData} />
               <RevenueChart data={revenueChartData} />
               <AppointmentDistribution appointments={appointments} />
-            </div>
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 mb-4">
             </div>
           </div>
         </>
