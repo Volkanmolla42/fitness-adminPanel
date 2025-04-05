@@ -103,6 +103,12 @@ export function AppointmentForm({
     setSelectedService(service || null);
     form.setValue("service_id", serviceId);
 
+    // Paket seçimi değiştiğinde seans bilgilerini sıfırla
+    if (!serviceId) {
+      setSessions([]);
+      return;
+    }
+
     if (!appointment) {
       setSessions([
         {
@@ -153,14 +159,15 @@ export function AppointmentForm({
     });
   };
 
+  const watchedDate = form.watch("date");
+  const watchedTime = form.watch("time");
+  const watchedTrainerId = form.watch("trainer_id");
+
   useEffect(() => {
-    const date = form.watch("date");
-    const time = form.watch("time");
+    if (watchedDate && watchedTime) {
+      checkConflict(watchedDate, watchedTime);
 
-    if (date && time) {
-      checkConflict(date, time);
-
-      if (!checkBusinessHours(time)) {
+      if (!checkBusinessHours(watchedTime)) {
         form.setError("time", {
           type: "manual",
           message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`,
@@ -169,7 +176,7 @@ export function AppointmentForm({
         form.clearErrors("time");
       }
 
-      const selectedDate = new Date(date);
+      const selectedDate = new Date(watchedDate);
       if (selectedDate.getDay() === 0) {
         form.setError("date", {
           type: "manual",
@@ -179,7 +186,7 @@ export function AppointmentForm({
         form.clearErrors("date");
       }
     }
-  }, [form.watch("date"), form.watch("time"), form.watch("trainer_id")]);
+  }, [watchedDate, watchedTime, watchedTrainerId]);
 
   useEffect(() => {
     if (appointment) {
@@ -227,16 +234,34 @@ export function AppointmentForm({
     }
   };
 
+  // Üye değiştiğinde kontroller
   useEffect(() => {
+    // Üye değiştiğinde paket ve seans bilgilerini sıfırla
+    if (!appointment) {
+      setSelectedService(null);
+      setSessions([]);
+      form.setValue("service_id", "");
+    }
+
+    // Seçilen üyenin aboneliklerini kontrol et
     if (form.watch("member_id") && form.watch("service_id")) {
       const isServiceAvailable = selectedMember?.subscribed_services?.includes(
         form.watch("service_id")
       );
       if (!isServiceAvailable) {
         form.setValue("service_id", "");
+        setSelectedService(null);
+        setSessions([]);
       }
     }
-  }, [form.watch("member_id")]);
+  }, [form.watch("member_id"), appointment]);
+
+  // Paket seçimi değiştiğinde veya kaldırıldığında seans bilgilerini kontrol et
+  useEffect(() => {
+    if (!selectedService && sessions.length > 0) {
+      setSessions([]);
+    }
+  }, [selectedService]);
 
   return (
     <Form {...form}>
@@ -289,6 +314,13 @@ export function AppointmentForm({
                             <div
                               key={member.id}
                               onClick={() => {
+                                // Üye değiştiğinde paket ve seans bilgilerini sıfırla
+                                if (form.watch("member_id") !== member.id) {
+                                  setSelectedService(null);
+                                  setSessions([]);
+                                  form.setValue("service_id", "");
+                                }
+
                                 form.setValue("member_id", member.id);
                                 setSearchMembers(
                                   `${member.first_name} ${member.last_name}`
@@ -389,11 +421,11 @@ export function AppointmentForm({
                 </div>
               </div>
 
-              {selectedService && (
-                <div className="flex items-center justify-evenly outline outline-2  outline-green-400 p-2">
-                  {sessions.length > 0 &&
-                    sessions[0].date &&
-                    sessions[0].time && (
+              {selectedService &&
+                sessions.length > 0 &&
+                form.watch("service_id") && (
+                  <div className="flex items-center justify-evenly outline outline-2  outline-green-400 p-2">
+                    {sessions[0].date && sessions[0].time && (
                       <div className="text-sm text-muted-foreground break-words">
                         {appointment ? "Randevu" : "İlk seans"}:{" "}
                         {format(
@@ -403,19 +435,19 @@ export function AppointmentForm({
                         )}
                       </div>
                     )}
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="shrink-0 h-10"
-                    onClick={() => setShowSessionsDialog(true)}
-                  >
-                    {sessions.length > 0 && sessions[0].date && sessions[0].time
-                      ? "Düzenle"
-                      : "Tarih Seç"}
-                  </Button>
-                </div>
-              )}
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="shrink-0 h-10"
+                      onClick={() => setShowSessionsDialog(true)}
+                    >
+                      {sessions[0].date && sessions[0].time
+                        ? "Düzenle"
+                        : "Tarih Seç"}
+                    </Button>
+                  </div>
+                )}
             </FormItem>
           )}
         />

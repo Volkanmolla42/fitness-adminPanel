@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
+import { tr } from "date-fns/locale"; // Türkçe yerelleştirme eklendi
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
@@ -14,7 +15,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DatePickerWithRangeProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined;
   setDate: (date: DateRange | undefined) => void;
 }
@@ -25,33 +27,36 @@ export default function DatePickerWithRange({
   setDate,
 }: DatePickerWithRangeProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("grid w-full sm:w-auto gap-2", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
-              !date && "text-muted-foreground",
+              "justify-start text-left font-normal truncate",
+              !date && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, "dd MMM yyyy")} -{" "}
-                  {format(date.to, "dd MMM yyyy")}
+                  {format(date.from, "dd.MM.yyyy")} -{" "}
+                  {format(date.to, "dd.MM.yyyy")}
                 </>
               ) : (
-                format(date.from, "dd MMM yyyy")
+                format(date.from, "dd.MM.yyyy")
               )
             ) : (
-              <span>Bir zaman dilimi seç</span>
+              <span>Özel tarih aralığı</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent
+          className="w-auto p-0 dark:bg-gray-700 dark:border-gray-700"
+          align="end"
+        >
           <Calendar
             initialFocus
             mode="range"
@@ -59,6 +64,8 @@ export default function DatePickerWithRange({
             selected={date}
             onSelect={setDate}
             numberOfMonths={2}
+            locale={tr} // Takvim için Türkçe yerelleştirme eklendi
+            className="dark:bg-gray-800"
           />
         </PopoverContent>
       </Popover>

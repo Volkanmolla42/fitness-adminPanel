@@ -46,7 +46,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-blue-500 dark:text-blue-400",
       changeRate: metrics.packageChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başına ortalama: ${(metrics.uniqueMembers > 0
+      subInfo: `Üye başı ortalama: ${(metrics.uniqueMembers > 0
         ? metrics.totalPackages / metrics.uniqueMembers
         : 0
       ).toFixed(1)} paket`,
@@ -73,20 +73,20 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-purple-500 dark:text-purple-400",
       changeRate: metrics.memberChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Toplam gelir: ${Math.round(
+      subInfo: `Üye başı ortalama: ${Math.round(
         metrics.totalRevenue / metrics.uniqueMembers
-      ).toLocaleString("tr-TR")} ₺/üye`,
+      ).toLocaleString("tr-TR")} ₺`,
     },
     {
       title: "Randevu Sayısı",
       value: metrics.totalAppointments,
       icon: Calendar,
       color:
-        "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-950 dark:to-amber-900 dark:border-amber-800",
-      iconColor: "text-amber-500 dark:text-amber-400",
+        "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-950 dark:to-orange-900 dark:border-orange-800",
+      iconColor: "text-orange-500 dark:text-orange-400",
       changeRate: metrics.appointmentChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başına: ${(metrics.uniqueMembers > 0
+      subInfo: `Üye başı ortalama: ${(metrics.uniqueMembers > 0
         ? metrics.totalAppointments / metrics.uniqueMembers
         : 0
       ).toFixed(1)} randevu`,
@@ -103,7 +103,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-pink-500 dark:text-pink-400",
       changeRate: metrics.currentMonthRevenueChangeRate,
       changeLabel: "Önceki aya göre",
-      subInfo: `Kişi başı ortalama: ${metrics.averageRevenuePerMember.toLocaleString(
+      subInfo: `Üye başı ortalama: ${metrics.averageRevenuePerMember.toLocaleString(
         "tr-TR",
         {
           style: "currency",
@@ -123,7 +123,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-green-500 dark:text-green-400",
       changeRate: metrics.revenueChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Paket başına: ${(metrics.totalPackages > 0
+      subInfo: `Paket başı ortalama: ${(metrics.totalPackages > 0
         ? Math.round(metrics.totalRevenue / metrics.totalPackages)
         : 0
       ).toLocaleString("tr-TR")} ₺`,

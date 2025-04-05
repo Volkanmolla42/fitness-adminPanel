@@ -17,15 +17,9 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
-import { addDays, format, isWithinInterval, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, X, RefreshCw, Plus, Search, FilterX } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { addDays, isWithinInterval, parseISO } from "date-fns";
+import { X, RefreshCw, Plus, Search, FilterX } from "lucide-react";
+import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import {
   Select,
   SelectContent,
@@ -140,34 +134,36 @@ export function MemberPaymentsCard() {
 
       if (memberError) {
         console.error("Üye arama hatası:", memberError);
-        
+
         // Tam eşleşme bulunamadıysa, daha esnek bir arama yapalım
         const { data: allMembers, error: allMembersError } = await supabase
           .from("members")
           .select("subscribed_services, id, first_name, last_name");
-        
+
         if (allMembersError) {
           toast.error("Üye bilgileri alınamadı");
           setSelectedMemberPackages([]);
           return;
         }
-        
+
         // Tam ad ile eşleşen üyeyi bul
-        const matchedMember = allMembers.find(member => 
-          `${member.first_name} ${member.last_name}`.toLowerCase() === memberName.toLowerCase()
+        const matchedMember = allMembers.find(
+          (member) =>
+            `${member.first_name} ${member.last_name}`.toLowerCase() ===
+            memberName.toLowerCase()
         );
-        
+
         if (!matchedMember) {
           toast.error("Üye bulunamadı");
           setSelectedMemberPackages([]);
           return;
         }
-        
+
         const subscribedServices = matchedMember.subscribed_services || [];
         const filteredPackages = packages.filter((pkg) =>
           subscribedServices.includes(pkg.id)
         );
-        
+
         setSelectedMemberPackages(filteredPackages);
         return;
       }
@@ -366,16 +362,16 @@ export function MemberPaymentsCard() {
               )}
             </CardTitle>
             <div className="flex gap-2">
-              <Button 
-                onClick={() => fetchMemberPayments()} 
-                variant="outline" 
+              <Button
+                onClick={() => fetchMemberPayments()}
+                variant="outline"
                 size="sm"
                 className="flex items-center gap-1 hover:bg-muted/50 dark:hover:bg-gray-700 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
                 Yenile
               </Button>
-              <Button 
+              <Button
                 onClick={() => setIsAddingPayment(true)}
                 className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-white dark:bg-primary dark:text-black dark:hover:bg-primary/80 transition-colors"
                 size="sm"
@@ -389,65 +385,35 @@ export function MemberPaymentsCard() {
         <CardContent className="p-0">
           <div>
             {/* Arama ve Filtreleme */}
-            <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-md border-b dark:border-gray-700">
-              <div className="flex-1 flex gap-2">
-                <div className="flex-1 relative">
-                  <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    <Search className="h-4 w-4" />
-                  </div>
-                  <Input
-                    placeholder="Üye adı ara..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+            <div className="flex items-center gap-3 border-b p-4 dark:border-gray-700 ">
+              <div className="flex-1 relative">
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <Search className="h-4 w-4" />
                 </div>
+                <Input
+                  placeholder="Üye adı ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-8 h-8  dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 bottom-1/2 translate-y-1/2  text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
+
               <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal w-full sm:w-[220px] h-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 transition-colors",
-                        !dateRange && "text-muted-foreground dark:text-gray-400"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange?.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "dd.MM.yyyy")} -{" "}
-                            {format(dateRange.to, "dd.MM.yyyy")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "dd.MM.yyyy")
-                        )
-                      ) : (
-                        "Tarih seç"
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 dark:bg-gray-800 dark:border-gray-700" align="end">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange?.from}
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                      className="dark:bg-gray-800"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="w-full sm:w-[220px]">
+                  <DatePickerWithRange
+                    date={dateRange}
+                    setDate={setDateRange}
+                    className="dark:border-gray-600 dark:text-gray-200 transition-colors"
+                  />
+                </div>
                 {(searchTerm || dateRange) && (
                   <Button
                     variant="ghost"
@@ -477,15 +443,17 @@ export function MemberPaymentsCard() {
                   <div className="rounded-full bg-muted p-3 mb-3 dark:bg-gray-700">
                     <Search className="h-6 w-6 text-muted-foreground dark:text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium mb-1 dark:text-gray-200">Kayıt bulunamadı</h3>
+                  <h3 className="text-lg font-medium mb-1 dark:text-gray-200">
+                    Kayıt bulunamadı
+                  </h3>
                   <p className="text-muted-foreground text-sm max-w-md mb-4 dark:text-gray-400">
-                    {searchTerm || dateRange 
+                    {searchTerm || dateRange
                       ? "Arama kriterlerinize uygun ödeme kaydı bulunamadı. Lütfen farklı bir arama terimi deneyin veya filtreleri temizleyin."
                       : "Henüz hiç ödeme kaydı eklenmemiş. Yeni bir ödeme eklemek için 'Yeni Ödeme' düğmesine tıklayın."}
                   </p>
                   {(searchTerm || dateRange) && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={clearFilters}
                       className="flex items-center gap-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
                     >
@@ -513,7 +481,10 @@ export function MemberPaymentsCard() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="member_name" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="member_name"
+                className="text-right dark:text-gray-200"
+              >
                 Üye Adı
               </Label>
               <Select
@@ -545,7 +516,10 @@ export function MemberPaymentsCard() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="package_name" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="package_name"
+                className="text-right dark:text-gray-200"
+              >
                 Paket Adı
               </Label>
               <Select
@@ -559,8 +533,8 @@ export function MemberPaymentsCard() {
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {selectedMemberPackages.map((pkg) => (
-                    <SelectItem 
-                      key={pkg.id} 
+                    <SelectItem
+                      key={pkg.id}
                       value={pkg.name}
                       className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
                     >
@@ -572,7 +546,10 @@ export function MemberPaymentsCard() {
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="credit_card_paid" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="credit_card_paid"
+                className="text-right dark:text-gray-200"
+              >
                 Kredi Kartı
               </Label>
               <Input
@@ -592,7 +569,10 @@ export function MemberPaymentsCard() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cash_paid" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="cash_paid"
+                className="text-right dark:text-gray-200"
+              >
                 Nakit
               </Label>
               <Input
@@ -611,7 +591,10 @@ export function MemberPaymentsCard() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="created_at" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="created_at"
+                className="text-right dark:text-gray-200"
+              >
                 Ödeme Tarihi
               </Label>
               <Input
@@ -676,14 +659,19 @@ export function MemberPaymentsCard() {
       <Dialog open={isAddingPayment} onOpenChange={setIsAddingPayment}>
         <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle className="dark:text-gray-100">Yeni Ödeme Ekle</DialogTitle>
+            <DialogTitle className="dark:text-gray-100">
+              Yeni Ödeme Ekle
+            </DialogTitle>
             <DialogDescription className="dark:text-gray-300 text-gray-500">
               Yeni bir üye ödemesi eklemek için aşağıdaki formu doldurun.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="member_name" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="member_name"
+                className="text-right dark:text-gray-200"
+              >
                 Üye adı
               </Label>
               <Select
@@ -714,7 +702,10 @@ export function MemberPaymentsCard() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="package_name" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="package_name"
+                className="text-right dark:text-gray-200"
+              >
                 Paket Adı
               </Label>
               <Select
@@ -728,8 +719,8 @@ export function MemberPaymentsCard() {
                 </SelectTrigger>
                 <SelectContent className="dark:bg-gray-700 dark:border-gray-600">
                   {selectedMemberPackages.map((pkg) => (
-                    <SelectItem 
-                      key={pkg.id} 
+                    <SelectItem
+                      key={pkg.id}
                       value={pkg.name}
                       className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
                     >
@@ -740,7 +731,10 @@ export function MemberPaymentsCard() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="credit_card_paid" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="credit_card_paid"
+                className="text-right dark:text-gray-200"
+              >
                 Kredi Kartı
               </Label>
               <Input
@@ -760,7 +754,10 @@ export function MemberPaymentsCard() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="cash_paid" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="cash_paid"
+                className="text-right dark:text-gray-200"
+              >
                 Nakit
               </Label>
               <Input
@@ -779,7 +776,10 @@ export function MemberPaymentsCard() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="created_at" className="text-right dark:text-gray-200">
+              <Label
+                htmlFor="created_at"
+                className="text-right dark:text-gray-200"
+              >
                 Ödeme Tarihi
               </Label>
               <Input

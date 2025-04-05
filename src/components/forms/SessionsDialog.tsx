@@ -18,10 +18,14 @@ import {
   AlertCircle,
   XCircle,
 } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { Calendar } from "@/components/ui/calendar";
 import { Appointment, Service, Member } from "@/types/appointments";
 import { Session } from "@/types/sessions";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -30,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import TIME_SLOTS  from "@/constants/timeSlots";
+import TIME_SLOTS from "@/constants/timeSlots";
 
 interface SessionsDialogProps {
   open: boolean;
@@ -505,7 +509,9 @@ export function SessionsDialog({
         <DialogHeader>
           <DialogTitle>
             <span className="flex text-base text-muted-foreground items-center gap-2">
-              {appointment ? "Randevu Tarihini Düzenle" : "Seans Tarihlerini Seç"}
+              {appointment
+                ? "Randevu Tarihini Düzenle"
+                : "Seans Tarihlerini Seç"}
               <span className="text-gray-50 mx-2">
                 ({member?.first_name} {member?.last_name})
               </span>
@@ -519,37 +525,35 @@ export function SessionsDialog({
             <div className="space-y-1 w-full">
               <h4 className="text-sm text-muted-foreground ">
                 {selectedService && member && (
-                  <span className="">
-                    
-                    <span className="text-gray-50 mx-2">
-                      {selectedService.name}
-                    </span>
-                    paketine ait seans bilgileri
+                  <span className="text-gray-50 mx-2">
+                    {selectedService.name}
                   </span>
                 )}
               </h4>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Tamamlanan: <span className="text-green-500">
+                    Tamamlanan:{" "}
+                    <span className="text-green-500">
                       {calculateCompletedSessions()}
                     </span>
                   </span>
-                
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Planlanan: <span className="text-blue-400">
+                    Planlanan:{" "}
+                    <span className="text-blue-400">
                       {calculateScheduledSessions()}
                     </span>
                   </span>
-                  
                 </div>
                 <div className="flex items-center ml-auto gap-2">
                   {(() => {
-                    const remainingSessions = calculateTotalSessions() -
-                      (calculateCompletedSessions() + calculateScheduledSessions());
-                    
+                    const remainingSessions =
+                      calculateTotalSessions() -
+                      (calculateCompletedSessions() +
+                        calculateScheduledSessions());
+
                     if (remainingSessions > 0) {
                       return (
                         <div className="flex items-center gap-2 text-green-500 font-medium">
@@ -568,7 +572,9 @@ export function SessionsDialog({
                       return (
                         <div className="flex items-center gap-2 text-red-500 font-medium">
                           <XCircle className="w-5 h-5" />
-                          <span>Seans Limiti Aşıldı ({Math.abs(remainingSessions)})</span>
+                          <span>
+                            Seans Limiti Aşıldı ({Math.abs(remainingSessions)})
+                          </span>
                         </div>
                       );
                     }
@@ -709,38 +715,67 @@ export function SessionsDialog({
                         <CalendarDays className="w-4 h-4" />
                         <span>Tarih</span>
                       </div>
-                      <DatePicker
-                        selected={
-                          session.date
-                            ? new Date(
-                                `${session.date}T${session.time || "00:00"}`
-                              )
-                            : null
-                        }
-                        onChange={(date: Date) => {
-                          if (date) {
-                            handleSessionChange(
-                              index,
-                              "date",
-                              format(date, "yyyy-MM-dd")
-                            );
-                            setOpenDatePicker(null);
-                            setOpenTimeSelect(index);
-                          }
-                        }}
+                      <Popover
                         open={openDatePicker === index}
-                        onClickOutside={() => setOpenDatePicker(null)}
-                        onInputClick={() => setOpenDatePicker(index)}
-                        minDate={new Date()}
-                        dateFormat="d MMMM, EEEE"
-                        locale={tr}
-                        placeholderText={"Tarih seçin"}
-                        className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                          hasConflict || hasError
-                            ? "border-destructive"
-                            : "border-input"
-                        }`}
-                      />
+                        onOpenChange={(open) => {
+                          if (!open) setOpenDatePicker(null);
+                          else setOpenDatePicker(index);
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={`w-full justify-start text-left font-normal ${
+                              hasConflict || hasError
+                                ? "border-destructive"
+                                : ""
+                            }`}
+                          >
+                            {session.date ? (
+                              format(new Date(session.date), "d MMMM, EEEE", {
+                                locale: tr,
+                              })
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Tarih seçin
+                              </span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              session.date ? new Date(session.date) : undefined
+                            }
+                            onSelect={(date) => {
+                              if (date) {
+                                handleSessionChange(
+                                  index,
+                                  "date",
+                                  format(date, "yyyy-MM-dd")
+                                );
+                                setOpenDatePicker(null);
+                                setOpenTimeSelect(index);
+                              }
+                            }}
+                            disabled={[
+                              (date) => {
+                                // Geçmiş tarihleri devre dışı bırak
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return date < today;
+                              },
+                              (date) => {
+                                // Pazar günlerini devre dışı bırak
+                                return date.getDay() === 0;
+                              },
+                            ]}
+                            initialFocus
+                            locale={tr}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       {hasError && (
                         <div className="text-sm text-destructive font-medium mt-1">
                           {hasError}

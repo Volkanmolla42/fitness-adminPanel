@@ -9,38 +9,30 @@ import { Trainer } from "@/types/appointments";
 import React, { useState } from "react";
 import { useTheme } from "@/contexts/theme-context";
 import { Button } from "@/components/ui/button";
-import {
-  Calendar,
-  Check,
-  ChevronDown,
-  FilterX,
-  Search,
-  User2,
-  X,
-} from "lucide-react";
+import { Check, FilterX, Search, User2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
+import { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
+import DatePickerWithRange from "@/components/ui/date-picker-with-range";
+
+// Filtre tipini tanımla
+type FilterType =
+  | "today"
+  | "tomorrow"
+  | "weekly"
+  | "monthly"
+  | "all"
+  | "custom";
 
 interface AppointmentFiltersProps {
   trainers: Trainer[];
   selectedTrainerId: string | null;
   onTrainerChange: (value: string | null) => void;
   activeFilter?: string;
-  setActiveFilter?: (
-    filter: "today" | "tomorrow" | "weekly" | "monthly" | "all" | "custom"
-  ) => void;
-  getFilteredCount?: (
-    filter: "today" | "tomorrow" | "weekly" | "monthly" | "all" | "custom"
-  ) => number;
+  setActiveFilter?: (filter: FilterType) => void;
+  getFilteredCount?: (filter: FilterType) => number;
   viewMode: "list" | "weekly" | "table";
   searchQuery?: string;
   onSearchChange?: (value: string) => void;
@@ -65,7 +57,27 @@ export function AppointmentFilters({
 }: AppointmentFiltersProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
+  // Tarih aralığı için DateRange state'i
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    startDate && endDate
+      ? {
+          from: startDate,
+          to: endDate,
+        }
+      : undefined
+  );
+
+  // Tarih aralığı değiştiğinde state'i güncelle
+  React.useEffect(() => {
+    if (startDate && endDate) {
+      setDateRange({
+        from: startDate,
+        to: endDate,
+      });
+    } else {
+      setDateRange(undefined);
+    }
+  }, [startDate, endDate]);
 
   // Tüm filtreleri sıfırlama fonksiyonu
   const resetAllFilters = () => {
@@ -73,6 +85,7 @@ export function AppointmentFilters({
     setActiveFilter("all");
     onSearchChange("");
     onDateRangeChange(null, null);
+    setDateRange(undefined);
   };
 
   // Aktif filtrelerin listesini oluştur
@@ -107,11 +120,9 @@ export function AppointmentFilters({
     if (activeFilter === "custom" && startDate && endDate) {
       activeFilters.push({
         type: "date",
-        label: `Tarih: ${format(startDate, "d MMM", { locale: tr })} - ${format(
-          endDate,
-          "d MMM",
-          { locale: tr }
-        )}`,
+        label: `Tarih: ${format(startDate, "d MMMM", {
+          locale: tr,
+        })} - ${format(endDate, "d MMMM", { locale: tr })}`,
       });
     } else {
       activeFilters.push({
@@ -246,329 +257,51 @@ export function AppointmentFilters({
         <div
           className={`flex flex-wrap gap-2 ${
             isDark ? "bg-gray-700/50" : "bg-gray-100/70"
-          } rounded-lg p-1`}
+          } rounded-lg p-2`}
         >
-          <Button
-            variant={activeFilter === "today" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter("today")}
-            className={`flex-1 ${
-              isDark && activeFilter !== "today"
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : ""
-            }`}
-          >
-            Bugün
-            <span
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                isDark ? "bg-primary/30" : "bg-primary/20"
+          {/* Standart filtre butonları */}
+          {[
+            { id: "today" as FilterType, label: "Bugün" },
+            { id: "tomorrow" as FilterType, label: "Yarın" },
+            { id: "weekly" as FilterType, label: "Bu Hafta" },
+            { id: "monthly" as FilterType, label: "Bu Ay" },
+            { id: "all" as FilterType, label: "Tümü" },
+          ].map((filter) => (
+            <Button
+              key={filter.id}
+              variant={activeFilter === filter.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter(filter.id)}
+              className={`flex-1 ${
+                isDark && activeFilter !== filter.id
+                  ? "bg-gray-800 py-4 text-gray-300 hover:bg-gray-700"
+                  : ""
               }`}
             >
-              {getFilteredCount("today")}
-            </span>
-          </Button>
-          <Button
-            variant={activeFilter === "tomorrow" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter("tomorrow")}
-            className={`flex-1 ${
-              isDark && activeFilter !== "tomorrow"
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : ""
-            }`}
-          >
-            Yarın
-            <span
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                isDark ? "bg-primary/30" : "bg-primary/20"
-              }`}
-            >
-              {getFilteredCount("tomorrow")}
-            </span>
-          </Button>
-          <Button
-            variant={activeFilter === "weekly" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter("weekly")}
-            className={`flex-1 ${
-              isDark && activeFilter !== "weekly"
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : ""
-            }`}
-          >
-            Bu Hafta
-            <span
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                isDark ? "bg-primary/30" : "bg-primary/20"
-              }`}
-            >
-              {getFilteredCount("weekly")}
-            </span>
-          </Button>
-          <Button
-            variant={activeFilter === "monthly" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter("monthly")}
-            className={`flex-1 ${
-              isDark && activeFilter !== "monthly"
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : ""
-            }`}
-          >
-            Bu Ay
-            <span
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                isDark ? "bg-primary/30" : "bg-primary/20"
-              }`}
-            >
-              {getFilteredCount("monthly")}
-            </span>
-          </Button>
-          <Button
-            variant={activeFilter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveFilter("all")}
-            className={`flex-1 ${
-              isDark && activeFilter !== "all"
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : ""
-            }`}
-          >
-            Tümü
-            <span
-              className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                isDark ? "bg-primary/30" : "bg-primary/20"
-              }`}
-            >
-              {getFilteredCount("all")}
-            </span>
-          </Button>
+              {filter.label}
+              <span
+                className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                  isDark ? "bg-primary/30" : "bg-primary/20"
+                }`}
+              >
+                {getFilteredCount(filter.id)}
+              </span>
+            </Button>
+          ))}
+
           {/* Özel Tarih Aralığı Seçici */}
           <div className="flex-1">
-            <Popover open={isDateRangeOpen} onOpenChange={setIsDateRangeOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={activeFilter === "custom" ? "default" : "outline"}
-                  size="sm"
-                  className={`flex-1 ${
-                    isDark && activeFilter !== "custom"
-                      ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      : ""
-                  }`}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {activeFilter === "custom" && startDate && endDate
-                    ? `${format(startDate, "d MMM", { locale: tr })} - ${format(
-                        endDate,
-                        "d MMM",
-                        { locale: tr }
-                      )}`
-                    : "Özel Tarih Aralığı"}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className={`p-4 ${
-                  isDark ? "bg-gray-800 border-gray-700" : "bg-white"
-                }`}
-                align="center"
-                sideOffset={5}
-              >
-                <div className="grid gap-4 max-w-md">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4
-                        className={`font-medium ${
-                          isDark ? "text-gray-200" : "text-gray-700"
-                        }`}
-                      >
-                        Tarih Aralığı Seç
-                      </h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          onDateRangeChange(null, null);
-                        }}
-                        className={`px-2 h-7 text-xs ${
-                          isDark
-                            ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`}
-                      >
-                        Temizle
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label
-                          className={`text-xs ${
-                            isDark ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Başlangıç Tarihi
-                        </Label>
-                        <div className="relative">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`w-full justify-start text-left font-normal text-sm h-9 ${
-                                  isDark
-                                    ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-                                    : "bg-white hover:bg-gray-50"
-                                }`}
-                              >
-                                {startDate
-                                  ? format(startDate, "d MMM yyyy", {
-                                      locale: tr,
-                                    })
-                                  : "Tarih seçin"}
-                                {startDate && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 ${
-                                      isDark
-                                        ? "text-gray-400 hover:text-gray-300 hover:bg-gray-600"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                                    }`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onDateRangeChange(null, endDate);
-                                    }}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className={`w-auto p-0 ${
-                                isDark
-                                  ? "bg-gray-800 border-gray-700"
-                                  : "bg-white"
-                              }`}
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={startDate || undefined}
-                                onSelect={(date) => {
-                                  onDateRangeChange(date, endDate);
-                                  if (date && (!endDate || date > endDate)) {
-                                    onDateRangeChange(date, date);
-                                  }
-                                }}
-                                locale={tr}
-                                className={`rounded-md border-0 shadow-sm ${
-                                  isDark ? "bg-gray-800" : "bg-white"
-                                }`}
-                                showOutsideDays
-                                fixedWeeks
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label
-                          className={`text-xs ${
-                            isDark ? "text-gray-300" : "text-gray-700"
-                          }`}
-                        >
-                          Bitiş Tarihi
-                        </Label>
-                        <div className="relative">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`w-full justify-start text-left font-normal text-sm h-9 ${
-                                  isDark
-                                    ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-                                    : "bg-white hover:bg-gray-50"
-                                }`}
-                              >
-                                {endDate
-                                  ? format(endDate, "d MMM yyyy", {
-                                      locale: tr,
-                                    })
-                                  : "Tarih seçin"}
-                                {endDate && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 ${
-                                      isDark
-                                        ? "text-gray-400 hover:text-gray-300 hover:bg-gray-600"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                                    }`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onDateRangeChange(startDate, null);
-                                    }}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className={`w-auto p-0 ${
-                                isDark
-                                  ? "bg-gray-800 border-gray-700"
-                                  : "bg-white"
-                              }`}
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={endDate || undefined}
-                                onSelect={(date) => {
-                                  onDateRangeChange(startDate, date);
-                                  if (
-                                    date &&
-                                    (!startDate || date < startDate)
-                                  ) {
-                                    onDateRangeChange(date, date);
-                                  }
-                                }}
-                                locale={tr}
-                                className={`rounded-md border-0 shadow-sm ${
-                                  isDark ? "bg-gray-800" : "bg-white"
-                                }`}
-                                showOutsideDays
-                                fixedWeeks
-                                fromDate={startDate || undefined}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (startDate && endDate) {
-                        setActiveFilter("custom");
-                        setIsDateRangeOpen(false);
-                      }
-                    }}
-                    disabled={!startDate || !endDate}
-                    className={`w-full ${
-                      isDark && (!startDate || !endDate) ? "opacity-50" : ""
-                    }`}
-                  >
-                    Tarihleri Uygula
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <DatePickerWithRange
+              date={dateRange}
+              setDate={(range) => {
+                setDateRange(range);
+                if (range?.from && range?.to) {
+                  onDateRangeChange(range.from, range.to);
+                  setActiveFilter("custom");
+                }
+              }}
+              className={`${isDark ? "dark" : ""}`}
+            />
           </div>
         </div>
       )}
