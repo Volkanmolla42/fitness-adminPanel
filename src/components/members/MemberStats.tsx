@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { Users, Crown } from "lucide-react";
+import { Users, Crown, UserCheck, UserX } from "lucide-react";
 import React from "react";
 import { useTheme } from "@/contexts/theme-context";
 
@@ -27,12 +27,13 @@ const StatsCard = ({
     <Card
       onClick={onClick}
       className={`p-6 px-8 rounded-lg transition-all cursor-pointer transform hover:shadow-xl
-        ${isActive 
-          ? isDark 
-            ? "bg-gradient-to-r from-pink-900/40 to-gray-800 border-2 border-pink-700 shadow-lg scale-105" 
-            : "bg-gradient-to-r from-pink-100 to-white border-2 border-pink-300 shadow-lg scale-105" 
-          : isDark 
-            ? "hover:bg-pink-950/20" 
+        ${
+          isActive
+            ? isDark
+              ? "bg-gradient-to-r from-pink-900/40 to-gray-800 border-2 border-pink-700 shadow-lg scale-105"
+              : "bg-gradient-to-r from-pink-100 to-white border-2 border-pink-300 shadow-lg scale-105"
+            : isDark
+            ? "hover:bg-pink-950/20"
             : "hover:bg-pink-50"
         }`}
     >
@@ -40,16 +41,30 @@ const StatsCard = ({
         <div>
           <p
             className={`text-lg font-semibold transition-colors ${
-              isActive 
-                ? isDark ? "text-pink-300" : "text-pink-800" 
-                : isDark ? "text-gray-200" : "text-gray-800"
+              isActive
+                ? isDark
+                  ? "text-pink-300"
+                  : "text-pink-800"
+                : isDark
+                ? "text-gray-200"
+                : "text-gray-800"
             }`}
           >
             {title}
           </p>
-          <h3 className={`text-3xl font-bold mt-2 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{value}</h3>
+          <h3
+            className={`text-3xl font-bold mt-2 ${
+              isDark ? "text-gray-100" : "text-gray-800"
+            }`}
+          >
+            {value}
+          </h3>
         </div>
-        <Icon className={`h-8 w-8 transition-colors ${iconColor || (isDark ? "text-gray-400" : "text-gray-500")}`} />
+        <Icon
+          className={`h-8 w-8 transition-colors ${
+            iconColor || (isDark ? "text-gray-400" : "text-gray-500")
+          }`}
+        />
       </div>
     </Card>
   );
@@ -60,17 +75,25 @@ interface MemberStatsProps {
     total: number;
     basic: number;
     vip: number;
+    active: number;
+    inactive: number;
   };
-  activeFilter: "all" | "basic" | "vip";
-  onFilterChange: (type: "all" | "basic" | "vip") => void;
+  activeFilter: "all" | "basic" | "vip" | "active" | "inactive";
+  onFilterChange: (
+    type: "all" | "basic" | "vip" | "active" | "inactive"
+  ) => void;
 }
 
-export const MemberStats = ({ stats, activeFilter, onFilterChange }: MemberStatsProps) => {
+export const MemberStats = ({
+  stats,
+  activeFilter,
+  onFilterChange,
+}: MemberStatsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <StatsCard 
-        title="Toplam Üye" 
-        value={stats.total} 
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <StatsCard
+        title="Toplam Üye"
+        value={stats.total}
         icon={Users}
         isActive={activeFilter === "all"}
         onClick={() => onFilterChange("all")}
@@ -79,7 +102,6 @@ export const MemberStats = ({ stats, activeFilter, onFilterChange }: MemberStats
         title="Standart Üyeler"
         value={stats.basic}
         icon={Users}
-        // Daha kadınsı ve pastel bir his için ikon rengini örneğin lavanta tonlarında ayarladım
         iconColor="text-purple-300"
         isActive={activeFilter === "basic"}
         onClick={() => onFilterChange("basic")}
@@ -88,10 +110,25 @@ export const MemberStats = ({ stats, activeFilter, onFilterChange }: MemberStats
         title="VIP Üyeler"
         value={stats.vip}
         icon={Crown}
-        // Hafif pastel altın rengi etkisi veren bir renk kullandım
         iconColor="text-yellow-300"
         isActive={activeFilter === "vip"}
         onClick={() => onFilterChange("vip")}
+      />
+      <StatsCard
+        title="Aktif Üyeler"
+        value={stats.active}
+        icon={UserCheck}
+        iconColor="text-green-500"
+        isActive={activeFilter === "active"}
+        onClick={() => onFilterChange("active")}
+      />
+      <StatsCard
+        title="Pasif Üyeler"
+        value={stats.inactive}
+        icon={UserX}
+        iconColor="text-red-500"
+        isActive={activeFilter === "inactive"}
+        onClick={() => onFilterChange("inactive")}
       />
     </div>
   );

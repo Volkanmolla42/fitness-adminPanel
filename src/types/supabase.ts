@@ -80,7 +80,7 @@ export type Database = {
           start_date: string;
           subscribed_services: string[];
           notes: string | null;
-      
+          active: boolean;
         };
         Insert: {
           avatar_url?: string | null;
@@ -94,7 +94,7 @@ export type Database = {
           start_date: string;
           subscribed_services?: string[];
           notes?: string | null;
-
+          active?: boolean;
         };
         Update: {
           avatar_url?: string | null;
@@ -108,6 +108,7 @@ export type Database = {
           start_date?: string;
           subscribed_services?: string[];
           notes?: string | null;
+          active?: boolean;
         };
         Relationships: [];
       };

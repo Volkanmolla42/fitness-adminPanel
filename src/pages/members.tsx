@@ -42,7 +42,10 @@ const MembersPage = () => {
   >([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [membershipFilter, setMembershipFilter] = useState<
-    "all" | "basic" | "vip"
+    "all" | "basic" | "vip" | "active" | "inactive"
+  >("all");
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "active" | "inactive"
   >("all");
   const [selectedTrainerId, setSelectedTrainerId] = useState<string>("all");
   const [editingMember, setEditingMember] = useState<Member | null>(null);
@@ -57,6 +60,8 @@ const MembersPage = () => {
     total: 0,
     basic: 0,
     vip: 0,
+    active: 0,
+    inactive: 0,
   });
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -64,7 +69,9 @@ const MembersPage = () => {
   // Son güncellenen üyeyi takip etmek için ref
   const lastUpdatedMemberId = useRef<string | null>(null);
   // Animasyon için state
-  const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
+  const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetchMembers();
@@ -72,14 +79,19 @@ const MembersPage = () => {
     fetchTrainers();
     fetchAppointments();
     const cleanup = setupRealtimeSubscription();
-    
+
     // Komponent unmount olduğunda cleanup fonksiyonunu çağır
     return cleanup;
   }, []);
 
   useEffect(() => {
     // Tüm veriler yüklendiğinde genel loading state'i güncelle
-    if (!membersLoading && !servicesLoading && !trainersLoading && !appointmentsLoading) {
+    if (
+      !membersLoading &&
+      !servicesLoading &&
+      !trainersLoading &&
+      !appointmentsLoading
+    ) {
       setIsLoading(false);
     }
   }, [membersLoading, servicesLoading, trainersLoading, appointmentsLoading]);
@@ -88,12 +100,12 @@ const MembersPage = () => {
   useEffect(() => {
     if (lastUpdatedMemberId.current) {
       setHighlightedMemberId(lastUpdatedMemberId.current);
-      
+
       // 2 saniye sonra highlight'ı kaldır
       const timer = setTimeout(() => {
         setHighlightedMemberId(null);
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [members]);
@@ -200,7 +212,10 @@ const MembersPage = () => {
         },
         (payload) => {
           // Yeni üye eklendiğinde, state'e ekle
-          setMembers((currentMembers) => [...currentMembers, payload.new as Member]);
+          setMembers((currentMembers) => [
+            ...currentMembers,
+            payload.new as Member,
+          ]);
           // Yeni eklenen üyeyi highlight etmek için ID'sini kaydet
           lastUpdatedMemberId.current = payload.new.id;
           toast.success("Yeni üye eklendi!");
@@ -220,15 +235,15 @@ const MembersPage = () => {
               member.id === payload.new.id ? (payload.new as Member) : member
             )
           );
-          
+
           // Güncellenen üyeyi highlight etmek için ID'sini kaydet
           lastUpdatedMemberId.current = payload.new.id;
-          
+
           // Seçili üye güncellendiyse, seçili üyeyi de güncelle
           if (selectedMember?.id === payload.new.id) {
             setSelectedMember(payload.new as Member);
           }
-          
+
           toast.info("Üye bilgileri güncellendi");
         }
       )
@@ -244,12 +259,12 @@ const MembersPage = () => {
           setMembers((currentMembers) =>
             currentMembers.filter((member) => member.id !== payload.old.id)
           );
-          
+
           // Silinen üye seçili ise, seçimi kaldır
           if (selectedMember?.id === payload.old.id) {
             setSelectedMember(null);
           }
-          
+
           toast.info("Bir üye silindi");
         }
       )
@@ -422,7 +437,12 @@ const MembersPage = () => {
 
   const handleCreate = async (data: MemberFormData) => {
     try {
-      await createMember(data);
+      // Yeni üyeler her zaman aktif olarak eklenir
+      const memberData = {
+        ...data,
+        active: true, // Varsayılan olarak aktif
+      };
+      await createMember(memberData);
       setAddingMember(false);
       toast.success("Üye başarıyla eklendi.");
     } catch (error) {
@@ -435,7 +455,12 @@ const MembersPage = () => {
     if (!editingMember?.id) return;
 
     try {
-      await updateMember(editingMember.id, data);
+      // Mevcut aktif durumunu koru
+      const memberData = {
+        ...data,
+        active: editingMember.active, // Mevcut aktif durumunu koru
+      };
+      await updateMember(editingMember.id, memberData);
       setEditingMember(null);
       toast.success("Üye başarıyla güncellendi.");
     } catch (error) {
@@ -460,9 +485,15 @@ const MembersPage = () => {
   }
 
   return (
-    <div className={`container p-0 mx-auto py-6 space-y-6 ${isDark ? "text-gray-100" : ""}`}>
+    <div
+      className={`container p-0 mx-auto py-6 space-y-6 ${
+        isDark ? "text-gray-100" : ""
+      }`}
+    >
       <div className="flex justify-between items-center">
-        <h1 className={`text-3xl font-bold ${isDark ? "text-white" : ""}`}>Üyeler</h1>
+        <h1 className={`text-3xl font-bold ${isDark ? "text-white" : ""}`}>
+          Üyeler
+        </h1>
         <Dialog open={addingMember} onOpenChange={setAddingMember}>
           <DialogTrigger asChild>
             <Button>
@@ -470,9 +501,13 @@ const MembersPage = () => {
               Yeni Üye
             </Button>
           </DialogTrigger>
-          <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
+          <DialogContent
+            className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
+          >
             <DialogHeader>
-              <DialogTitle className={isDark ? "dark:text-white" : ""}>Yeni Üye</DialogTitle>
+              <DialogTitle className={isDark ? "dark:text-white" : ""}>
+                Yeni Üye
+              </DialogTitle>
             </DialogHeader>
             <MemberForm
               onSubmit={handleCreate}
@@ -482,70 +517,94 @@ const MembersPage = () => {
         </Dialog>
       </div>
 
-          <MemberStats 
-            stats={memberStats}
-            activeFilter={membershipFilter}
-            onFilterChange={setMembershipFilter}
-          />
+      <MemberStats
+        stats={memberStats}
+        activeFilter={
+          activeFilter === "active" || activeFilter === "inactive"
+            ? activeFilter
+            : membershipFilter
+        }
+        onFilterChange={(filter) => {
+          // Aktif/pasif filtresi seçildiğinde, hem membershipFilter hem de activeFilter'i güncelle
+          if (filter === "active") {
+            setMembershipFilter("all"); // Membership filtresi sıfırla
+            setActiveFilter("active"); // Sadece aktif filtresini ayarla
+          } else if (filter === "inactive") {
+            setMembershipFilter("all"); // Membership filtresi sıfırla
+            setActiveFilter("inactive"); // Sadece pasif filtresini ayarla
+          } else {
+            setMembershipFilter(filter); // basic, vip veya all
+            setActiveFilter("all"); // Aktif filtresini sıfırla
+          }
+        }}
+      />
 
       <Dialog
         open={!!selectedMember}
         onOpenChange={(open) => !open && setSelectedMember(null)}
       >
-          <MemberList
-            members={members}
-            services={services}
-            trainers={Object.values(trainers)}
-            appointments={appointments}
-            searchTerm={searchTerm}
-            membershipFilter={membershipFilter}
-            selectedTrainerId={selectedTrainerId}
-            onSearch={setSearchTerm}
-            onMemberClick={setSelectedMember}
-            onTrainerFilterChange={setSelectedTrainerId}
-            highlightedMemberId={highlightedMemberId}
-            onStatsChange={setMemberStats}
-          />
-        
-          {selectedMember && (
-            <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
-              <MemberDetail
-                member={selectedMember}
-                services={services}
-                trainers={trainers}
-                appointments={appointments}
-                onEdit={setEditingMember}
-                onDelete={handleDelete}
-                onAppointmentDeleted={(appointmentId) => {
-                  // Randevu silindiğinde appointments state'ini güncelle
-                  setAppointments((currentAppointments) =>
-                    currentAppointments.filter((apt) => apt.id !== appointmentId)
-                  );
-                  toast.success("Randevu başarıyla silindi");
-                }}
-                onUpdate={async (updatedMember) => {
-                  try {
-                    await updateMember(updatedMember.id, updatedMember);
-                    setSelectedMember(updatedMember);
-                    toast.success("Paket başarıyla tamamlandı.");
-                  } catch (error) {
-                    console.error("Paket tamamlanırken hata:", error);
-                    toast.error("Paket tamamlanırken bir hata oluştu.");
-                  }
-                }}
-              />
-            </DialogContent>
-          )}
-        </Dialog>
+        <MemberList
+          members={members}
+          services={services}
+          trainers={Object.values(trainers)}
+          appointments={appointments}
+          searchTerm={searchTerm}
+          membershipFilter={membershipFilter}
+          activeFilter={activeFilter}
+          selectedTrainerId={selectedTrainerId}
+          onSearch={setSearchTerm}
+          onMemberClick={setSelectedMember}
+          onTrainerFilterChange={setSelectedTrainerId}
+          onActiveFilterChange={setActiveFilter}
+          highlightedMemberId={highlightedMemberId}
+          onStatsChange={setMemberStats}
+        />
+
+        {selectedMember && (
+          <DialogContent
+            className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
+          >
+            <MemberDetail
+              member={selectedMember}
+              services={services}
+              trainers={trainers}
+              appointments={appointments}
+              onEdit={setEditingMember}
+              onDelete={handleDelete}
+              onAppointmentDeleted={(appointmentId) => {
+                // Randevu silindiğinde appointments state'ini güncelle
+                setAppointments((currentAppointments) =>
+                  currentAppointments.filter((apt) => apt.id !== appointmentId)
+                );
+                toast.success("Randevu başarıyla silindi");
+              }}
+              onUpdate={async (updatedMember) => {
+                try {
+                  await updateMember(updatedMember.id, updatedMember);
+                  setSelectedMember(updatedMember);
+                  toast.success("Paket başarıyla tamamlandı.");
+                } catch (error) {
+                  console.error("Paket tamamlanırken hata:", error);
+                  toast.error("Paket tamamlanırken bir hata oluştu.");
+                }
+              }}
+            />
+          </DialogContent>
+        )}
+      </Dialog>
 
       {editingMember && (
         <Dialog
           open={!!editingMember}
           onOpenChange={(open) => !open && setEditingMember(null)}
         >
-          <DialogContent className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}>
+          <DialogContent
+            className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
+          >
             <DialogHeader>
-              <DialogTitle className={isDark ? "dark:text-white" : ""}>Üye Düzenle</DialogTitle>
+              <DialogTitle className={isDark ? "dark:text-white" : ""}>
+                Üye Düzenle
+              </DialogTitle>
             </DialogHeader>
             <MemberForm
               member={editingMember}

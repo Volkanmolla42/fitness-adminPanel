@@ -8,6 +8,8 @@ import {
   Trash2,
   Package2,
   Calendar,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
@@ -38,6 +40,7 @@ interface MemberDetailProps {
   onDelete: (id: string) => Promise<void>;
   onUpdate?: (member: Member) => Promise<void>;
   onAppointmentDeleted?: (appointmentId: string) => void;
+  onToggleActive?: (member: Member) => Promise<void>;
 }
 
 export const MemberDetail = ({
@@ -48,10 +51,13 @@ export const MemberDetail = ({
   onEdit,
   onDelete,
   onAppointmentDeleted,
+  onUpdate,
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPackagesDialog, setShowPackagesDialog] = useState(false);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
   const isVip = member.membership_type === "vip";
 
   // Filter appointments for this member
@@ -82,9 +88,7 @@ export const MemberDetail = ({
 
       // Bu üyenin bu servise ait tüm randevuları
       const serviceAppointments = appointments.filter(
-        (apt) =>
-          apt.service_id === serviceId &&
-          apt.member_id === member.id
+        (apt) => apt.service_id === serviceId && apt.member_id === member.id
       );
 
       return {
@@ -135,19 +139,57 @@ export const MemberDetail = ({
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {new Date(member.start_date).toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {member.phone}
-                </span>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(member.start_date).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    {member.phone}
+                  </span>
+                </div>
+                <div>
+                  {/* Sadece pasif üyelerde badge göster */}
+                  {!member.active && (
+                    <Badge
+                      variant="destructive"
+                      className="h-6 p-2 gap-1 cursor-pointer hover:bg-red-600"
+                    >
+                      <UserX className="h-3 w-3" />
+                      <span className="text-xs">Pasif</span>
+                    </Badge>
+                  )}
+                  {/* Aktif/Pasif durumu değiştirme butonu */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      member.active
+                        ? setShowDeactivateDialog(true)
+                        : setShowActivateDialog(true)
+                    }
+                    className={`"h-6 p-2   ${
+                      member.active
+                        ? " text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        : "text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                    }`}
+                  >
+                    {member.active ? (
+                      <UserX className="h-3 w-3 mr-1" />
+                    ) : (
+                      <UserCheck className="h-3 w-3 mr-1" />
+                    )}
+                    <span className="text-xs">
+                      {member.active ? "Pasife Al" : "Aktife Al"}
+                    </span>
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -264,12 +306,7 @@ export const MemberDetail = ({
               </h4>
               <div className="grid gap-2">
                 {memberServices.map(
-                  ({
-                    serviceId,
-                    service,
-                    appointments,
-                    totalPackages,
-                  }) => (
+                  ({ serviceId, service, appointments, totalPackages }) => (
                     <ServiceProgress
                       key={serviceId}
                       service={service}
@@ -292,6 +329,64 @@ export const MemberDetail = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Aktif/Pasif Durumu Değiştirme Onay Dialogu */}
+      {(showDeactivateDialog || showActivateDialog) && (
+        <Dialog
+          open={showDeactivateDialog || showActivateDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowDeactivateDialog(false);
+              setShowActivateDialog(false);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Üye {showDeactivateDialog ? "Pasife" : "Aktife"} Alma Onayı
+              </DialogTitle>
+              <DialogDescription>
+                {member.first_name} {member.last_name} isimli üyeyi{" "}
+                {showDeactivateDialog ? "pasife" : "aktife"} almak istediğinize
+                emin misiniz?{" "}
+                {showDeactivateDialog
+                  ? 'Pasif üyeler listelerde görünmeye devam edecek ancak "Pasif" olarak işaretlenecektir.'
+                  : 'Aktif üyeler normal olarak listelerde görünecek ve "Pasif" işareti kaldırılacaktır.'}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeactivateDialog(false);
+                  setShowActivateDialog(false);
+                }}
+              >
+                İptal
+              </Button>
+              <Button
+                variant={showDeactivateDialog ? "destructive" : "default"}
+                className={
+                  showActivateDialog ? "bg-green-600 hover:bg-green-700" : ""
+                }
+                onClick={() => {
+                  if (onUpdate) {
+                    onUpdate({
+                      ...member,
+                      active: !member.active,
+                    });
+                    setShowDeactivateDialog(false);
+                    setShowActivateDialog(false);
+                  }
+                }}
+              >
+                {showDeactivateDialog ? "Pasife Al" : "Aktife Al"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Appointment History Modal */}
       {showAppointments && (

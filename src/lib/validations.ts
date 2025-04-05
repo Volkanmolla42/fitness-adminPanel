@@ -8,7 +8,7 @@ const nameRegex = /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]{2,}$/;
 // Common validation messages
 export const validationMessages = {
   required: "Bu alan zorunludur",
- 
+
   phone: "Geçerli bir telefon numarası giriniz (örn: 555 123 45 67)",
   name: "Geçerli bir isim giriniz (en az 2 karakter)",
   minLength: (field: string, length: number) =>
@@ -30,7 +30,7 @@ export const memberSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email:  z.string().optional(),
+  email: z.string().optional(),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   membership_type: z.enum(["basic", "vip"]),
   subscribed_services: z
@@ -39,6 +39,7 @@ export const memberSchema = z.object({
   avatar_url: z.string().optional(),
   start_date: z.string().min(1, validationMessages.required),
   notes: z.string().optional(),
+  active: z.boolean().default(true),
 });
 
 // Trainer validation schema
@@ -104,7 +105,7 @@ export const multiSessionAppointmentSchema = z.object({
       z.object({
         date: z.string().min(1, { message: "Tarih seçimi zorunludur" }),
         time: z.string().min(1, { message: "Saat seçimi zorunludur" }),
-      }),
+      })
     )
     .min(1, { message: "En az bir seans tarihi belirlenmelidir" }),
   notes: z.string().optional(),
