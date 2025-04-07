@@ -10,8 +10,14 @@ import {
   Calendar,
   UserX,
   UserCheck,
-  CalendarPlus,
+  Settings,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
 import React, { useState, useMemo } from "react";
@@ -27,7 +33,9 @@ import {
 
 import { ServiceProgress } from "./ServiceProgress";
 
-type Member = Database["public"]["Tables"]["members"]["Row"];
+type Member = Database["public"]["Tables"]["members"]["Row"] & {
+  _selectedServiceId?: string;
+};
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -112,6 +120,53 @@ export const MemberDetail = ({
 
   return (
     <div className="p-2 relative">
+      {/* Ayarlar Dropdown Menüsü - Sağ Üst Köşe */}
+      <div className="absolute top-8 right-6 z-10">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 dark:hover:bg-zinc-700"
+            >
+              <Settings className="h-6 w-6 text-gray-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {/* Düzenleme Butonu */}
+            <DropdownMenuItem onClick={() => onEdit(member)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Düzenle
+            </DropdownMenuItem>
+
+            {/* Aktif/Pasif Durumu Değiştirme Butonu */}
+            <DropdownMenuItem
+              onClick={() =>
+                member.active
+                  ? setShowDeactivateDialog(true)
+                  : setShowActivateDialog(true)
+              }
+              className={member.active ? "text-red-600" : "text-green-600"}
+            >
+              {member.active ? (
+                <UserX className="mr-2 h-4 w-4" />
+              ) : (
+                <UserCheck className="mr-2 h-4 w-4" />
+              )}
+              {member.active ? "Pasife Al" : "Aktife Al"}
+            </DropdownMenuItem>
+
+            {/* Silme Butonu */}
+            <DropdownMenuItem
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Sil
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       {/* Services Summary */}
       <div className="space-y-2">
         {/* Üst Bilgi Kartı */}
@@ -206,74 +261,20 @@ export const MemberDetail = ({
                   service={service}
                   appointments={appointments}
                   totalPackages={totalPackages}
+                  onAddAppointment={(serviceId) => {
+                    if (onAddAppointment) {
+                      // Seçilen servisi üye nesnesine ekle
+                      onAddAppointment({
+                        ...member,
+                        // Geçici olarak seçilen servisi belirt
+                        _selectedServiceId: serviceId,
+                      });
+                    }
+                  }}
+                  isActive={member.active}
                 />
               )
             )}
-          </div>
-        </div>
-
-        {/* İşlemler Kartı */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Package2 className="w-4 h-4 text-primary" />
-              <h3 className="font-medium">İşlemler</h3>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {/* Düzenleme Butonu */}
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => onEdit(member)}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Düzenle
-            </Button>
-
-            {/* Randevu Ekleme Butonu */}
-            <Button
-              variant="outline"
-              className="w-full text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-              onClick={() => onAddAppointment && onAddAppointment(member)}
-              disabled={!member.active} // Pasif üyeler için devre dışı bırak
-            >
-              <CalendarPlus className="mr-2 h-4 w-4" />
-              Randevu Ekle
-            </Button>
-
-            {/* Aktif/Pasif Durumu Değiştirme Butonu */}
-            <Button
-              variant="outline"
-              className={`w-full ${
-                member.active
-                  ? "text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                  : "text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-              }`}
-              onClick={() =>
-                member.active
-                  ? setShowDeactivateDialog(true)
-                  : setShowActivateDialog(true)
-              }
-            >
-              {member.active ? (
-                <UserX className="mr-2 h-4 w-4" />
-              ) : (
-                <UserCheck className="mr-2 h-4 w-4" />
-              )}
-              {member.active ? "Pasife Al" : "Aktife Al"}
-            </Button>
-
-            {/* Silme Butonu */}
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Sil
-            </Button>
           </div>
         </div>
 

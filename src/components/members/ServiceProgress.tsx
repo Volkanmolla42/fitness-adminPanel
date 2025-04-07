@@ -1,5 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { useTheme } from "@/contexts/theme-context";
 
@@ -10,12 +12,16 @@ export interface ServiceProgressProps {
   service: Service;
   appointments: Appointment[];
   totalPackages: number;
+  onAddAppointment?: (serviceId: string) => void;
+  isActive?: boolean;
 }
 
 export const ServiceProgress = ({
   service,
   appointments,
   totalPackages,
+  onAddAppointment,
+  isActive = true,
 }: ServiceProgressProps) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -76,25 +82,41 @@ export const ServiceProgress = ({
           : "bg-primary/5 border-primary/10 hover:bg-primary/10"
       }`}
     >
-      <Badge
-        variant="outline"
-        className={`px-3 py-1 flex items-center gap-2 mb-1.5 font-medium ${
-          isDark
-            ? "bg-gray-700/80 text-gray-200 border-gray-600"
-            : "bg-background/80"
-        }`}
-      >
-        <span className="mr-auto">{service?.name || "Yükleniyor..."}</span>
-        {totalPackages > 1 && (
-          <span
-            className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-              isDark ? "bg-gray-600 text-gray-200" : "bg-gray-200 text-gray-700"
-            }`}
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <Badge
+          variant="outline"
+          className={`px-3 py-1 flex items-center gap-2 font-medium ${
+            isDark
+              ? "bg-gray-700/80 text-gray-200 border-gray-600"
+              : "bg-background/80"
+          }`}
+        >
+          <span className="mr-auto">{service?.name || "Yükleniyor..."}</span>
+          {totalPackages > 1 && (
+            <span
+              className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                isDark
+                  ? "bg-gray-600 text-gray-200"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {totalPackages}x
+            </span>
+          )}
+        </Badge>
+
+        {onAddAppointment && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+            onClick={() => onAddAppointment(service.id)}
+            disabled={!isActive}
           >
-            {totalPackages}x
-          </span>
+            <CalendarPlus className="h-4 w-4" />
+          </Button>
         )}
-      </Badge>
+      </div>
 
       <div className="flex flex-col gap-2">
         {packages.map((pkg, index) => (

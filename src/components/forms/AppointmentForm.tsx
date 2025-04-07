@@ -33,7 +33,9 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Session } from "@/types/sessions";
 import { WORKING_HOURS } from "@/constants/timeSlots";
-type Member = Database["public"]["Tables"]["members"]["Row"];
+type Member = Database["public"]["Tables"]["members"]["Row"] & {
+  _selectedServiceId?: string;
+};
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -51,6 +53,7 @@ interface AppointmentFormProps {
   defaultTime?: string;
   defaultTrainerId?: string;
   defaultMemberId?: string;
+  defaultServiceId?: string;
 }
 
 export function AppointmentForm({
@@ -65,6 +68,7 @@ export function AppointmentForm({
   defaultTime,
   defaultTrainerId,
   defaultMemberId,
+  defaultServiceId,
 }: AppointmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
@@ -95,7 +99,7 @@ export function AppointmentForm({
     defaultValues: {
       member_id: appointment?.member_id || defaultMemberId || "",
       trainer_id: appointment?.trainer_id || defaultTrainerId || "",
-      service_id: appointment?.service_id || "",
+      service_id: appointment?.service_id || defaultServiceId || "",
       notes: appointment?.notes || "",
       status: appointment?.status || "scheduled",
       date: appointment?.date || defaultDate || "",
@@ -122,7 +126,6 @@ export function AppointmentForm({
           hasConflict: false,
         },
       ]);
-      setShowSessionsDialog(true);
     }
   };
 
@@ -218,6 +221,9 @@ export function AppointmentForm({
     }
   }, [appointment, services]);
 
+  // Varsayılan servis ID'sini saklamak için bir state
+  const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
+
   useEffect(() => {
     // Randevu düzenleniyorsa veya varsayılan üye ID'si varsa üye adını doldur
     if (appointment?.member_id || defaultMemberId) {
@@ -227,7 +233,41 @@ export function AppointmentForm({
         setSearchMembers(`${member.first_name} ${member.last_name}`);
       }
     }
-  }, [appointment, members, defaultMemberId]);
+
+    // Varsayılan servis ID'si varsa ve üye seçiliyse, bunu bekleyen servis olarak kaydet
+    if (defaultServiceId && form.watch("member_id") && !pendingServiceId) {
+      setPendingServiceId(defaultServiceId);
+    }
+  }, [
+    appointment,
+    members,
+    defaultMemberId,
+    defaultServiceId,
+    form.watch("member_id"),
+    pendingServiceId,
+    services,
+  ]);
+
+  // Antrenör seçildiğinde ve bekleyen servis varsa, servisi otomatik seç
+  useEffect(() => {
+    if (
+      pendingServiceId &&
+      form.watch("trainer_id") &&
+      form.watch("member_id")
+    ) {
+      const service = services.find((s) => s.id === pendingServiceId);
+      if (service) {
+        handleServiceChange(pendingServiceId);
+        // Servisi seçtikten sonra bekleyen servisi temizle
+        setPendingServiceId(null);
+      }
+    }
+  }, [
+    pendingServiceId,
+    form.watch("trainer_id"),
+    form.watch("member_id"),
+    services,
+  ]);
 
   const selectedMember = members.find(
     (member) => member.id === form.watch("member_id")
@@ -533,7 +573,7 @@ export function AppointmentForm({
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full border-gray-600">
                       <SelectValue placeholder="Durum seçin" />
                     </SelectTrigger>
                   </FormControl>
@@ -553,9 +593,12 @@ export function AppointmentForm({
           name="notes"
           render={({ field }) => (
             <FormItem className="w-full">
-              <FormLabel>Notlar</FormLabel>
               <FormControl>
-                <Textarea {...field} className="min-h-min" />
+                <Textarea
+                  {...field}
+                  className="min-h-min border-gray-600"
+                  placeholder="Notlar.."
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

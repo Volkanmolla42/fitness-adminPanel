@@ -27,7 +27,9 @@ import { LoadingSpinner } from "@/App";
 import { useTheme } from "@/contexts/theme-context";
 import { useAppointments } from "@/hooks/useAppointments";
 
-type Member = Database["public"]["Tables"]["members"]["Row"];
+type Member = Database["public"]["Tables"]["members"]["Row"] & {
+  _selectedServiceId?: string;
+};
 
 type MemberFormData = Omit<Member, "id" | "created_at">;
 
@@ -697,6 +699,7 @@ const MembersPage = () => {
               onSubmit={handleAppointmentSubmit}
               onCancel={handleAppointmentCancel}
               defaultMemberId={appointmentMember?.id}
+              defaultServiceId={appointmentMember?._selectedServiceId}
             />
           )}
         </DialogContent>
