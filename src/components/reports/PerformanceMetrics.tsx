@@ -46,7 +46,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-blue-500 dark:text-blue-400",
       changeRate: metrics.packageChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başı ortalama: ${(metrics.uniqueMembers > 0
+      subInfo: `Üye başı ortalama  ${(metrics.uniqueMembers > 0
         ? metrics.totalPackages / metrics.uniqueMembers
         : 0
       ).toFixed(1)} paket`,
@@ -73,9 +73,14 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-purple-500 dark:text-purple-400",
       changeRate: metrics.memberChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başı ortalama: ${Math.round(
+      subInfo: `Üye başı ortalama  ₺${Math.round(
         metrics.totalRevenue / metrics.uniqueMembers
-      ).toLocaleString("tr-TR")} ₺`,
+      )
+        .toLocaleString("tr-TR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+        .replace(".", ",")}`,
     },
     {
       title: "Randevu Sayısı",
@@ -86,47 +91,55 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-orange-500 dark:text-orange-400",
       changeRate: metrics.appointmentChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başı ortalama: ${(metrics.uniqueMembers > 0
+      subInfo: `Üye başı ortalama  ${(metrics.uniqueMembers > 0
         ? metrics.totalAppointments / metrics.uniqueMembers
         : 0
       ).toFixed(1)} randevu`,
     },
     {
       title: `${format(new Date(), "MMMM", { locale: tr })} Ayının Geliri`,
-      value: metrics.currentMonthRevenue.toLocaleString("tr-TR", {
-        style: "currency",
-        currency: "TRY",
-      }),
+      value: `₺${metrics.currentMonthRevenue
+        .toLocaleString("tr-TR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+        .replace(".", ",")}`,
       icon: TrendingUp,
       color:
         "bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200 dark:from-pink-950 dark:to-pink-900 dark:border-pink-800",
       iconColor: "text-pink-500 dark:text-pink-400",
       changeRate: metrics.currentMonthRevenueChangeRate,
       changeLabel: "Önceki aya göre",
-      subInfo: `Üye başı ortalama: ${metrics.averageRevenuePerMember.toLocaleString(
-        "tr-TR",
-        {
-          style: "currency",
-          currency: "TRY",
-        }
-      )}`,
+      subInfo: `Üye başı ortalama  ₺${metrics.averageRevenuePerMember
+        .toLocaleString("tr-TR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+        .replace(".", ",")}`,
     },
     {
       title: "Toplam Gelir",
-      value: metrics.totalRevenue.toLocaleString("tr-TR", {
-        style: "currency",
-        currency: "TRY",
-      }),
+      value: `₺${metrics.totalRevenue
+        .toLocaleString("tr-TR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+        .replace(".", ",")}`,
       icon: Wallet,
       color:
         "bg-gradient-to-br from-green-50 to-green-100 border-green-200 dark:from-green-950 dark:to-green-900 dark:border-green-800",
       iconColor: "text-green-500 dark:text-green-400",
       changeRate: metrics.revenueChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Paket başı ortalama: ${(metrics.totalPackages > 0
+      subInfo: `Paket başı ortalama: ₺${(metrics.totalPackages > 0
         ? Math.round(metrics.totalRevenue / metrics.totalPackages)
         : 0
-      ).toLocaleString("tr-TR")} ₺`,
+      )
+        .toLocaleString("tr-TR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+        .replace(".", ",")}`,
     },
   ];
 
