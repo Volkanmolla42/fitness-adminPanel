@@ -139,7 +139,6 @@ export function AppointmentFilters({
       <div className="flex gap-2">
         {/* Antrenör Seçimi */}
         <Select
-          defaultOpen
           value={selectedTrainerId || "all"}
           onValueChange={(value) =>
             onTrainerChange(value === "all" ? null : value)
