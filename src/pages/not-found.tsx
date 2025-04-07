@@ -96,7 +96,16 @@ const NotFoundPage: React.FC = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Map className="h-4 w-4" />
             <span>
-              Yardıma mı ihtiyacınız var? Menüyü kullanarak gezinmeyi deneyin.
+              Yardıma mı ihtiyacınız var? Lütfen
+              <a
+                href="https://api.whatsapp.com/send?phone=905418224484&text=Merhaba, bir hatayla karşılaştım. Yardım edebilir misin?"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline mx-1"
+              >
+                benimle
+              </a>
+              iletişime geçin.
             </span>
           </div>
         </CardFooter>
