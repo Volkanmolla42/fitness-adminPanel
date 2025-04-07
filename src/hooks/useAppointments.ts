@@ -121,7 +121,7 @@ export const useAppointments = () => {
         description: "Veriler yüklenirken bir hata oluştu.",
         variant: "destructive",
       });
-      console.error(error)
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -171,11 +171,9 @@ export const useAppointments = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((appointment) => {
         const member = members.find((m) => m.id === appointment.member_id);
-        return (
-          `${member?.first_name} ${member?.last_name}`
-            .toLowerCase()
-            .includes(query)
-        );
+        return `${member?.first_name} ${member?.last_name}`
+          .toLowerCase()
+          .includes(query);
       });
     }
 
@@ -208,15 +206,13 @@ export const useAppointments = () => {
           new Date(appointment.date) <= endOfMonth(now)
       );
     } else if (activeFilter === "custom" && startDate && endDate) {
-      filtered = filtered.filter(
-        (appointment) => {
-          const appointmentDate = new Date(appointment.date);
-          return isWithinInterval(appointmentDate, {
-            start: startOfDay(startDate),
-            end: endOfDay(endDate)
-          });
-        }
-      );
+      filtered = filtered.filter((appointment) => {
+        const appointmentDate = new Date(appointment.date);
+        return isWithinInterval(appointmentDate, {
+          start: startOfDay(startDate),
+          end: endOfDay(endDate),
+        });
+      });
     }
 
     // Sort appointments based on status and date
@@ -333,12 +329,15 @@ export const useAppointments = () => {
           );
           // Zaman dilimini düzelt
           const localAppointmentDateTime = new Date(
-            appointmentDateTime.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' })
+            appointmentDateTime.toLocaleString("en-US", {
+              timeZone: "Europe/Istanbul",
+            })
           );
-          
+
           const service = services.find((s) => s.id === appointment.service_id);
           const appointmentEndTime = new Date(
-            localAppointmentDateTime.getTime() + (service?.duration || 60) * 60000
+            localAppointmentDateTime.getTime() +
+              (service?.duration || 60) * 60000
           );
 
           if (
@@ -346,10 +345,16 @@ export const useAppointments = () => {
             now < appointmentEndTime &&
             appointment.status === "scheduled"
           ) {
-            updatesToMake.push({ id: appointment.id, newStatus: "in-progress" });
+            updatesToMake.push({
+              id: appointment.id,
+              newStatus: "in-progress",
+            });
           }
 
-          if (now >= appointmentEndTime && appointment.status === "in-progress") {
+          if (
+            now >= appointmentEndTime &&
+            appointment.status === "in-progress"
+          ) {
             updatesToMake.push({ id: appointment.id, newStatus: "completed" });
           }
 

@@ -19,11 +19,13 @@ import {
 import type { Database } from "@/types/supabase";
 import { toast } from "sonner";
 import { MemberForm } from "@/components/forms/MemberForm";
+import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { MemberStats } from "@/components/members/MemberStats";
 import { MemberList } from "@/components/members/MemberList";
 import { MemberDetail } from "@/components/members/MemberDetail";
 import { LoadingSpinner } from "@/App";
 import { useTheme } from "@/contexts/theme-context";
+import { useAppointments } from "@/hooks/useAppointments";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
@@ -40,6 +42,7 @@ const MembersPage = () => {
   const [appointments, setAppointments] = useState<
     Database["public"]["Tables"]["appointments"]["Row"][]
   >([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [membershipFilter, setMembershipFilter] = useState<
     "all" | "basic" | "vip" | "active" | "inactive"
@@ -53,9 +56,12 @@ const MembersPage = () => {
   const [membersLoading, setMembersLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [trainersLoading, setTrainersLoading] = useState(true);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [appointmentMember, setAppointmentMember] = useState<Member | null>(
+    null
+  );
   const [memberStats, setMemberStats] = useState({
     total: 0,
     basic: 0,
@@ -77,24 +83,79 @@ const MembersPage = () => {
     fetchMembers();
     fetchServices();
     fetchTrainers();
-    fetchAppointments();
     const cleanup = setupRealtimeSubscription();
 
     // Komponent unmount olduğunda cleanup fonksiyonunu çağır
     return cleanup;
   }, []);
 
+  // useAppointments hook'unu kullan
+  const {
+    members: appointmentMembers,
+    trainers: appointmentTrainers,
+    services: appointmentServices,
+    appointments: allAppointments,
+    createAppointment,
+    isLoading: appointmentsApiLoading,
+  } = useAppointments();
+
+  // allAppointments ve appointmentsApiLoading değiştiğinde appointments state'ini güncelle
+  useEffect(() => {
+    // API'den gelen loading durumunu kullan
+    setAppointmentsLoading(appointmentsApiLoading);
+
+    if (allAppointments && allAppointments.length > 0) {
+      setAppointments(allAppointments);
+      // Randevular yüklendiyse loading durumunu kapat
+      if (!appointmentsApiLoading) {
+        // Kullanıcının yükleme animasyonunu görebilmesi için kısa bir gecikme
+        setTimeout(() => {
+          setAppointmentsLoading(false);
+        }, 500);
+      }
+    }
+  }, [allAppointments, appointmentsApiLoading]);
+  // Randevu ekleme işlevi
+  const handleAddAppointment = (member: Member) => {
+    setAppointmentMember(member);
+    setIsAppointmentDialogOpen(true);
+  };
+
+  // Randevu ekleme formunu kapat
+  const handleAppointmentCancel = () => {
+    setIsAppointmentDialogOpen(false);
+    setAppointmentMember(null);
+  };
+
+  // Randevu ekleme formunu gönder
+  const handleAppointmentSubmit = async (
+    data: Omit<
+      Database["public"]["Tables"]["appointments"]["Row"],
+      "id" | "created_at"
+    >
+  ) => {
+    try {
+      // useAppointments hook'undaki createAppointment fonksiyonunu kullan
+      await createAppointment({
+        ...data,
+        status: "scheduled",
+      });
+
+      toast.success("Randevu başarıyla oluşturuldu.");
+      setIsAppointmentDialogOpen(false);
+      setAppointmentMember(null);
+    } catch (error) {
+      console.error("Randevu oluşturulurken hata:", error);
+      toast.error("Randevu oluşturulurken bir hata oluştu.");
+    }
+  };
+
   useEffect(() => {
     // Tüm veriler yüklendiğinde genel loading state'i güncelle
-    if (
-      !membersLoading &&
-      !servicesLoading &&
-      !trainersLoading &&
-      !appointmentsLoading
-    ) {
+    if (!membersLoading && !servicesLoading && !trainersLoading) {
       setIsLoading(false);
     }
-  }, [membersLoading, servicesLoading, trainersLoading, appointmentsLoading]);
+  }, [membersLoading, servicesLoading, trainersLoading]);
 
   // Highlight animasyonu için useEffect
   useEffect(() => {
@@ -177,25 +238,6 @@ const MembersPage = () => {
       toast.error("Antrenörler yüklenirken bir hata oluştu.");
     } finally {
       setTrainersLoading(false);
-    }
-  }, []);
-
-  const fetchAppointments = useCallback(async () => {
-    setAppointmentsLoading(true);
-    try {
-      const { data: appointmentsData } = await supabase
-        .from("appointments")
-        .select("*")
-        .order("date", { ascending: true });
-
-      if (appointmentsData) {
-        setAppointments(appointmentsData);
-      }
-    } catch (error) {
-      console.error("Randevular yüklenirken hata:", error);
-      toast.error("Randevular yüklenirken bir hata oluştu.");
-    } finally {
-      setAppointmentsLoading(false);
     }
   }, []);
 
@@ -346,7 +388,7 @@ const MembersPage = () => {
           schema: "public",
           table: "appointments",
         },
-        (payload) => {
+        async (payload) => {
           // Randevu güncellendiğinde, state'i güncelle
           setAppointments((currentAppointments) =>
             currentAppointments.map((appointment) =>
@@ -355,6 +397,26 @@ const MembersPage = () => {
                 : appointment
             )
           );
+
+          // Not: Randevu tamamlandığında üye durumu kontrolü artık memberStatusService tarafından yapılıyor
+          // Ancak seçili üyeyi güncellemek için burada da kontrol ediyoruz
+          const updatedAppointment =
+            payload.new as Database["public"]["Tables"]["appointments"]["Row"];
+          if (updatedAppointment.status === "completed" && selectedMember) {
+            // Seçili üye güncellendiyse state'i güncelle
+            if (updatedAppointment.member_id === selectedMember.id) {
+              // Veritabanından güncel üye bilgisini al
+              const { data: updatedMember } = await supabase
+                .from("members")
+                .select("*")
+                .eq("id", selectedMember.id)
+                .single();
+
+              if (updatedMember) {
+                setSelectedMember(updatedMember);
+              }
+            }
+          }
         }
       )
       .on(
@@ -445,6 +507,9 @@ const MembersPage = () => {
       await createMember(memberData);
       setAddingMember(false);
       toast.success("Üye başarıyla eklendi.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Üye eklenirken hata:", error);
       toast.error("Üye eklenirken bir hata oluştu.");
@@ -557,6 +622,7 @@ const MembersPage = () => {
           onTrainerFilterChange={setSelectedTrainerId}
           onActiveFilterChange={setActiveFilter}
           highlightedMemberId={highlightedMemberId}
+          appointmentsLoading={appointmentsLoading}
           onStatsChange={setMemberStats}
         />
 
@@ -583,14 +649,57 @@ const MembersPage = () => {
                   await updateMember(updatedMember.id, updatedMember);
                   setSelectedMember(updatedMember);
                   toast.success("Paket başarıyla tamamlandı.");
+
+                  // Not: Paket tamamlandığında üye durumu kontrolü artık memberStatusService tarafından yapılıyor
+                  // Ancak UI'da güncel durumu göstermek için veritabanından güncel üye bilgisini alalım
+                  setTimeout(async () => {
+                    // Veritabanından güncel üye bilgisini al
+                    const { data: refreshedMember } = await supabase
+                      .from("members")
+                      .select("*")
+                      .eq("id", updatedMember.id)
+                      .single();
+
+                    if (refreshedMember) {
+                      setSelectedMember(refreshedMember);
+                    }
+                  }, 500); // memberStatusService'in üyeyi güncellemesi için kısa bir süre bekle
                 } catch (error) {
                   console.error("Paket tamamlanırken hata:", error);
                   toast.error("Paket tamamlanırken bir hata oluştu.");
                 }
               }}
+              onAddAppointment={handleAddAppointment}
             />
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* Randevu Ekleme Diyaloğu */}
+      <Dialog
+        open={isAppointmentDialogOpen}
+        onOpenChange={setIsAppointmentDialogOpen}
+      >
+        <DialogContent
+          className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
+        >
+          <DialogHeader>
+            <DialogTitle className={isDark ? "dark:text-white" : ""}>
+              Yeni Randevu
+            </DialogTitle>
+          </DialogHeader>
+          {appointmentMember && (
+            <AppointmentForm
+              members={appointmentMembers}
+              trainers={appointmentTrainers}
+              services={appointmentServices}
+              appointments={allAppointments}
+              onSubmit={handleAppointmentSubmit}
+              onCancel={handleAppointmentCancel}
+              defaultMemberId={appointmentMember?.id}
+            />
+          )}
+        </DialogContent>
       </Dialog>
 
       {editingMember && (

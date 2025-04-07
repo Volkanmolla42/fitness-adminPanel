@@ -1,5 +1,11 @@
 import { Input } from "@/components/ui/input";
-import { Search, PackageOpen, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  PackageOpen,
+  AlertTriangle,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { MemberCard } from "./MemberCard";
 import React, { useMemo, useEffect, useState } from "react";
@@ -11,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -152,6 +166,27 @@ export const checkPackageStatus = {
       ) === "almostCompleted"
     );
   },
+
+  // Üyenin tüm paketlerinin bitip bitmediğini kontrol eder ve
+  // eğer tüm paketleri bitmişse true döndürür
+  shouldDeactivateMember: (
+    member: Member,
+    services: { [key: string]: Service },
+    appointments: Appointment[]
+  ): boolean => {
+    // Üyenin zaten pasif olup olmadığını kontrol et
+    if (!member.active) return false;
+
+    // Üyenin hiç paketi yoksa devre dışı bırakma
+    if (member.subscribed_services.length === 0) return false;
+
+    // Tüm paketlerin bitip bitmediğini kontrol et
+    return checkPackageStatus.hasCompletedAllPackages(
+      member,
+      services,
+      appointments
+    );
+  },
 };
 
 interface MemberListProps {
@@ -168,6 +203,7 @@ interface MemberListProps {
   onTrainerFilterChange: (trainerId: string) => void;
   onActiveFilterChange: (filter: "all" | "active" | "inactive") => void;
   highlightedMemberId?: string | null; // Highlight edilecek üye ID'si
+  appointmentsLoading?: boolean; // Randevular yüklenirken gösterilecek yükleme durumu
   onStatsChange?: (stats: {
     total: number;
     basic: number;
@@ -190,6 +226,7 @@ export const MemberList = ({
   onMemberClick,
   onTrainerFilterChange,
   highlightedMemberId,
+  appointmentsLoading = false,
   onStatsChange,
 }: MemberListProps) => {
   const { theme } = useTheme();
@@ -401,24 +438,204 @@ export const MemberList = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredMembers.map((member) => (
-          <div
-            key={member.id}
-            className={`transition-all duration-500 ${
-              highlightedMemberId === member.id
-                ? "scale-105 ring-2 ring-primary ring-offset-2 shadow-lg"
-                : ""
-            }`}
-          >
-            <MemberCard
-              member={member}
-              services={services}
-              appointments={appointments}
-              onClick={onMemberClick}
-            />
-          </div>
-        ))}
+      <div className="space-y-6">
+        {/* Aktif Üyeler Accordion */}
+        <Accordion
+          type="single"
+          defaultValue="active"
+          collapsible
+          className="w-full bg-green-300/30 dark:bg-green-900/20 px-4 py-2 rounded-lg"
+        >
+          <AccordionItem value="active" className="border-none">
+            <AccordionTrigger className="py-2 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full">
+                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="font-semibold text-base">Aktif Üyeler</span>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="ml-2">
+                    {filteredMembers.filter((m) => m.active).length}
+                  </Badge>
+                  {stats.almostCompletedPackages > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50"
+                    >
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {stats.almostCompletedPackages} üyenin paketi bitmek üzere
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                {appointmentsLoading ? (
+                  // Randevular yüklenirken skeleton göster
+                  <>
+                    {[...Array(6)].map((_, index) => (
+                      <div key={index} className="space-y-2">
+                        <Skeleton className="h-[200px] w-full rounded-xl" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  // Randevular yüklendiyse normal içeriği göster
+                  filteredMembers
+                    .filter((member) => member.active)
+                    .sort((a, b) => {
+                      // Önce paketi bitmeye yakın olanları göster
+                      const aIsAlmostCompleted =
+                        checkPackageStatus.hasAlmostCompletedPackages(
+                          a,
+                          services,
+                          appointments
+                        );
+                      const bIsAlmostCompleted =
+                        checkPackageStatus.hasAlmostCompletedPackages(
+                          b,
+                          services,
+                          appointments
+                        );
+
+                      if (aIsAlmostCompleted && !bIsAlmostCompleted) return -1;
+                      if (!aIsAlmostCompleted && bIsAlmostCompleted) return 1;
+
+                      // Sonra VIP üyeleri göster
+                      if (
+                        a.membership_type === "vip" &&
+                        b.membership_type !== "vip"
+                      )
+                        return -1;
+                      if (
+                        a.membership_type !== "vip" &&
+                        b.membership_type === "vip"
+                      )
+                        return 1;
+                      // Aynı üyelik tipindeyse isme göre sırala
+                      return a.first_name.localeCompare(b.first_name);
+                    })
+                    .map((member) => (
+                      <div
+                        key={member.id}
+                        className={`transition-all duration-500 ${
+                          highlightedMemberId === member.id
+                            ? "scale-105 ring-2 ring-primary ring-offset-2 shadow-lg"
+                            : ""
+                        }`}
+                      >
+                        <MemberCard
+                          member={member}
+                          services={services}
+                          appointments={appointments}
+                          onClick={onMemberClick}
+                        />
+                      </div>
+                    ))
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        {/* Pasif Üyeler Accordion */}
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full bg-red-300/30 dark:bg-red-900/20 px-4 py-2 rounded-lg"
+        >
+          <AccordionItem value="inactive" className="border-none">
+            <AccordionTrigger className="py-2 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <div className="bg-red-100 dark:bg-red-900/30 p-1.5 rounded-full">
+                  <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <span className="font-semibold text-base">Pasif Üyeler</span>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="ml-2">
+                    {filteredMembers.filter((m) => !m.active).length}
+                  </Badge>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                {appointmentsLoading ? (
+                  // Randevular yüklenirken skeleton göster
+                  <>
+                    {[...Array(3)].map((_, index) => (
+                      <div key={index} className="space-y-2">
+                        <Skeleton className="h-[200px] w-full rounded-xl" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  // Randevular yüklendiyse normal içeriği göster
+                  filteredMembers
+                    .filter((member) => !member.active)
+                    .sort((a, b) => {
+                      // Önce paketi bitmeye yakın olanları göster
+                      const aIsAlmostCompleted =
+                        checkPackageStatus.hasAlmostCompletedPackages(
+                          a,
+                          services,
+                          appointments
+                        );
+                      const bIsAlmostCompleted =
+                        checkPackageStatus.hasAlmostCompletedPackages(
+                          b,
+                          services,
+                          appointments
+                        );
+
+                      if (aIsAlmostCompleted && !bIsAlmostCompleted) return -1;
+                      if (!aIsAlmostCompleted && bIsAlmostCompleted) return 1;
+
+                      // Sonra VIP üyeleri göster
+                      if (
+                        a.membership_type === "vip" &&
+                        b.membership_type !== "vip"
+                      )
+                        return -1;
+                      if (
+                        a.membership_type !== "vip" &&
+                        b.membership_type === "vip"
+                      )
+                        return 1;
+                      // Aynı üyelik tipindeyse isme göre sırala
+                      return a.first_name.localeCompare(b.first_name);
+                    })
+                    .map((member) => (
+                      <div
+                        key={member.id}
+                        className={`transition-all duration-500 ${
+                          highlightedMemberId === member.id
+                            ? "scale-105 ring-2 ring-primary ring-offset-2 shadow-lg"
+                            : ""
+                        }`}
+                      >
+                        <MemberCard
+                          member={member}
+                          services={services}
+                          appointments={appointments}
+                          onClick={onMemberClick}
+                        />
+                      </div>
+                    ))
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   );

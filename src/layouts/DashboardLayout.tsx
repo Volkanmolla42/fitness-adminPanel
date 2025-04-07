@@ -19,9 +19,9 @@ export function DashboardLayout() {
     return null;
   }
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 mt-6 md:mt-0 p-4 md:p-8 overflow-auto">
+      <main className="md:ml-20 mt-6 h-screen overflow-auto p-4 md:p-8">
         <Outlet />
       </main>
       <Toaster />

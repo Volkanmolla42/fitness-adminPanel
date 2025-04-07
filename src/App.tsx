@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import Dashboard from "@/pages/dashboard";
@@ -18,6 +18,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ThemeProvider } from "@/contexts/theme-context";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { memberStatusService } from "@/services/memberStatusService";
+import { supabase } from "@/lib/supabase";
 
 export function LoadingSpinner({ text }: { text: string }) {
   return (
@@ -95,6 +97,62 @@ function AppRoutes() {
 }
 
 function App() {
+  // Uygulama başladığında üye durumu kontrol servisini başlat
+  useEffect(() => {
+    // Kullanıcı giriş yapmışsa servisi başlat
+    const checkAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+          console.log(
+            "%cÜye Durumu Kontrol Servisi başlatılıyor...",
+            "color: green; font-weight: bold;"
+          );
+          // 5 dakikada bir kontrol et
+          memberStatusService.start(5);
+          console.log(
+            "%cÜye Durumu Kontrol Servisi başlatıldı. Üyeler 5 dakikada bir kontrol edilecek.",
+            "color: green;"
+          );
+        } else {
+          console.log(
+            "%cKullanıcı giriş yapmadığı için Üye Durumu Kontrol Servisi başlatılmadı.",
+            "color: orange;"
+          );
+        }
+      } catch (error) {
+        console.error(
+          "%cOturum kontrolü sırasında hata oluştu:",
+          "color: red;",
+          error
+        );
+      }
+    };
+
+    checkAuth();
+
+    // Component unmount olduğunda servisi durdur
+    return () => {
+      try {
+        console.log(
+          "%cÜye Durumu Kontrol Servisi durduruluyor...",
+          "color: orange; font-weight: bold;"
+        );
+        memberStatusService.stop();
+        console.log(
+          "%cÜye Durumu Kontrol Servisi durduruldu.",
+          "color: orange;"
+        );
+      } catch (error) {
+        console.error(
+          "%cServis durdurulurken hata oluştu:",
+          "color: red;",
+          error
+        );
+      }
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

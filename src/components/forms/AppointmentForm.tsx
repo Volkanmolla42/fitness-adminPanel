@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,7 @@ interface AppointmentFormProps {
   defaultDate?: string;
   defaultTime?: string;
   defaultTrainerId?: string;
+  defaultMemberId?: string;
 }
 
 export function AppointmentForm({
@@ -61,6 +64,7 @@ export function AppointmentForm({
   defaultDate,
   defaultTime,
   defaultTrainerId,
+  defaultMemberId,
 }: AppointmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
@@ -68,6 +72,7 @@ export function AppointmentForm({
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [searchMembers, setSearchMembers] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [showPassiveWarning, setShowPassiveWarning] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +93,7 @@ export function AppointmentForm({
   const form = useForm<AppointmentInput>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      member_id: appointment?.member_id || "",
+      member_id: appointment?.member_id || defaultMemberId || "",
       trainer_id: appointment?.trainer_id || defaultTrainerId || "",
       service_id: appointment?.service_id || "",
       notes: appointment?.notes || "",
@@ -165,14 +170,24 @@ export function AppointmentForm({
 
   useEffect(() => {
     if (watchedDate && watchedTime) {
-      checkConflict(watchedDate, watchedTime);
+      const hasConflict = checkConflict(watchedDate, watchedTime);
+
+      if (hasConflict) {
+        form.setError("time", {
+          type: "manual",
+          message:
+            "Seçilen tarih ve saatte bir çakışma var. Lütfen başka bir zaman seçin.",
+        });
+      } else {
+        form.clearErrors("time");
+      }
 
       if (!checkBusinessHours(watchedTime)) {
         form.setError("time", {
           type: "manual",
           message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`,
         });
-      } else {
+      } else if (!hasConflict) {
         form.clearErrors("time");
       }
 
@@ -204,13 +219,15 @@ export function AppointmentForm({
   }, [appointment, services]);
 
   useEffect(() => {
-    if (appointment?.member_id) {
-      const member = members.find((m) => m.id === appointment.member_id);
+    // Randevu düzenleniyorsa veya varsayılan üye ID'si varsa üye adını doldur
+    if (appointment?.member_id || defaultMemberId) {
+      const memberId = appointment?.member_id || defaultMemberId;
+      const member = members.find((m) => m.id === memberId);
       if (member) {
         setSearchMembers(`${member.first_name} ${member.last_name}`);
       }
     }
-  }, [appointment, members]);
+  }, [appointment, members, defaultMemberId]);
 
   const selectedMember = members.find(
     (member) => member.id === form.watch("member_id")
@@ -276,6 +293,14 @@ export function AppointmentForm({
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormLabel>Üye</FormLabel>
+                {showPassiveWarning && (
+                  <Alert className="mb-2 py-2 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-900/30">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Pasif üyeler için randevu oluşturulamaz
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="relative" ref={dropdownRef}>
                   <div className="relative">
                     <Input
@@ -297,7 +322,7 @@ export function AppointmentForm({
                   </div>
 
                   {showMemberDropdown && (
-                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+                    <div className="absolute z-50 mt-1 w-[110%] rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
                       <div className="max-h-[200px] overflow-y-auto py-1">
                         {members.length === 0 && (
                           <div className="relative flex select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-muted-foreground">
@@ -310,10 +335,41 @@ export function AppointmentForm({
                               .toLowerCase()
                               .includes(searchMembers.toLowerCase())
                           )
+                          // Aktif üyeleri önce, pasif üyeleri sonra göster
+                          .sort((a, b) => {
+                            // Önce aktif/pasif durumuna göre sırala
+                            if (a.active && !b.active) return -1;
+                            if (!a.active && b.active) return 1;
+                            // Aynı durumdaki üyeleri isme göre sırala
+                            return `${a.first_name} ${a.last_name}`.localeCompare(
+                              `${b.first_name} ${b.last_name}`
+                            );
+                          })
                           .map((member) => (
                             <div
                               key={member.id}
                               onClick={() => {
+                                // Pasif üyeler seçilemez
+                                if (!member.active) {
+                                  // Pasif üye seçilmeye çalışıldığında uyarı göster
+                                  setShowPassiveWarning(true);
+                                  // 3 saniye sonra uyarıyı kapat
+                                  setTimeout(
+                                    () => setShowPassiveWarning(false),
+                                    3000
+                                  );
+                                  // Form hata mesajı göster
+                                  form.setError("member_id", {
+                                    type: "manual",
+                                    message:
+                                      "Pasif üyeler için randevu oluşturulamaz",
+                                  });
+                                  return;
+                                }
+
+                                // Hata mesajını temizle
+                                form.clearErrors("member_id");
+
                                 // Üye değiştiğinde paket ve seans bilgilerini sıfırla
                                 if (form.watch("member_id") !== member.id) {
                                   setSelectedService(null);
@@ -328,23 +384,36 @@ export function AppointmentForm({
                                 setShowMemberDropdown(false);
                               }}
                               className={cn(
-                                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                "relative flex select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
+                                // Pasif üyeler için cursor-not-allowed ve soluk görünüm
+                                member.active
+                                  ? "cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                  : "cursor-not-allowed opacity-60",
                                 member.id === field.value &&
                                   "bg-accent text-accent-foreground"
                               )}
                             >
-                              <div className="flex items-center gap-2">
-                                <CheckIcon
-                                  className={cn(
-                                    "h-4 w-4",
-                                    member.id === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                <span>
-                                  {member.first_name} {member.last_name}
-                                </span>
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                  <CheckIcon
+                                    className={cn(
+                                      "h-4 w-4",
+                                      member.id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <span>
+                                    {member.first_name} {member.last_name}
+                                  </span>
+                                </div>
+
+                                {/* Pasif üyeler için etiket */}
+                                {!member.active && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                    Pasif
+                                  </span>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -524,8 +593,6 @@ export function AppointmentForm({
         appointment={appointment}
         selectedService={selectedService}
         services={services}
-        defaultDate={defaultDate}
-        defaultTime={defaultTime}
         memberId={form.watch("member_id")}
         member={selectedMember}
       />

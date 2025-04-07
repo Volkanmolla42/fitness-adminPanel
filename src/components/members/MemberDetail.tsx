@@ -10,6 +10,7 @@ import {
   Calendar,
   UserX,
   UserCheck,
+  CalendarPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
@@ -41,6 +42,7 @@ interface MemberDetailProps {
   onUpdate?: (member: Member) => Promise<void>;
   onAppointmentDeleted?: (appointmentId: string) => void;
   onToggleActive?: (member: Member) => Promise<void>;
+  onAddAppointment?: (member: Member) => void;
 }
 
 export const MemberDetail = ({
@@ -52,6 +54,7 @@ export const MemberDetail = ({
   onDelete,
   onAppointmentDeleted,
   onUpdate,
+  onAddAppointment,
 }: MemberDetailProps) => {
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -137,6 +140,16 @@ export const MemberDetail = ({
                     <Crown className="w-3 h-3 ml-1" />
                   </Badge>
                 )}
+                {/* Sadece pasif üyelerde badge göster */}
+                {!member.active && (
+                  <Badge
+                    variant="destructive"
+                    className="h-6 p-2 gap-1 shrink-0"
+                  >
+                    <UserX className="h-3 w-3" />
+                    <span className="text-xs">Pasif</span>
+                  </Badge>
+                )}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -154,61 +167,7 @@ export const MemberDetail = ({
                     {member.phone}
                   </span>
                 </div>
-                <div>
-                  {/* Sadece pasif üyelerde badge göster */}
-                  {!member.active && (
-                    <Badge
-                      variant="destructive"
-                      className="h-6 p-2 gap-1 cursor-pointer hover:bg-red-600"
-                    >
-                      <UserX className="h-3 w-3" />
-                      <span className="text-xs">Pasif</span>
-                    </Badge>
-                  )}
-                  {/* Aktif/Pasif durumu değiştirme butonu */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      member.active
-                        ? setShowDeactivateDialog(true)
-                        : setShowActivateDialog(true)
-                    }
-                    className={`"h-6 p-2   ${
-                      member.active
-                        ? " text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        : "text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                    }`}
-                  >
-                    {member.active ? (
-                      <UserX className="h-3 w-3 mr-1" />
-                    ) : (
-                      <UserCheck className="h-3 w-3 mr-1" />
-                    )}
-                    <span className="text-xs">
-                      {member.active ? "Pasife Al" : "Aktife Al"}
-                    </span>
-                  </Button>
-                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(member)}
-                className="h-8"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                className="h-8"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </div>
         </div>
@@ -250,6 +209,71 @@ export const MemberDetail = ({
                 />
               )
             )}
+          </div>
+        </div>
+
+        {/* İşlemler Kartı */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Package2 className="w-4 h-4 text-primary" />
+              <h3 className="font-medium">İşlemler</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Düzenleme Butonu */}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => onEdit(member)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Düzenle
+            </Button>
+
+            {/* Randevu Ekleme Butonu */}
+            <Button
+              variant="outline"
+              className="w-full text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+              onClick={() => onAddAppointment && onAddAppointment(member)}
+              disabled={!member.active} // Pasif üyeler için devre dışı bırak
+            >
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              Randevu Ekle
+            </Button>
+
+            {/* Aktif/Pasif Durumu Değiştirme Butonu */}
+            <Button
+              variant="outline"
+              className={`w-full ${
+                member.active
+                  ? "text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                  : "text-green-600 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+              }`}
+              onClick={() =>
+                member.active
+                  ? setShowDeactivateDialog(true)
+                  : setShowActivateDialog(true)
+              }
+            >
+              {member.active ? (
+                <UserX className="mr-2 h-4 w-4" />
+              ) : (
+                <UserCheck className="mr-2 h-4 w-4" />
+              )}
+              {member.active ? "Pasife Al" : "Aktife Al"}
+            </Button>
+
+            {/* Silme Butonu */}
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Sil
+            </Button>
           </div>
         </div>
 
