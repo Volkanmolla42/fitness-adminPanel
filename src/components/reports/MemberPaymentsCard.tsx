@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
 import { addDays, isWithinInterval, parseISO } from "date-fns";
+
 import { X, RefreshCw, Plus, Search, FilterX } from "lucide-react";
 import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import {
@@ -329,6 +330,7 @@ export function MemberPaymentsCard() {
       toast.success("Ödeme başarıyla eklendi", {
         description: "Yeni üye ödemesi eklendi",
       });
+
       fetchMemberPayments();
       setIsAddingPayment(false);
       setNewPayment({
@@ -724,7 +726,8 @@ export function MemberPaymentsCard() {
                       value={pkg.name}
                       className="dark:text-gray-200 dark:focus:bg-gray-600 dark:hover:bg-gray-600"
                     >
-                      {pkg.name} - {pkg.price}₺
+                      {pkg.name} -{" "}
+                      <span className="text-red-400"> {pkg.price}₺</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
