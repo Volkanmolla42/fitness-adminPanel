@@ -182,8 +182,6 @@ const AppointmentDetailsModal = ({
 
       // Yeni sekmede aç
       window.open(whatsappUrl, "_blank");
-
-      toast.success("WhatsApp mesajı hazırlandı.");
     } catch (error) {
       console.error("WhatsApp mesajı gönderilirken hata oluştu:", error);
       toast.error("Mesaj hazırlanırken bir hata oluştu.");

@@ -363,7 +363,7 @@ export const MemberCard = ({
                 className={`h-3.5 w-3.5 ${getPackageStatusClasses.packageIconClass}`}
               />
               <span className="text-xs font-medium">
-                Aldığı Paketler ({memberServices.length})
+                Aldığı Paketler ({member.subscribed_services.length})
               </span>
             </div>
             <ChevronDown
