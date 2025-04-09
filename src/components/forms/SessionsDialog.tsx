@@ -177,18 +177,48 @@ export function SessionsDialog({
       // 8. Standart Kapasite Hesaplaması
       const totalParticipants =
         conflictingAppointments.length + conflictingSessions.length;
-      const hasStandardConflict = totalParticipants >= MAX_STANDARD_CAPACITY;
+
+      // Aynı zaman dilimindeki tüm servislerin maksimum kapasitelerini kontrol et
+      // Mevcut çakışan randevuların servislerini bul
+      const conflictingServiceIds = conflictingAppointments.map(
+        (apt) => apt.service_id
+      );
+
+      // Mevcut servislerin maksimum kapasitelerini bul
+      let minCapacity = MAX_STANDARD_CAPACITY; // Varsayılan olarak seçilen servisin kapasitesini kullan
+
+      // Çakışan randevuların servislerinin kapasitelerini kontrol et
+      if (conflictingServiceIds.length > 0) {
+        const conflictingServices = services.filter((s) =>
+          conflictingServiceIds.includes(s.id)
+        );
+
+        // Eğer çakışan servisler varsa, en düşük kapasiteyi bul
+        if (conflictingServices.length > 0) {
+          const capacities = conflictingServices.map(
+            (s) => s.max_participants || 4
+          );
+          const lowestCapacity = Math.min(...capacities);
+
+          // En düşük kapasite ile mevcut servisin kapasitesinden küçük olanı seç
+          minCapacity = Math.min(lowestCapacity, minCapacity);
+        }
+      }
+
+      // FIX: Yeni bir katılımcı eklendiğinde toplam katılımcı sayısı maksimum kapasiteyi aşacak mı kontrol et
+      // Mevcut katılımcı sayısı + 1 (yeni eklenen) > en düşük kapasite ise çakışma var demektir
+      const hasStandardConflict = totalParticipants + 1 > minCapacity;
 
       return hasVipConflict || hasStandardConflict;
     },
     [
       selectedTrainerId,
-      selectedService, // selectedService.id yerine direkt selectedService
+      selectedService,
       appointments,
-      appointment?.id, // Sadece id'yi takip et
+      appointment?.id,
       sessions,
       formatTime,
-      services,
+      services, // Artık tüm servislerin kapasitelerini kontrol ediyoruz
     ]
   );
   // Önerilen zamanı tutan state

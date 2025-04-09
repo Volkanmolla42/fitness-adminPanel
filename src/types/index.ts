@@ -42,6 +42,11 @@ export interface AppointmentTrainer {
   last_name: string;
 }
 
+export interface AppointmentService {
+  id: string;
+  name: string;
+}
+
 export interface Appointment {
   id: string;
   trainer_id: string;
@@ -51,7 +56,8 @@ export interface Appointment {
   time: string;
   status: "scheduled" | "in-progress" | "completed" | "cancelled";
   created_at?: string;
-  service?: Service;
+  notes?: string | null;
+  service?: AppointmentService;
   member?: Member;
   trainer?: AppointmentTrainer;
 }
