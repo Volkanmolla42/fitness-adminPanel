@@ -11,6 +11,8 @@ import {
   UserX,
   UserCheck,
   Settings,
+  Mail,
+  CalendarPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -22,6 +24,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Database } from "@/types/supabase";
 import React, { useState, useMemo } from "react";
 import { AppointmentHistory } from "./AppointmentHistory";
+import { AppointmentForm } from "@/components/forms/AppointmentForm";
+import { useAppointments } from "@/hooks/useAppointments";
+import { toast } from "sonner";
+import { useTheme } from "@/contexts/theme-context";
 import {
   Dialog,
   DialogContent,
@@ -30,12 +36,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { openWhatsApp } from "@/lib/utils";
 
 import { ServiceProgress } from "./ServiceProgress";
 
-type Member = Database["public"]["Tables"]["members"]["Row"] & {
-  _selectedServiceId?: string;
-};
+type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -50,7 +55,6 @@ interface MemberDetailProps {
   onUpdate?: (member: Member) => Promise<void>;
   onAppointmentDeleted?: (appointmentId: string) => void;
   onToggleActive?: (member: Member) => Promise<void>;
-  onAddAppointment?: (member: Member) => void;
 }
 
 export const MemberDetail = ({
@@ -62,13 +66,17 @@ export const MemberDetail = ({
   onDelete,
   onAppointmentDeleted,
   onUpdate,
-  onAddAppointment,
 }: MemberDetailProps) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const { createAppointment } = useAppointments();
   const [showAppointments, setShowAppointments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPackagesDialog, setShowPackagesDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [showAddAppointmentDialog, setShowAddAppointmentDialog] =
+    useState(false);
   const isVip = member.membership_type === "vip";
 
   // Filter appointments for this member
@@ -206,22 +214,35 @@ export const MemberDetail = ({
                   </Badge>
                 )}
               </div>
-
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(member.start_date).toLocaleDateString("tr-TR", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {member.phone}
-                  </span>
+              <div className="flex flex-col gap-2 p-0 mt-2 text-xs">
+                <div className="flex flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-primary dark:text-primary/90" />
+                    <span className="font-medium">
+                      {new Date(member.start_date).toLocaleDateString("tr-TR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer transition-colors group"
+                    onClick={() => openWhatsApp(member.phone)}
+                    title="WhatsApp ile mesaj gönder"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-primary dark:text-primary/90 group-hover:text-green-600 dark:group-hover:text-green-500 transition-colors" />
+                    <span className="font-medium group-hover:text-green-600 dark:group-hover:text-green-500 transition-colors">
+                      {member.phone}
+                    </span>
+                  </div>
                 </div>
+                {member.email && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>{member.email}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -261,32 +282,34 @@ export const MemberDetail = ({
                   service={service}
                   appointments={appointments}
                   totalPackages={totalPackages}
-                  onAddAppointment={(serviceId) => {
-                    if (onAddAppointment) {
-                      // Seçilen servisi üye nesnesine ekle
-                      onAddAppointment({
-                        ...member,
-                        // Geçici olarak seçilen servisi belirt
-                        _selectedServiceId: serviceId,
-                      });
-                    }
-                  }}
-                  isActive={member.active}
                 />
               )
             )}
           </div>
         </div>
 
-        {/* Randevu Geçmişi Butonu */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowAppointments(true)}
-        >
-          <History className="mr-2 h-4 w-4" />
-          Randevu Geçmişi
-        </Button>
+        {/* Butonlar */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Randevu Ekle Butonu */}
+          <Button
+            variant="default"
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => setShowAddAppointmentDialog(true)}
+          >
+            <CalendarPlus className="mr-2 h-4 w-4" />
+            Randevu Ekle
+          </Button>
+
+          {/* Randevu Geçmişi Butonu */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowAppointments(true)}
+          >
+            <History className="mr-2 h-4 w-4" />
+            Randevu Geçmişi
+          </Button>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -425,6 +448,42 @@ export const MemberDetail = ({
           onAppointmentDeleted={onAppointmentDeleted}
         />
       )}
+
+      {/* Add Appointment Dialog */}
+      <Dialog
+        open={showAddAppointmentDialog}
+        onOpenChange={setShowAddAppointmentDialog}
+      >
+        <DialogContent
+          className={`sm:max-w-[425px] ${
+            isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""
+          }`}
+        >
+          <DialogHeader>
+            <DialogTitle className={isDark ? "dark:text-white" : ""}>
+              Yeni Randevu
+            </DialogTitle>
+          </DialogHeader>
+          <AppointmentForm
+            members={[member]} // Only show the current member
+            trainers={Object.values(trainers)}
+            services={Object.values(services)}
+            appointments={appointments}
+            defaultMemberId={member.id}
+            onSubmit={async (data) => {
+              try {
+                await createAppointment({ ...data, status: "scheduled" });
+                toast.success("Randevu başarıyla oluşturuldu.");
+                setShowAddAppointmentDialog(false);
+              } catch (error) {
+                console.error("Randevu oluşturulurken hata:", error);
+                toast.error("Randevu oluşturulurken bir hata oluştu.");
+              }
+            }}
+            onCancel={() => setShowAddAppointmentDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

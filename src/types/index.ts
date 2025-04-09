@@ -21,6 +21,13 @@ export interface Trainer {
 export interface Service {
   id: string;
   name: string;
+  description: string;
+  price: number;
+  duration: number;
+  max_participants: number;
+  session_count: number;
+  isVipOnly: boolean;
+  created_at: string;
 }
 
 export interface Member {

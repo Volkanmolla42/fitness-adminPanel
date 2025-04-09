@@ -11,6 +11,7 @@ export const validationMessages = {
 
   phone: "Geçerli bir telefon numarası giriniz (örn: 555 123 45 67)",
   name: "Geçerli bir isim giriniz (en az 2 karakter)",
+  email: "Geçerli bir e-posta adresi giriniz",
   minLength: (field: string, length: number) =>
     `${field} en az ${length} karakter olmalıdır`,
   maxLength: (field: string, length: number) =>
@@ -30,7 +31,9 @@ export const memberSchema = z.object({
     .string()
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
-  email: z.string().optional(),
+  email: z
+    .union([z.string().email(validationMessages.email), z.string().length(0)])
+    .optional(),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   membership_type: z.enum(["basic", "vip"]),
   subscribed_services: z
@@ -53,7 +56,9 @@ export const trainerSchema = z.object({
     .min(2, validationMessages.minLength("Soyad", 2))
     .regex(nameRegex, "Geçerli bir soyad giriniz"),
   name: z.string().optional(),
-  email: z.string().optional(),
+  email: z
+    .union([z.string().email(validationMessages.email), z.string().length(0)])
+    .optional(),
   phone: z.string().regex(phoneRegex, validationMessages.phone),
   bio: z.string().min(10, "Biyografi en az 10 karakter olmalıdır"),
   categories: z.array(z.string()),

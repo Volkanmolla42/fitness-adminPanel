@@ -18,8 +18,7 @@ import {
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
 import { toast } from "sonner";
-import { MemberForm } from "@/components/forms/MemberForm";
-import { AppointmentForm } from "@/components/forms/AppointmentForm";
+import { MemberForm } from "@/components/forms/member/MemberForm";
 import { MemberStats } from "@/components/members/MemberStats";
 import { MemberList } from "@/components/members/MemberList";
 import { MemberDetail } from "@/components/members/MemberDetail";
@@ -27,9 +26,7 @@ import { LoadingSpinner } from "@/App";
 import { useTheme } from "@/contexts/theme-context";
 import { useAppointments } from "@/hooks/useAppointments";
 
-type Member = Database["public"]["Tables"]["members"]["Row"] & {
-  _selectedServiceId?: string;
-};
+type Member = Database["public"]["Tables"]["members"]["Row"];
 
 type MemberFormData = Omit<Member, "id" | "created_at">;
 
@@ -60,10 +57,7 @@ const MembersPage = () => {
   const [trainersLoading, setTrainersLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
-  const [appointmentMember, setAppointmentMember] = useState<Member | null>(
-    null
-  );
+
   const [memberStats, setMemberStats] = useState({
     total: 0,
     basic: 0,
@@ -92,14 +86,8 @@ const MembersPage = () => {
   }, []);
 
   // useAppointments hook'unu kullan
-  const {
-    members: appointmentMembers,
-    trainers: appointmentTrainers,
-    services: appointmentServices,
-    appointments: allAppointments,
-    createAppointment,
-    isLoading: appointmentsApiLoading,
-  } = useAppointments();
+  const { appointments: allAppointments, isLoading: appointmentsApiLoading } =
+    useAppointments();
 
   // allAppointments ve appointmentsApiLoading değiştiğinde appointments state'ini güncelle
   useEffect(() => {
@@ -117,40 +105,6 @@ const MembersPage = () => {
       }
     }
   }, [allAppointments, appointmentsApiLoading]);
-  // Randevu ekleme işlevi
-  const handleAddAppointment = (member: Member) => {
-    setAppointmentMember(member);
-    setIsAppointmentDialogOpen(true);
-  };
-
-  // Randevu ekleme formunu kapat
-  const handleAppointmentCancel = () => {
-    setIsAppointmentDialogOpen(false);
-    setAppointmentMember(null);
-  };
-
-  // Randevu ekleme formunu gönder
-  const handleAppointmentSubmit = async (
-    data: Omit<
-      Database["public"]["Tables"]["appointments"]["Row"],
-      "id" | "created_at"
-    >
-  ) => {
-    try {
-      // useAppointments hook'undaki createAppointment fonksiyonunu kullan
-      await createAppointment({
-        ...data,
-        status: "scheduled",
-      });
-
-      toast.success("Randevu başarıyla oluşturuldu.");
-      setIsAppointmentDialogOpen(false);
-      setAppointmentMember(null);
-    } catch (error) {
-      console.error("Randevu oluşturulurken hata:", error);
-      toast.error("Randevu oluşturulurken bir hata oluştu.");
-    }
-  };
 
   useEffect(() => {
     // Tüm veriler yüklendiğinde genel loading state'i güncelle
@@ -262,7 +216,6 @@ const MembersPage = () => {
           ]);
           // Yeni eklenen üyeyi highlight etmek için ID'sini kaydet
           lastUpdatedMemberId.current = payload.new.id;
-          toast.success("Yeni üye eklendi!");
         }
       )
       .on(
@@ -287,8 +240,6 @@ const MembersPage = () => {
           if (selectedMember?.id === payload.new.id) {
             setSelectedMember(payload.new as Member);
           }
-
-          toast.info("Üye bilgileri güncellendi");
         }
       )
       .on(
@@ -308,8 +259,6 @@ const MembersPage = () => {
           if (selectedMember?.id === payload.old.id) {
             setSelectedMember(null);
           }
-
-          toast.info("Bir üye silindi");
         }
       )
       .subscribe();
@@ -506,12 +455,20 @@ const MembersPage = () => {
         ...data,
         active: true, // Varsayılan olarak aktif
       };
-      await createMember(memberData);
+      const newMember = await createMember(memberData);
       setAddingMember(false);
       toast.success("Üye başarıyla eklendi.");
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+
+      // Highlight the new member
+      if (newMember && newMember.id) {
+        lastUpdatedMemberId.current = newMember.id;
+        setHighlightedMemberId(newMember.id);
+
+        // Clear highlight after 2 seconds
+        setTimeout(() => {
+          setHighlightedMemberId(null);
+        }, 2000);
+      }
     } catch (error) {
       console.error("Üye eklenirken hata:", error);
       toast.error("Üye eklenirken bir hata oluştu.");
@@ -527,8 +484,14 @@ const MembersPage = () => {
         ...data,
         active: editingMember.active, // Mevcut aktif durumunu koru
       };
-      await updateMember(editingMember.id, memberData);
+      const updatedMember = await updateMember(editingMember.id, memberData);
       setEditingMember(null);
+
+      // Eğer güncellenen üye aynı zamanda seçili üye ise, seçili üyeyi de güncelle
+      if (selectedMember?.id === editingMember.id) {
+        setSelectedMember(updatedMember);
+      }
+
       toast.success("Üye başarıyla güncellendi.");
     } catch (error) {
       console.error("Üye güncellenirken hata:", error);
@@ -650,8 +613,6 @@ const MembersPage = () => {
                 try {
                   await updateMember(updatedMember.id, updatedMember);
                   setSelectedMember(updatedMember);
-                  toast.success("Paket başarıyla tamamlandı.");
-
                   // Not: Paket tamamlandığında üye durumu kontrolü artık memberStatusService tarafından yapılıyor
                   // Ancak UI'da güncel durumu göstermek için veritabanından güncel üye bilgisini alalım
                   setTimeout(async () => {
@@ -671,38 +632,9 @@ const MembersPage = () => {
                   toast.error("Paket tamamlanırken bir hata oluştu.");
                 }
               }}
-              onAddAppointment={handleAddAppointment}
             />
           </DialogContent>
         )}
-      </Dialog>
-
-      {/* Randevu Ekleme Diyaloğu */}
-      <Dialog
-        open={isAppointmentDialogOpen}
-        onOpenChange={setIsAppointmentDialogOpen}
-      >
-        <DialogContent
-          className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
-        >
-          <DialogHeader>
-            <DialogTitle className={isDark ? "dark:text-white" : ""}>
-              Yeni Randevu
-            </DialogTitle>
-          </DialogHeader>
-          {appointmentMember && (
-            <AppointmentForm
-              members={appointmentMembers}
-              trainers={appointmentTrainers}
-              services={appointmentServices}
-              appointments={allAppointments}
-              onSubmit={handleAppointmentSubmit}
-              onCancel={handleAppointmentCancel}
-              defaultMemberId={appointmentMember?.id}
-              defaultServiceId={appointmentMember?._selectedServiceId}
-            />
-          )}
-        </DialogContent>
       </Dialog>
 
       {editingMember && (
@@ -722,6 +654,7 @@ const MembersPage = () => {
               member={editingMember}
               onSubmit={handleUpdate}
               onCancel={() => setEditingMember(null)}
+              isEditing={true}
             />
           </DialogContent>
         </Dialog>

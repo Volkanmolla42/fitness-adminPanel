@@ -1,7 +1,5 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CalendarPlus } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { useTheme } from "@/contexts/theme-context";
 
@@ -12,16 +10,12 @@ export interface ServiceProgressProps {
   service: Service;
   appointments: Appointment[];
   totalPackages: number;
-  onAddAppointment?: (serviceId: string) => void;
-  isActive?: boolean;
 }
 
 export const ServiceProgress = ({
   service,
   appointments,
   totalPackages,
-  onAddAppointment,
-  isActive = true,
 }: ServiceProgressProps) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -104,18 +98,6 @@ export const ServiceProgress = ({
             </span>
           )}
         </Badge>
-
-        {onAddAppointment && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-            onClick={() => onAddAppointment(service.id)}
-            disabled={!isActive}
-          >
-            <CalendarPlus className="h-4 w-4" />
-          </Button>
-        )}
       </div>
 
       <div className="flex flex-col gap-2">

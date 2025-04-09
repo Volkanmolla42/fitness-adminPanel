@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentFormSchema } from "@/lib/validations";
 import {
@@ -33,9 +33,7 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Session } from "@/types/sessions";
 import { WORKING_HOURS } from "@/constants/timeSlots";
-type Member = Database["public"]["Tables"]["members"]["Row"] & {
-  _selectedServiceId?: string;
-};
+type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -107,6 +105,11 @@ export function AppointmentForm({
     },
   });
 
+  const [watchedFields] = useWatch({
+    control: form.control,
+    name: ["date", "time", "trainer_id"],
+  });
+
   const handleServiceChange = (serviceId: string) => {
     const service = services.find((s) => s.id === serviceId);
     setSelectedService(service || null);
@@ -167,13 +170,9 @@ export function AppointmentForm({
     });
   };
 
-  const watchedDate = form.watch("date");
-  const watchedTime = form.watch("time");
-  const watchedTrainerId = form.watch("trainer_id");
-
   useEffect(() => {
-    if (watchedDate && watchedTime) {
-      const hasConflict = checkConflict(watchedDate, watchedTime);
+    if (watchedFields[0] && watchedFields[1]) {
+      const hasConflict = checkConflict(watchedFields[0], watchedFields[1]);
 
       if (hasConflict) {
         form.setError("time", {
@@ -185,7 +184,7 @@ export function AppointmentForm({
         form.clearErrors("time");
       }
 
-      if (!checkBusinessHours(watchedTime)) {
+      if (!checkBusinessHours(watchedFields[1])) {
         form.setError("time", {
           type: "manual",
           message: `Randevular ${WORKING_HOURS.start} - ${WORKING_HOURS.end} saatleri arasında olmalıdır`,
@@ -194,7 +193,7 @@ export function AppointmentForm({
         form.clearErrors("time");
       }
 
-      const selectedDate = new Date(watchedDate);
+      const selectedDate = new Date(watchedFields[0]);
       if (selectedDate.getDay() === 0) {
         form.setError("date", {
           type: "manual",
@@ -204,7 +203,7 @@ export function AppointmentForm({
         form.clearErrors("date");
       }
     }
-  }, [watchedDate, watchedTime, watchedTrainerId]);
+  }, [watchedFields]);
 
   useEffect(() => {
     if (appointment) {
