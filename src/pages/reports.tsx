@@ -17,6 +17,7 @@ import {
   endOfYear,
   isWithinInterval,
   format,
+  endOfDay,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -84,6 +85,149 @@ const ReportsPage = () => {
           getTrainers(),
         ]);
 
+        // Seçilen tarih aralığına göre filtreleme fonksiyonları
+        const now = new Date();
+        let dateRange;
+
+        if (selectedDateRange === "all") {
+          dateRange = null;
+        } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+          dateRange = {
+            start: customDateRange.from,
+            end: endOfDay(customDateRange.to),
+          };
+        } else {
+          dateRange = {
+            start:
+              selectedDateRange === "week"
+                ? startOfWeek(now, { locale: tr })
+                : selectedDateRange === "month"
+                ? startOfMonth(now)
+                : startOfYear(now),
+            end:
+              selectedDateRange === "week"
+                ? endOfWeek(now, { locale: tr })
+                : selectedDateRange === "month"
+                ? endOfMonth(now)
+                : endOfYear(now),
+          };
+        }
+
+        const isInDateRange = (date: Date) => {
+          if (!dateRange) return true;
+          return isWithinInterval(date, {
+            start: dateRange.start,
+            end: dateRange.end,
+          });
+        };
+
+        console.log('=== Sorunlu Üye Analizi ===');
+        console.log('Seçilen Tarih Aralığı:', selectedDateRange);
+        if (dateRange) {
+          console.log('Başlangıç:', format(dateRange.start, 'dd.MM.yyyy'));
+          console.log('Bitiş:', format(dateRange.end, 'dd.MM.yyyy'));
+        }
+        console.log('-------------------');
+
+        // Her üye için ödeme sayısını hesapla (seçilen tarih aralığına göre)
+        const memberPaymentCounts = new Map<string, number>();
+        memberPaymentsData.forEach(payment => {
+          const paymentDate = new Date(payment.created_at);
+          if (isInDateRange(paymentDate)) {
+            const memberName = payment.member_name;
+            if (memberName) {
+              memberPaymentCounts.set(memberName, (memberPaymentCounts.get(memberName) || 0) + 1);
+            }
+          }
+        });
+
+        let problemFound = false;
+        let problematicMembers = [];
+
+        // Her üye için paket sayısı ve ödeme sayısını karşılaştır
+        membersData.forEach(member => {
+          const memberName = `${member.first_name} ${member.last_name}`;
+          const packageCount = member.subscribed_services?.length || 0;
+          const paymentCount = memberPaymentCounts.get(memberName) || 0;
+
+          if (packageCount !== paymentCount) {
+            problemFound = true;
+            problematicMembers.push({
+              name: memberName,
+              currentPackages: packageCount,
+              paymentsInPeriod: paymentCount
+            });
+          }
+        });
+
+        if (problematicMembers.length > 0) {
+          console.log('Sorunlu Üyeler:');
+          problematicMembers.forEach(member => {
+            console.log(`\nÜye: ${member.name}`);
+            console.log(`  > Mevcut Paket Sayısı: ${member.currentPackages}`);
+            console.log(`  > Seçili Dönemdeki Ödeme Sayısı: ${member.paymentsInPeriod}`);
+            console.log(`  ! UYARI: Paket sayısı (${member.currentPackages}) ile ödeme sayısı (${member.paymentsInPeriod}) uyuşmuyor`);
+          });
+          console.log(`\nToplam ${problematicMembers.length} üyede uyuşmazlık tespit edildi.`);
+        } else {
+          console.log('Tüm üyelerin paket sayıları ve ödemeleri tutarlı.');
+        }
+        console.log('-------------------');
+
+        // Paket sayılarını kategorize et
+        const packageCounts = {
+          one: 0,
+          two: 0,
+          three: 0,
+          four: 0,
+          moreThanFour: 0
+        };
+
+        let totalPackages = 0;
+        const problemUsers = [];
+
+        // Her üyenin paket sayısını hesapla ve logla
+        membersData.forEach(member => {
+          const packageCount = member.subscribed_services?.length || 0;
+          totalPackages += packageCount;
+
+          // Paket sayısına göre kategorize et
+          if (packageCount === 1) packageCounts.one++;
+          else if (packageCount === 2) packageCounts.two++;
+          else if (packageCount === 3) packageCounts.three++;
+          else if (packageCount === 4) packageCounts.four++;
+          else if (packageCount > 4) {
+            packageCounts.moreThanFour++;
+            problemUsers.push({
+              name: `${member.first_name} ${member.last_name}`,
+              packageCount
+            });
+          }
+
+          console.log(`${member.first_name} ${member.last_name}: ${packageCount} paket`);
+        });
+
+        console.log('Detaylı Paket Analizi:');
+        console.log('1 paketi olan üye sayısı:', packageCounts.one);
+        console.log('2 paketi olan üye sayısı:', packageCounts.two);
+        console.log('3 paketi olan üye sayısı:', packageCounts.three);
+        console.log('4 paketi olan üye sayısı:', packageCounts.four);
+        console.log('4\'ten fazla paketi olan üye sayısı:', packageCounts.moreThanFour);
+        console.log('Toplam paket sayısı:', totalPackages);
+        console.log('Toplam üye sayısı:', membersData.length);
+
+        if (problemUsers.length > 0) {
+          console.log('4\'ten fazla paketi olan üyeler:', problemUsers);
+        }
+
+        // Manuel hesaplama kontrolü
+        const calculatedTotal =
+          (packageCounts.one * 1) +
+          (packageCounts.two * 2) +
+          (packageCounts.three * 3) +
+          (packageCounts.four * 4);
+
+        console.log('Manuel hesaplanan toplam:', calculatedTotal);
         setAppointments(appointmentsData);
         setMembers(membersData);
         setServices(servicesData);
@@ -98,7 +242,7 @@ const ReportsPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedDateRange, customDateRange]);
 
   const filteredData = useMemo(() => {
     let dateRange;
@@ -111,7 +255,7 @@ const ReportsPage = () => {
     ) {
       dateRange = {
         start: customDateRange.from,
-        end: customDateRange.to,
+        end: endOfDay(customDateRange.to), // Son günün sonuna kadar
       };
     } else {
       const now = new Date();
@@ -369,48 +513,73 @@ const ReportsPage = () => {
       return isInDateRange(memberCreationDate);
     });
 
-    // Paket yenileme sayısını hesapla - bir üyenin aynı paketi birden fazla kez alması durumunda
-    let packageRenewalCount = 0;
-    // Yenileme yapan üyeleri takip etmek için set kullanıyoruz
-    const membersWithRenewals = new Set<string>();
+    // Paket yenileme sayısını ve detaylarını takip etmek için
+    const packageRenewalDetails = new Map<string, {
+      memberName: string;
+      packageName: string;
+      firstPurchaseDate: Date;
+      renewalDates: Date[];
+    }>();
 
-    memberPackageCounts.forEach((packageMap, memberName) => {
-      let memberHasRenewal = false;
+    // Tüm paket alımlarını tarihe göre sıralayarak işle
+    const sortedPayments = memberPayments
+      .slice()
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-      packageMap.forEach((count) => {
-        // Bir paket birden fazla kez alınmışsa, fazladan alınan her paket yenileme sayılır
-        if (count > 1) {
-          packageRenewalCount += count - 1;
-          memberHasRenewal = true;
-        }
-      });
+    // Her ödeme için paket yenileme durumunu kontrol et
+    sortedPayments.forEach((payment) => {
+      const paymentDate = new Date(payment.created_at);
+      const memberPackageKey = `${payment.member_name}-${payment.package_name}`;
 
-      // Eğer üye en az bir paket yenilemişse, sete ekle
-      if (memberHasRenewal) {
-        membersWithRenewals.add(memberName);
+      // Eğer bu üye-paket kombinasyonu daha önce kaydedilmemişse
+      if (!packageRenewalDetails.has(memberPackageKey)) {
+        packageRenewalDetails.set(memberPackageKey, {
+          memberName: payment.member_name,
+          packageName: payment.package_name,
+          firstPurchaseDate: paymentDate,
+          renewalDates: []
+        });
+      } else {
+        // Bu paket daha önce alınmış, yenileme olarak kaydet
+        const details = packageRenewalDetails.get(memberPackageKey)!;
+        details.renewalDates.push(paymentDate);
       }
     });
 
-    // Karşılaştırma dönemi için paket yenileme sayısını hesapla
+    // Seçili tarih aralığındaki yenilemeleri hesapla
+    let packageRenewalCount = 0;
+    const membersWithRenewals = new Set<string>();
+
+    packageRenewalDetails.forEach((details) => {
+      let renewalsInPeriod = 0;
+
+      // Seçili tarih aralığındaki yenilemeleri say
+      details.renewalDates.forEach(renewalDate => {
+        if (isInDateRange(renewalDate)) {
+          renewalsInPeriod++;
+          membersWithRenewals.add(details.memberName);
+        }
+      });
+
+      packageRenewalCount += renewalsInPeriod;
+    });
+
+    // Karşılaştırma dönemi için yenilemeleri hesapla
     let comparisonPackageRenewalCount = 0;
-    // Karşılaştırma döneminde yenileme yapan üyeleri takip etmek için set
     const comparisonMembersWithRenewals = new Set<string>();
 
     if (comparisonDateRange) {
-      comparisonMemberPackageCounts.forEach((packageMap, memberName) => {
-        let memberHasRenewal = false;
+      packageRenewalDetails.forEach((details) => {
+        let renewalsInComparisonPeriod = 0;
 
-        packageMap.forEach((count) => {
-          if (count > 1) {
-            comparisonPackageRenewalCount += count - 1;
-            memberHasRenewal = true;
+        details.renewalDates.forEach(renewalDate => {
+          if (isInComparisonDateRange(renewalDate)) {
+            renewalsInComparisonPeriod++;
+            comparisonMembersWithRenewals.add(details.memberName);
           }
         });
 
-        // Eğer üye en az bir paket yenilemişse, sete ekle
-        if (memberHasRenewal) {
-          comparisonMembersWithRenewals.add(memberName);
-        }
+        comparisonPackageRenewalCount += renewalsInComparisonPeriod;
       });
     }
 
