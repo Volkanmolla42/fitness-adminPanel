@@ -16,10 +16,21 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
-import { addDays, isWithinInterval, parseISO, format } from "date-fns";
+import { 
+  addDays, 
+  isWithinInterval, 
+  parseISO, 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  setHours, 
+  setMinutes, 
+  setSeconds, 
+  setMilliseconds 
+} from "date-fns";
 import { tr } from "date-fns/locale";
 
-import { X, RefreshCw, Plus, Search, FilterX, CreditCard, Coins, Calculator, ListFilter } from "lucide-react";
+import { X, RefreshCw, Plus, Search, FilterX, CreditCard, Coins, Calculator, ListFilter, Calendar } from "lucide-react";
 import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import {
   Select,
@@ -58,7 +69,7 @@ const PaymentSummary = ({ summary, setIsAddingPayment }) => {
         </p>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 my-2">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 my-2">
         <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <ListFilter className="h-4 w-4 text-gray-900 dark:text-white" />
@@ -82,6 +93,7 @@ const PaymentSummary = ({ summary, setIsAddingPayment }) => {
           </div>
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">₺{summary.totalCash.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}</p>
         </div>
+        
         <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Calculator className="h-4 w-4 text-gray-900 dark:text-white" />
@@ -90,6 +102,13 @@ const PaymentSummary = ({ summary, setIsAddingPayment }) => {
           <p className="text-2xl font-bold text-green-700 dark:text-green-500">₺{summary.totalAmount.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}</p>
         </div>
         
+        <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Calendar className="h-4 w-4 text-violet-600" />
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{summary.currentMonth.split(' ')[0]} Ayı Geliri</p>
+          </div>
+          <p className="text-2xl font-bold text-violet-700 dark:text-violet-500">₺{summary.currentMonthTotal.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}</p>
+        </div>
       </div>
     </div>
   );
@@ -643,12 +662,14 @@ export function MemberPaymentsCard() {
     if (dateRange?.from) {
       filtered = filtered.filter((payment) => {
         const paymentDate = parseISO(payment.created_at);
-        const fromDate = dateRange.from;
-        const toDate = dateRange.to || fromDate;
+        const fromDate = setHours(setMinutes(setSeconds(setMilliseconds(dateRange.from, 0), 0), 0), 0); // Start of day: 00:00:00.000
+        const toDate = dateRange.to 
+          ? setHours(setMinutes(setSeconds(setMilliseconds(dateRange.to, 999), 59), 59), 23) // End of day: 23:59:59.999
+          : setHours(setMinutes(setSeconds(setMilliseconds(fromDate, 999), 59), 59), 23);    // Same day end if no toDate
 
         return isWithinInterval(paymentDate, {
           start: fromDate,
-          end: addDays(toDate, 1),
+          end: toDate,
         });
       });
     }
@@ -782,21 +803,44 @@ export function MemberPaymentsCard() {
     let totalCreditCard = 0;
     let totalCash = 0;
     let totalAmount = 0;
+    let currentMonthTotal = 0;
+    
+    // Calculate current month date range
+    const now = new Date();
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+    
+    // Set times to start and end of day
+    const monthStart = setHours(setMinutes(setSeconds(currentMonthStart, 0), 0), 0);
+    const monthEnd = setHours(setMinutes(setSeconds(currentMonthEnd, 59), 59), 23);
     
     filteredPayments.forEach(payment => {
+      const paymentAmount = payment.credit_card_paid + payment.cash_paid;
       totalCreditCard += payment.credit_card_paid;
       totalCash += payment.cash_paid;
-      totalAmount += payment.credit_card_paid + payment.cash_paid;
+      totalAmount += paymentAmount;
+    });
+    
+    // Calculate current month revenue
+    memberPayments.forEach(payment => {
+      const paymentDate = parseISO(payment.created_at);
+      const paymentAmount = payment.credit_card_paid + payment.cash_paid;
+      
+      if (isWithinInterval(paymentDate, { start: monthStart, end: monthEnd })) {
+        currentMonthTotal += paymentAmount;
+      }
     });
     
     return {
       totalCreditCard,
       totalCash,
       totalAmount,
+      currentMonthTotal,
       count: filteredPayments.length,
-      dateRange
+      dateRange,
+      currentMonth: format(now, 'MMMM yyyy', { locale: tr })
     };
-  }, [filteredPayments, dateRange]);
+  }, [filteredPayments, dateRange, memberPayments]);
 
   return (
     <Card className="mb-6 border border-gray-300 dark:border-0 shadow-md text-[110%]">

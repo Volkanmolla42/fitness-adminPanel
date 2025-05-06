@@ -188,64 +188,7 @@ const logDataAnalysis = (members: Member[], services: Service[], memberPayments:
     console.log('===========================');
   };
   
-  // Log April 30 payments
-  const logApril30Payments = () => {
-    console.log('\n=== 30 Nisan Tarihindeki Ödemeler ===');
-    
-    // Filter all payments on April 30 (any year)
-    const april30Payments = memberPayments.filter(payment => {
-      const paymentDate = new Date(payment.created_at);
-      return paymentDate.getDate() === 30 && paymentDate.getMonth() === 3; // JavaScript'te aylar 0'dan başlar, 3 Nisan ayıdır
-    });
-    
-    // Group by year
-    const paymentsByYear = new Map();
-    
-    april30Payments.forEach(payment => {
-      const paymentDate = new Date(payment.created_at);
-      const year = paymentDate.getFullYear();
-      const amount = payment.credit_card_paid + payment.cash_paid;
-      
-      if (!paymentsByYear.has(year)) {
-        paymentsByYear.set(year, {
-          total: 0,
-          count: 0,
-          payments: []
-        });
-      }
-      
-      const yearData = paymentsByYear.get(year);
-      yearData.total += amount;
-      yearData.count += 1;
-      yearData.payments.push({
-        memberName: payment.member_name,
-        packageName: payment.package_name,
-        amount: amount,
-        date: paymentDate
-      });
-    });
-    
-    // Summary
-    console.log(`30 Nisan tarihinde toplam ${april30Payments.length} ödeme bulundu.`);
-    
-    // Details by year
-    paymentsByYear.forEach((data, year) => {
-      console.log(`\n${year} yılı 30 Nisan ödemeleri:`);
-      console.log(`  Toplam: ₺${data.total.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}`);
-      console.log(`  Ödeme Sayısı: ${data.count}`);
-      
-      console.log('  Detaylı Ödeme Listesi:');
-      data.payments.forEach((payment, idx) => {
-        console.log(`    ${idx + 1}. ${payment.memberName} - ${payment.packageName} - ₺${payment.amount.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')} (${format(payment.date, 'dd.MM.yyyy HH:mm')})`);
-      });
-    });
-    
-    // Grand total
-    const grandTotal = Array.from(paymentsByYear.values()).reduce((sum, data) => sum + data.total, 0);
-    console.log(`\n30 Nisan tarihindeki tüm yılların toplam ödeme tutarı: ₺${grandTotal.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}`);
-    
-    console.log('===========================');
-  };
+ ;
   
   // Log problematic members
   const logProblematicMembers = () => {
@@ -347,9 +290,8 @@ const logDataAnalysis = (members: Member[], services: Service[], memberPayments:
 
   // Run all data analysis functions
   compareDataSources();
-  logApril30Payments();
   logProblematicMembers();
-  logPackageDistribution();
+  //logPackageDistribution();
 };
 
 /**
