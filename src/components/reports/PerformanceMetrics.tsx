@@ -30,6 +30,7 @@ interface PerformanceMetricsProps {
     membersWithRenewalCount: number; // Yenileme yapan üye sayısı
     membersWithRenewalPercentage: number; // Yenileme yapan üye yüzdesi
     membersWithRenewalPercentageChangeRate: number; // Yenileme yapan üye yüzdesi değişim oranı
+    uniqueMembersWithAppointments: number; // Seçilen tarih aralığında randevusu olan tekil üye sayısı
   };
 }
 
@@ -91,8 +92,8 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
       iconColor: "text-orange-500 dark:text-orange-400",
       changeRate: metrics.appointmentChangeRate,
       changeLabel: metrics.comparisonLabel,
-      subInfo: `Üye başı ortalama  ${(metrics.uniqueMembers > 0
-        ? metrics.totalAppointments / metrics.uniqueMembers
+      subInfo: `Üye başı ortalama  ${(metrics.uniqueMembersWithAppointments > 0
+        ? metrics.totalAppointments / metrics.uniqueMembersWithAppointments
         : 0
       ).toFixed(1)} randevu`,
     },

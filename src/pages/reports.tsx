@@ -59,6 +59,10 @@ const ReportsPage = () => {
     from: undefined,
     to: undefined,
   });
+  const [validDateRange, setValidDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -66,6 +70,14 @@ const ReportsPage = () => {
   const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setCustomDateRange(range || { from: undefined, to: undefined });
+    
+    if (range?.from && range?.to) {
+      setValidDateRange(range);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,16 +97,15 @@ const ReportsPage = () => {
           getTrainers(),
         ]);
 
-        // Seçilen tarih aralığına göre filtreleme fonksiyonları
         const now = new Date();
         let dateRange;
 
         if (selectedDateRange === "all") {
           dateRange = null;
-        } else if (selectedDateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+        } else if (selectedDateRange === "custom" && validDateRange?.from && validDateRange?.to) {
           dateRange = {
-            start: customDateRange.from,
-            end: endOfDay(customDateRange.to),
+            start: validDateRange.from,
+            end: endOfDay(validDateRange.to),
           };
         } else {
           dateRange = {
@@ -129,7 +140,6 @@ const ReportsPage = () => {
         }
         console.log('-------------------');
 
-        // Her üye için ödeme sayısını hesapla (seçilen tarih aralığına göre)
         const memberPaymentCounts = new Map<string, number>();
         memberPaymentsData.forEach(payment => {
           const paymentDate = new Date(payment.created_at);
@@ -144,7 +154,6 @@ const ReportsPage = () => {
         let problemFound = false;
         let problematicMembers = [];
 
-        // Her üye için paket sayısı ve ödeme sayısını karşılaştır
         membersData.forEach(member => {
           const memberName = `${member.first_name} ${member.last_name}`;
           const packageCount = member.subscribed_services?.length || 0;
@@ -174,7 +183,6 @@ const ReportsPage = () => {
         }
         console.log('-------------------');
 
-        // Paket sayılarını kategorize et
         const packageCounts = {
           one: 0,
           two: 0,
@@ -186,12 +194,10 @@ const ReportsPage = () => {
         let totalPackages = 0;
         const problemUsers = [];
 
-        // Her üyenin paket sayısını hesapla ve logla
         membersData.forEach(member => {
           const packageCount = member.subscribed_services?.length || 0;
           totalPackages += packageCount;
 
-          // Paket sayısına göre kategorize et
           if (packageCount === 1) packageCounts.one++;
           else if (packageCount === 2) packageCounts.two++;
           else if (packageCount === 3) packageCounts.three++;
@@ -220,7 +226,6 @@ const ReportsPage = () => {
           console.log('4\'ten fazla paketi olan üyeler:', problemUsers);
         }
 
-        // Manuel hesaplama kontrolü
         const calculatedTotal =
           (packageCounts.one * 1) +
           (packageCounts.two * 2) +
@@ -242,7 +247,7 @@ const ReportsPage = () => {
     };
 
     fetchData();
-  }, [selectedDateRange, customDateRange]);
+  }, [selectedDateRange, validDateRange]);
 
   const filteredData = useMemo(() => {
     let dateRange;
@@ -250,12 +255,12 @@ const ReportsPage = () => {
       dateRange = null;
     } else if (
       selectedDateRange === "custom" &&
-      customDateRange?.from &&
-      customDateRange?.to
+      validDateRange?.from &&
+      validDateRange?.to
     ) {
       dateRange = {
-        start: customDateRange.from,
-        end: endOfDay(customDateRange.to), // Son günün sonuna kadar
+        start: validDateRange.from,
+        end: endOfDay(validDateRange.to),
       };
     } else {
       const now = new Date();
@@ -286,7 +291,7 @@ const ReportsPage = () => {
 
       return withinDateRange;
     });
-  }, [appointments, selectedDateRange, customDateRange]);
+  }, [appointments, selectedDateRange, validDateRange]);
 
   const fetchInitialData = async () => {
     setIsLoading(true);
@@ -326,11 +331,11 @@ const ReportsPage = () => {
       comparisonLabel = "Tüm zamana göre";
     } else if (
       selectedDateRange === "custom" &&
-      customDateRange?.from &&
-      customDateRange?.to
+      validDateRange?.from &&
+      validDateRange?.to
     ) {
-      const from = customDateRange.from;
-      const to = customDateRange.to;
+      const from = validDateRange.from;
+      const to = validDateRange.to;
       const dayDiff = Math.round(
         (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -439,13 +444,20 @@ const ReportsPage = () => {
     let comparisonRevenue = 0;
     let comparisonPackages = 0;
 
-    // Paket yenileme sayısını hesaplamak için
-    // Üye ve paket adına göre paket sayılarını takip etmek için
     const memberPackageCounts = new Map<string, Map<string, number>>();
     const comparisonMemberPackageCounts = new Map<
       string,
       Map<string, number>
     >();
+
+    // Count unique members with appointments in the selected date range
+    const membersWithAppointments = new Set<string>();
+    filteredData.forEach(appointment => {
+      if (appointment.member_id) {
+        membersWithAppointments.add(appointment.member_id.toString());
+      }
+    });
+    const uniqueMembersWithAppointments = membersWithAppointments.size;
 
     const comparisonAppointments = comparisonDateRange
       ? appointments.filter((appointment) => {
@@ -470,7 +482,6 @@ const ReportsPage = () => {
         totalRevenue += revenue;
         totalPackages += 1;
 
-        // Üye başına paket sayısını takip et
         const memberName = payment.member_name;
         const packageName = payment.package_name;
         if (memberName && packageName) {
@@ -487,7 +498,6 @@ const ReportsPage = () => {
         comparisonRevenue += revenue;
         comparisonPackages += 1;
 
-        // Karşılaştırma dönemi için üye başına paket sayısını takip et
         const memberName = payment.member_name;
         const packageName = payment.package_name;
         if (memberName && packageName) {
@@ -513,7 +523,6 @@ const ReportsPage = () => {
       return isInDateRange(memberCreationDate);
     });
 
-    // Paket yenileme sayısını ve detaylarını takip etmek için
     const packageRenewalDetails = new Map<string, {
       memberName: string;
       packageName: string;
@@ -521,17 +530,14 @@ const ReportsPage = () => {
       renewalDates: Date[];
     }>();
 
-    // Tüm paket alımlarını tarihe göre sıralayarak işle
     const sortedPayments = memberPayments
       .slice()
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-    // Her ödeme için paket yenileme durumunu kontrol et
     sortedPayments.forEach((payment) => {
       const paymentDate = new Date(payment.created_at);
       const memberPackageKey = `${payment.member_name}-${payment.package_name}`;
 
-      // Eğer bu üye-paket kombinasyonu daha önce kaydedilmemişse
       if (!packageRenewalDetails.has(memberPackageKey)) {
         packageRenewalDetails.set(memberPackageKey, {
           memberName: payment.member_name,
@@ -540,20 +546,17 @@ const ReportsPage = () => {
           renewalDates: []
         });
       } else {
-        // Bu paket daha önce alınmış, yenileme olarak kaydet
         const details = packageRenewalDetails.get(memberPackageKey)!;
         details.renewalDates.push(paymentDate);
       }
     });
 
-    // Seçili tarih aralığındaki yenilemeleri hesapla
     let packageRenewalCount = 0;
     const membersWithRenewals = new Set<string>();
 
     packageRenewalDetails.forEach((details) => {
       let renewalsInPeriod = 0;
 
-      // Seçili tarih aralığındaki yenilemeleri say
       details.renewalDates.forEach(renewalDate => {
         if (isInDateRange(renewalDate)) {
           renewalsInPeriod++;
@@ -564,7 +567,6 @@ const ReportsPage = () => {
       packageRenewalCount += renewalsInPeriod;
     });
 
-    // Karşılaştırma dönemi için yenilemeleri hesapla
     let comparisonPackageRenewalCount = 0;
     const comparisonMembersWithRenewals = new Set<string>();
 
@@ -583,7 +585,6 @@ const ReportsPage = () => {
       });
     }
 
-    // Aylık ortalama gelir hesaplama
     const currentMonthMembers = members.filter((member) => {
       const memberCreationDate = new Date(member.created_at);
       return isInCurrentMonth(memberCreationDate);
@@ -647,14 +648,12 @@ const ReportsPage = () => {
       lastMonthRevenue
     );
 
-    // Yenileme yapan üye sayısı ve oranı
     const membersWithRenewalCount = membersWithRenewals.size;
     const membersWithRenewalPercentage =
       filteredMembers.length > 0
         ? (membersWithRenewalCount / filteredMembers.length) * 100
         : 0;
 
-    // Karşılaştırma dönemi için yenileme yapan üye oranı
     const comparisonMembersWithRenewalCount =
       comparisonMembersWithRenewals.size;
     const comparisonMembersWithRenewalPercentage =
@@ -662,7 +661,6 @@ const ReportsPage = () => {
         ? (comparisonMembersWithRenewalCount / comparisonMembers) * 100
         : 0;
 
-    // Yenileme yapan üye oranı değişimi
     const membersWithRenewalPercentageChangeRate = calculateChangeRate(
       membersWithRenewalPercentage,
       comparisonMembersWithRenewalPercentage
@@ -686,6 +684,7 @@ const ReportsPage = () => {
       membersWithRenewalCount,
       membersWithRenewalPercentage,
       membersWithRenewalPercentageChangeRate,
+      uniqueMembersWithAppointments,
     };
   };
 
@@ -695,7 +694,6 @@ const ReportsPage = () => {
     try {
       toast.info("PDF oluşturuluyor, lütfen bekleyin...");
 
-      // İçeriğin tamamen yüklenmesini bekle
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const scale = 2;
@@ -709,7 +707,6 @@ const ReportsPage = () => {
         foreignObjectRendering: false,
         imageTimeout: 15000,
         onclone: (clonedDoc) => {
-          // PDF oluşturma için metin stillerini optimize et
           Array.from(
             clonedDoc.querySelectorAll(".text-transparent, .bg-clip-text")
           ).forEach((el) => {
@@ -722,7 +719,6 @@ const ReportsPage = () => {
       };
 
       const canvas = await html2canvas(metricsRef.current, options);
-      // Yüksek kalitede PNG formatını kullan
       const imgData = canvas.toDataURL("image/png", 1.0);
 
       const pdf = new jsPDF("p", "mm", "a4");
@@ -763,11 +759,11 @@ const ReportsPage = () => {
         dateRangeText = "Tarih Aralığı: Bu Yıl";
       } else if (
         selectedDateRange === "custom" &&
-        customDateRange.from &&
-        customDateRange.to
+        validDateRange.from &&
+        validDateRange.to
       ) {
-        const fromDate = format(customDateRange.from, "dd.MM.yyyy");
-        const toDate = format(customDateRange.to, "dd.MM.yyyy");
+        const fromDate = format(validDateRange.from, "dd.MM.yyyy");
+        const toDate = format(validDateRange.to, "dd.MM.yyyy");
         dateRangeText = `Tarih Aralığı: ${fromDate} - ${toDate}`;
       }
 
@@ -896,7 +892,7 @@ const ReportsPage = () => {
                   {selectedDateRange === "custom" && (
                     <DatePickerWithRange
                       date={customDateRange}
-                      setDate={setCustomDateRange}
+                      setDate={handleDateRangeChange}
                     />
                   )}
                 </div>
