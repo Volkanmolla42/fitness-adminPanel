@@ -1,23 +1,9 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw } from "lucide-react";
 import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-  isWithinInterval,
   format,
-  endOfDay,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -32,14 +18,11 @@ import {
 import type { Database } from "@/types/supabase";
 import { toast } from "sonner";
 
-import { DateRange } from "react-day-picker";
-import DatePickerWithRange from "@/components/ui/date-picker-with-range";
 import { ServiceUsageStats } from "@/components/reports/ServiceUsageStats";
 import { AppointmentDistribution } from "@/components/reports/AppointmentDistribution";
 import { RevenueChart } from "@/components/reports/RevenueChart";
 import { MemberPaymentsCard } from "@/components/reports/MemberPaymentsCard";
 import { PackageIncomeCard } from "@/components/reports/PackageIncomeCard";
-import { TrainerClassesChart } from "@/components/reports/TrainerClassesChart";
 import { PerformanceMetrics } from "@/components/reports/PerformanceMetrics";
 import { LoadingSpinner } from "@/App";
 
@@ -49,759 +32,374 @@ type Service = Database["public"]["Tables"]["services"]["Row"];
 type MemberPayment = Database["public"]["Tables"]["member_payments"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
-const ReportsPage = () => {
-  const reportRef = useRef<HTMLDivElement>(null);
-  const metricsRef = useRef<HTMLDivElement>(null);
-  const [selectedDateRange, setSelectedDateRange] = useState<
-    "all" | "week" | "month" | "year" | "custom"
-  >("year");
-  const [customDateRange, setCustomDateRange] = useState<DateRange>({
-    from: undefined,
-    to: undefined,
-  });
-  const [validDateRange, setValidDateRange] = useState<DateRange>({
-    from: undefined,
-    to: undefined,
-  });
+// Debug flag - set to true only during development
+const DEBUG = process.env.NODE_ENV === 'development';
 
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [memberPayments, setMemberPayments] = useState<MemberPayment[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+/**
+ * Custom hook to fetch and manage all data needed for reports
+ */
+const useReportData = () => {
+  const [data, setData] = useState<{
+    appointments: Appointment[];
+    members: Member[];
+    services: Service[];
+    memberPayments: MemberPayment[];
+    trainers: Trainer[];
+  }>({
+    appointments: [],
+    members: [],
+    services: [],
+    memberPayments: [],
+    trainers: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    setCustomDateRange(range || { from: undefined, to: undefined });
-    
-    if (range?.from && range?.to) {
-      setValidDateRange(range);
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [
-          appointmentsData,
-          membersData,
-          servicesData,
-          memberPaymentsData,
-          trainersData,
-        ] = await Promise.all([
-          getAppointments(),
-          getMembers(),
-          getServices(),
-          getMemberPayments(),
-          getTrainers(),
-        ]);
-
-        const now = new Date();
-        let dateRange;
-
-        if (selectedDateRange === "all") {
-          dateRange = null;
-        } else if (selectedDateRange === "custom" && validDateRange?.from && validDateRange?.to) {
-          dateRange = {
-            start: validDateRange.from,
-            end: endOfDay(validDateRange.to),
-          };
-        } else {
-          dateRange = {
-            start:
-              selectedDateRange === "week"
-                ? startOfWeek(now, { locale: tr })
-                : selectedDateRange === "month"
-                ? startOfMonth(now)
-                : startOfYear(now),
-            end:
-              selectedDateRange === "week"
-                ? endOfWeek(now, { locale: tr })
-                : selectedDateRange === "month"
-                ? endOfMonth(now)
-                : endOfYear(now),
-          };
-        }
-
-        const isInDateRange = (date: Date) => {
-          if (!dateRange) return true;
-          return isWithinInterval(date, {
-            start: dateRange.start,
-            end: dateRange.end,
-          });
-        };
-
-        console.log('=== Sorunlu Üye Analizi ===');
-        console.log('Seçilen Tarih Aralığı:', selectedDateRange);
-        if (dateRange) {
-          console.log('Başlangıç:', format(dateRange.start, 'dd.MM.yyyy'));
-          console.log('Bitiş:', format(dateRange.end, 'dd.MM.yyyy'));
-        }
-        console.log('-------------------');
-
-        const memberPaymentCounts = new Map<string, number>();
-        memberPaymentsData.forEach(payment => {
-          const paymentDate = new Date(payment.created_at);
-          if (isInDateRange(paymentDate)) {
-            const memberName = payment.member_name;
-            if (memberName) {
-              memberPaymentCounts.set(memberName, (memberPaymentCounts.get(memberName) || 0) + 1);
-            }
-          }
-        });
-
-        let problemFound = false;
-        let problematicMembers = [];
-
-        membersData.forEach(member => {
-          const memberName = `${member.first_name} ${member.last_name}`;
-          const packageCount = member.subscribed_services?.length || 0;
-          const paymentCount = memberPaymentCounts.get(memberName) || 0;
-
-          if (packageCount !== paymentCount) {
-            problemFound = true;
-            problematicMembers.push({
-              name: memberName,
-              currentPackages: packageCount,
-              paymentsInPeriod: paymentCount
-            });
-          }
-        });
-
-        if (problematicMembers.length > 0) {
-          console.log('Sorunlu Üyeler:');
-          problematicMembers.forEach(member => {
-            console.log(`\nÜye: ${member.name}`);
-            console.log(`  > Mevcut Paket Sayısı: ${member.currentPackages}`);
-            console.log(`  > Seçili Dönemdeki Ödeme Sayısı: ${member.paymentsInPeriod}`);
-            console.log(`  ! UYARI: Paket sayısı (${member.currentPackages}) ile ödeme sayısı (${member.paymentsInPeriod}) uyuşmuyor`);
-          });
-          console.log(`\nToplam ${problematicMembers.length} üyede uyuşmazlık tespit edildi.`);
-        } else {
-          console.log('Tüm üyelerin paket sayıları ve ödemeleri tutarlı.');
-        }
-        console.log('-------------------');
-
-        const packageCounts = {
-          one: 0,
-          two: 0,
-          three: 0,
-          four: 0,
-          moreThanFour: 0
-        };
-
-        let totalPackages = 0;
-        const problemUsers = [];
-
-        membersData.forEach(member => {
-          const packageCount = member.subscribed_services?.length || 0;
-          totalPackages += packageCount;
-
-          if (packageCount === 1) packageCounts.one++;
-          else if (packageCount === 2) packageCounts.two++;
-          else if (packageCount === 3) packageCounts.three++;
-          else if (packageCount === 4) packageCounts.four++;
-          else if (packageCount > 4) {
-            packageCounts.moreThanFour++;
-            problemUsers.push({
-              name: `${member.first_name} ${member.last_name}`,
-              packageCount
-            });
-          }
-
-          console.log(`${member.first_name} ${member.last_name}: ${packageCount} paket`);
-        });
-
-        console.log('Detaylı Paket Analizi:');
-        console.log('1 paketi olan üye sayısı:', packageCounts.one);
-        console.log('2 paketi olan üye sayısı:', packageCounts.two);
-        console.log('3 paketi olan üye sayısı:', packageCounts.three);
-        console.log('4 paketi olan üye sayısı:', packageCounts.four);
-        console.log('4\'ten fazla paketi olan üye sayısı:', packageCounts.moreThanFour);
-        console.log('Toplam paket sayısı:', totalPackages);
-        console.log('Toplam üye sayısı:', membersData.length);
-
-        if (problemUsers.length > 0) {
-          console.log('4\'ten fazla paketi olan üyeler:', problemUsers);
-        }
-
-        const calculatedTotal =
-          (packageCounts.one * 1) +
-          (packageCounts.two * 2) +
-          (packageCounts.three * 3) +
-          (packageCounts.four * 4);
-
-        console.log('Manuel hesaplanan toplam:', calculatedTotal);
-        setAppointments(appointmentsData);
-        setMembers(membersData);
-        setServices(servicesData);
-        setMemberPayments(memberPaymentsData);
-        setTrainers(trainersData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Veri yüklenirken bir hata oluştu");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedDateRange, validDateRange]);
-
-  const filteredData = useMemo(() => {
-    let dateRange;
-    if (selectedDateRange === "all") {
-      dateRange = null;
-    } else if (
-      selectedDateRange === "custom" &&
-      validDateRange?.from &&
-      validDateRange?.to
-    ) {
-      dateRange = {
-        start: validDateRange.from,
-        end: endOfDay(validDateRange.to),
-      };
-    } else {
-      const now = new Date();
-      dateRange = {
-        start:
-          selectedDateRange === "week"
-            ? startOfWeek(now, { locale: tr })
-            : selectedDateRange === "month"
-            ? startOfMonth(now)
-            : startOfYear(now),
-        end:
-          selectedDateRange === "week"
-            ? endOfWeek(now, { locale: tr })
-            : selectedDateRange === "month"
-            ? endOfMonth(now)
-            : endOfYear(now),
-      };
-    }
-
-    return appointments.filter((appointment) => {
-      const appointmentDate = new Date(appointment.date);
-      const withinDateRange = dateRange
-        ? isWithinInterval(appointmentDate, {
-            start: dateRange.start,
-            end: dateRange.end,
-          })
-        : true;
-
-      return withinDateRange;
-    });
-  }, [appointments, selectedDateRange, validDateRange]);
-
-  const fetchInitialData = async () => {
+  // Fetch all data needed for reports
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [appointmentsData, membersData, servicesData, memberPaymentsData] =
-        await Promise.all([
-          getAppointments(),
-          getMembers(),
-          getServices(),
-          getMemberPayments(),
-        ]);
+      const [appointments, members, services, memberPayments, trainers] = await Promise.all([
+        getAppointments(),
+        getMembers(),
+        getServices(),
+        getMemberPayments(),
+        getTrainers(),
+      ]);
 
-      setAppointments(appointmentsData);
-      setMembers(membersData);
-      setServices(servicesData);
-      setMemberPayments(memberPaymentsData);
-    } catch {
-      toast.error("Veriler yüklenirken bir hata oluştu.");
+      setData({
+        appointments,
+        members,
+        services,
+        memberPayments,
+        trainers,
+      });
+
+      if (DEBUG) {
+        logDataAnalysis(members, services, memberPayments);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Veri yüklenirken bir hata oluştu");
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // Initial data fetch on component mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return {
+    ...data,
+    isLoading,
+    refreshData: fetchData,
   };
+};
 
-  const refreshData = () => {
-    fetchInitialData();
-  };
-
-  const calculateMetrics = () => {
-    const now = new Date();
-    let dateRange;
-    let comparisonDateRange;
-    let comparisonLabel = "";
-
-    if (selectedDateRange === "all") {
-      dateRange = null;
-      comparisonDateRange = null;
-      comparisonLabel = "Tüm zamana göre";
-    } else if (
-      selectedDateRange === "custom" &&
-      validDateRange?.from &&
-      validDateRange?.to
-    ) {
-      const from = validDateRange.from;
-      const to = validDateRange.to;
-      const dayDiff = Math.round(
-        (to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      dateRange = {
-        start: from,
-        end: to,
-      };
-
-      const comparisonStart = new Date(from);
-      comparisonStart.setDate(comparisonStart.getDate() - dayDiff - 1);
-      const comparisonEnd = new Date(from);
-      comparisonEnd.setDate(comparisonEnd.getDate() - 1);
-
-      comparisonDateRange = {
-        start: comparisonStart,
-        end: comparisonEnd,
-      };
-
-      comparisonLabel = "Önceki döneme göre";
-    } else {
-      if (selectedDateRange === "week") {
-        dateRange = {
-          start: startOfWeek(now, { locale: tr }),
-          end: endOfWeek(now, { locale: tr }),
-        };
-
-        const lastWeekStart = new Date(dateRange.start);
-        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-        const lastWeekEnd = new Date(dateRange.end);
-        lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
-
-        comparisonDateRange = {
-          start: lastWeekStart,
-          end: lastWeekEnd,
-        };
-
-        comparisonLabel = "Önceki haftaya göre";
-      } else if (selectedDateRange === "month") {
-        dateRange = {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        };
-
-        const lastMonthStart = startOfMonth(
-          new Date(now.getFullYear(), now.getMonth() - 1)
-        );
-        const lastMonthEnd = endOfMonth(
-          new Date(now.getFullYear(), now.getMonth() - 1)
-        );
-
-        comparisonDateRange = {
-          start: lastMonthStart,
-          end: lastMonthEnd,
-        };
-
-        comparisonLabel = "Önceki aya göre";
-      } else {
-        dateRange = {
-          start: startOfYear(now),
-          end: endOfYear(now),
-        };
-
-        const lastYearStart = startOfYear(new Date(now.getFullYear() - 1));
-        const lastYearEnd = endOfYear(new Date(now.getFullYear() - 1));
-
-        comparisonDateRange = {
-          start: lastYearStart,
-          end: lastYearEnd,
-        };
-
-        comparisonLabel = "Önceki yıla göre";
-      }
-    }
-
-    const isInDateRange = (date: Date) => {
-      if (!dateRange) return true;
-      return isWithinInterval(date, {
-        start: dateRange.start,
-        end: dateRange.end,
-      });
-    };
-
-    const isInComparisonDateRange = (date: Date) => {
-      if (!comparisonDateRange) return false;
-      return isWithinInterval(date, {
-        start: comparisonDateRange.start,
-        end: comparisonDateRange.end,
-      });
-    };
-
-    const currentMonthStart = startOfMonth(now);
-    const currentMonthEnd = endOfMonth(now);
-
-    const isInCurrentMonth = (date: Date) => {
-      return isWithinInterval(date, {
-        start: currentMonthStart,
-        end: currentMonthEnd,
-      });
-    };
-
-    let totalRevenue = 0;
-    let totalPackages = 0;
-    let currentMonthRevenue = 0;
-
-    let comparisonRevenue = 0;
-    let comparisonPackages = 0;
-
-    const memberPackageCounts = new Map<string, Map<string, number>>();
-    const comparisonMemberPackageCounts = new Map<
-      string,
-      Map<string, number>
-    >();
-
-    // Count unique members with appointments in the selected date range
-    const membersWithAppointments = new Set<string>();
-    filteredData.forEach(appointment => {
-      if (appointment.member_id) {
-        membersWithAppointments.add(appointment.member_id.toString());
-      }
-    });
-    const uniqueMembersWithAppointments = membersWithAppointments.size;
-
-    const comparisonAppointments = comparisonDateRange
-      ? appointments.filter((appointment) => {
-          const appointmentDate = new Date(appointment.date);
-          return isInComparisonDateRange(appointmentDate);
-        }).length
-      : 0;
-
-    const comparisonMembers = comparisonDateRange
-      ? members.filter((member) => {
-          const memberCreationDate = new Date(member.created_at);
-          return isInComparisonDateRange(memberCreationDate);
-        }).length
-      : 0;
-
-    memberPayments.forEach((payment) => {
-      const paymentDate = new Date(payment.created_at);
-      const revenue =
-        Number(payment.credit_card_paid) + Number(payment.cash_paid);
-
-      if (isInDateRange(paymentDate)) {
-        totalRevenue += revenue;
-        totalPackages += 1;
-
-        const memberName = payment.member_name;
-        const packageName = payment.package_name;
-        if (memberName && packageName) {
-          if (!memberPackageCounts.has(memberName)) {
-            memberPackageCounts.set(memberName, new Map<string, number>());
-          }
-          const memberPackages = memberPackageCounts.get(memberName)!;
-          const count = memberPackages.get(packageName) || 0;
-          memberPackages.set(packageName, count + 1);
+/**
+ * Debug utility function to analyze data consistency
+ */
+const logDataAnalysis = (members: Member[], services: Service[], memberPayments: MemberPayment[]) => {
+  // Compare data sources for consistency
+  const compareDataSources = () => {
+    console.log('=== Veri Tutarsızlık Analizi ===');
+    
+    const paymentPackages = memberPayments.length;
+    console.log(`Member Payments Tablosundaki Toplam Paket Sayısı: ${paymentPackages}`);
+    
+    let memberServiceCount = 0;
+    const memberServiceMap = new Map();
+    
+    members.forEach(member => {
+      const memberName = `${member.first_name} ${member.last_name}`;
+      
+      if (member.subscribed_services && Array.isArray(member.subscribed_services)) {
+        memberServiceCount += member.subscribed_services.length;
+        
+        if (!memberServiceMap.has(memberName)) {
+          memberServiceMap.set(memberName, []);
         }
-      }
-
-      if (isInComparisonDateRange(paymentDate)) {
-        comparisonRevenue += revenue;
-        comparisonPackages += 1;
-
-        const memberName = payment.member_name;
-        const packageName = payment.package_name;
-        if (memberName && packageName) {
-          if (!comparisonMemberPackageCounts.has(memberName)) {
-            comparisonMemberPackageCounts.set(
-              memberName,
-              new Map<string, number>()
-            );
-          }
-          const memberPackages = comparisonMemberPackageCounts.get(memberName)!;
-          const count = memberPackages.get(packageName) || 0;
-          memberPackages.set(packageName, count + 1);
-        }
-      }
-
-      if (isInCurrentMonth(paymentDate)) {
-        currentMonthRevenue += revenue;
-      }
-    });
-
-    const filteredMembers = members.filter((member) => {
-      const memberCreationDate = new Date(member.created_at);
-      return isInDateRange(memberCreationDate);
-    });
-
-    const packageRenewalDetails = new Map<string, {
-      memberName: string;
-      packageName: string;
-      firstPurchaseDate: Date;
-      renewalDates: Date[];
-    }>();
-
-    const sortedPayments = memberPayments
-      .slice()
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-    sortedPayments.forEach((payment) => {
-      const paymentDate = new Date(payment.created_at);
-      const memberPackageKey = `${payment.member_name}-${payment.package_name}`;
-
-      if (!packageRenewalDetails.has(memberPackageKey)) {
-        packageRenewalDetails.set(memberPackageKey, {
-          memberName: payment.member_name,
-          packageName: payment.package_name,
-          firstPurchaseDate: paymentDate,
-          renewalDates: []
+        
+        const memberServices = memberServiceMap.get(memberName);
+        
+        member.subscribed_services.forEach(serviceId => {
+          memberServices.push(serviceId);
         });
-      } else {
-        const details = packageRenewalDetails.get(memberPackageKey)!;
-        details.renewalDates.push(paymentDate);
       }
     });
-
-    let packageRenewalCount = 0;
-    const membersWithRenewals = new Set<string>();
-
-    packageRenewalDetails.forEach((details) => {
-      let renewalsInPeriod = 0;
-
-      details.renewalDates.forEach(renewalDate => {
-        if (isInDateRange(renewalDate)) {
-          renewalsInPeriod++;
-          membersWithRenewals.add(details.memberName);
+    
+    console.log(`Members Tablosundaki Toplam Paket Sayısı: ${memberServiceCount}`);
+    console.log(`Fark: ${paymentPackages - memberServiceCount} paket`);
+    
+    const paymentMemberServiceMap = new Map();
+    
+    memberPayments.forEach(payment => {
+      const memberName = payment.member_name;
+      const packageName = payment.package_name;
+      
+      if (memberName && packageName) {
+        if (!paymentMemberServiceMap.has(memberName)) {
+          paymentMemberServiceMap.set(memberName, []);
         }
-      });
-
-      packageRenewalCount += renewalsInPeriod;
-    });
-
-    let comparisonPackageRenewalCount = 0;
-    const comparisonMembersWithRenewals = new Set<string>();
-
-    if (comparisonDateRange) {
-      packageRenewalDetails.forEach((details) => {
-        let renewalsInComparisonPeriod = 0;
-
-        details.renewalDates.forEach(renewalDate => {
-          if (isInComparisonDateRange(renewalDate)) {
-            renewalsInComparisonPeriod++;
-            comparisonMembersWithRenewals.add(details.memberName);
-          }
+        paymentMemberServiceMap.get(memberName).push({
+          packageName,
+          created_at: payment.created_at
         });
-
-        comparisonPackageRenewalCount += renewalsInComparisonPeriod;
-      });
-    }
-
-    const currentMonthMembers = members.filter((member) => {
-      const memberCreationDate = new Date(member.created_at);
-      return isInCurrentMonth(memberCreationDate);
-    });
-
-    const averageRevenuePerMember =
-      currentMonthMembers.length > 0
-        ? currentMonthRevenue / currentMonthMembers.length
-        : 0;
-
-    const calculateChangeRate = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? 100 : 0;
-      return ((current - previous) / previous) * 100;
-    };
-
-    const packageChangeRate = calculateChangeRate(
-      totalPackages,
-      comparisonPackages
-    );
-    const packageRenewalChangeRate = calculateChangeRate(
-      packageRenewalCount,
-      comparisonPackageRenewalCount
-    );
-    const memberChangeRate = calculateChangeRate(
-      filteredMembers.length,
-      comparisonMembers
-    );
-    const appointmentChangeRate = calculateChangeRate(
-      filteredData.length,
-      comparisonAppointments
-    );
-    const revenueChangeRate = calculateChangeRate(
-      totalRevenue,
-      comparisonRevenue
-    );
-
-    const lastMonthStart = startOfMonth(
-      new Date(now.getFullYear(), now.getMonth() - 1)
-    );
-    const lastMonthEnd = endOfMonth(
-      new Date(now.getFullYear(), now.getMonth() - 1)
-    );
-
-    let lastMonthRevenue = 0;
-
-    memberPayments.forEach((payment) => {
-      const paymentDate = new Date(payment.created_at);
-      if (
-        isWithinInterval(paymentDate, {
-          start: lastMonthStart,
-          end: lastMonthEnd,
-        })
-      ) {
-        lastMonthRevenue +=
-          Number(payment.credit_card_paid) + Number(payment.cash_paid);
       }
     });
-
-    const currentMonthRevenueChangeRate = calculateChangeRate(
-      currentMonthRevenue,
-      lastMonthRevenue
-    );
-
-    const membersWithRenewalCount = membersWithRenewals.size;
-    const membersWithRenewalPercentage =
-      filteredMembers.length > 0
-        ? (membersWithRenewalCount / filteredMembers.length) * 100
-        : 0;
-
-    const comparisonMembersWithRenewalCount =
-      comparisonMembersWithRenewals.size;
-    const comparisonMembersWithRenewalPercentage =
-      comparisonMembers > 0
-        ? (comparisonMembersWithRenewalCount / comparisonMembers) * 100
-        : 0;
-
-    const membersWithRenewalPercentageChangeRate = calculateChangeRate(
-      membersWithRenewalPercentage,
-      comparisonMembersWithRenewalPercentage
-    );
-
-    return {
-      totalRevenue,
-      totalPackages,
-      uniqueMembers: filteredMembers.length,
-      totalAppointments: filteredData.length,
-      currentMonthRevenue,
-      packageChangeRate,
-      packageRenewalChangeRate,
-      memberChangeRate,
-      appointmentChangeRate,
-      revenueChangeRate,
-      currentMonthRevenueChangeRate,
-      comparisonLabel,
-      packageRenewalCount,
-      averageRevenuePerMember,
-      membersWithRenewalCount,
-      membersWithRenewalPercentage,
-      membersWithRenewalPercentageChangeRate,
-      uniqueMembersWithAppointments,
-    };
-  };
-
-  const generatePDF = async () => {
-    if (!metricsRef.current) return;
-
-    try {
-      toast.info("PDF oluşturuluyor, lütfen bekleyin...");
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const scale = 2;
-      const options = {
-        scale: scale,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        removeContainer: true,
-        foreignObjectRendering: false,
-        imageTimeout: 15000,
-        onclone: (clonedDoc) => {
-          Array.from(
-            clonedDoc.querySelectorAll(".text-transparent, .bg-clip-text")
-          ).forEach((el) => {
-            if (el instanceof HTMLElement) {
-              el.classList.remove("text-transparent", "bg-clip-text");
-              el.style.color = "#000000";
-            }
+    
+    console.log('\nEksik Paket Kayıtları:');
+    let missingCount = 0;
+    
+    paymentMemberServiceMap.forEach((packages, memberName) => {
+      const memberServices = memberServiceMap.get(memberName) || [];
+      const packageCount = packages.length;
+      const serviceCount = memberServices.length;
+      
+      if (packageCount !== serviceCount) {
+        const member = members.find(m => 
+          `${m.first_name} ${m.last_name}` === memberName
+        );
+        
+        console.log(`\n> Üye: ${memberName}`);
+        console.log(`  - Member Payments tablosundaki paket sayısı: ${packageCount}`);
+        console.log(`  - Members tablosundaki paket sayısı: ${serviceCount}`);
+        console.log(`  - Fark: ${packageCount - serviceCount} paket`);
+        
+        console.log('  - Ödeme Kayıtları:');
+        packages.forEach((pkg, idx) => {
+          console.log(`    ${idx + 1}. ${pkg.packageName} (${format(new Date(pkg.created_at), 'dd.MM.yyyy')})`);
+        });
+        
+        console.log('  - Üye Kayıtlı Paketleri:');
+        if (member && member.subscribed_services) {
+          member.subscribed_services.forEach((serviceId, idx) => {
+            const service = services.find(s => s.id === serviceId);
+            console.log(`    ${idx + 1}. ${service ? service.name : 'Bilinmeyen Servis'} (ID: ${serviceId})`);
           });
-        },
-      };
-
-      const canvas = await html2canvas(metricsRef.current, options);
-      const imgData = canvas.toDataURL("image/png", 1.0);
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const margin = 10;
-      const contentWidth = pdfWidth - margin * 2;
-      const contentHeight = (canvas.height * contentWidth) / canvas.width;
-
-      pdf.setFontSize(18);
-      pdf.setTextColor(44, 62, 80);
-      pdf.text(
-        "Fitness Merkezi Performans Metrikleri",
-        pdfWidth / 2,
-        margin + 5,
-        {
-          align: "center",
         }
-      );
-
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      const currentDate = format(new Date(), "dd MMMM yyyy", { locale: tr });
-      pdf.text(
-        `Oluşturulma Tarihi: ${currentDate}`,
-        pdfWidth / 2,
-        margin + 12,
-        { align: "center" }
-      );
-
-      let dateRangeText = "Tarih Aralığı: Tüm Zamanlar";
-      if (selectedDateRange === "week") {
-        dateRangeText = "Tarih Aralığı: Bu Hafta";
-      } else if (selectedDateRange === "month") {
-        dateRangeText = "Tarih Aralığı: Bu Ay";
-      } else if (selectedDateRange === "year") {
-        dateRangeText = "Tarih Aralığı: Bu Yıl";
-      } else if (
-        selectedDateRange === "custom" &&
-        validDateRange.from &&
-        validDateRange.to
-      ) {
-        const fromDate = format(validDateRange.from, "dd.MM.yyyy");
-        const toDate = format(validDateRange.to, "dd.MM.yyyy");
-        dateRangeText = `Tarih Aralığı: ${fromDate} - ${toDate}`;
+        
+        missingCount += Math.abs(packageCount - serviceCount);
       }
+    });
+    
+    console.log(`\nToplam ${missingCount} tutarsız paket kaydı bulundu.`);
+    console.log('===========================');
+  };
+  
+  // Log April 30 payments
+  const logApril30Payments = () => {
+    console.log('\n=== 30 Nisan Tarihindeki Ödemeler ===');
+    
+    // Filter all payments on April 30 (any year)
+    const april30Payments = memberPayments.filter(payment => {
+      const paymentDate = new Date(payment.created_at);
+      return paymentDate.getDate() === 30 && paymentDate.getMonth() === 3; // JavaScript'te aylar 0'dan başlar, 3 Nisan ayıdır
+    });
+    
+    // Group by year
+    const paymentsByYear = new Map();
+    
+    april30Payments.forEach(payment => {
+      const paymentDate = new Date(payment.created_at);
+      const year = paymentDate.getFullYear();
+      const amount = payment.credit_card_paid + payment.cash_paid;
+      
+      if (!paymentsByYear.has(year)) {
+        paymentsByYear.set(year, {
+          total: 0,
+          count: 0,
+          payments: []
+        });
+      }
+      
+      const yearData = paymentsByYear.get(year);
+      yearData.total += amount;
+      yearData.count += 1;
+      yearData.payments.push({
+        memberName: payment.member_name,
+        packageName: payment.package_name,
+        amount: amount,
+        date: paymentDate
+      });
+    });
+    
+    // Summary
+    console.log(`30 Nisan tarihinde toplam ${april30Payments.length} ödeme bulundu.`);
+    
+    // Details by year
+    paymentsByYear.forEach((data, year) => {
+      console.log(`\n${year} yılı 30 Nisan ödemeleri:`);
+      console.log(`  Toplam: ₺${data.total.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}`);
+      console.log(`  Ödeme Sayısı: ${data.count}`);
+      
+      console.log('  Detaylı Ödeme Listesi:');
+      data.payments.forEach((payment, idx) => {
+        console.log(`    ${idx + 1}. ${payment.memberName} - ${payment.packageName} - ₺${payment.amount.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')} (${format(payment.date, 'dd.MM.yyyy HH:mm')})`);
+      });
+    });
+    
+    // Grand total
+    const grandTotal = Array.from(paymentsByYear.values()).reduce((sum, data) => sum + data.total, 0);
+    console.log(`\n30 Nisan tarihindeki tüm yılların toplam ödeme tutarı: ₺${grandTotal.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace('.', ',')}`);
+    
+    console.log('===========================');
+  };
+  
+  // Log problematic members
+  const logProblematicMembers = () => {
+    console.log('=== Sorunlu Üye Analizi ===');
+    console.log('-------------------');
 
-      pdf.text(dateRangeText, pdfWidth / 2, margin + 18, { align: "center" });
+    const memberPaymentCounts = new Map<string, number>();
+    memberPayments.forEach(payment => {
+      const memberName = payment.member_name;
+      if (memberName) {
+        memberPaymentCounts.set(memberName, (memberPaymentCounts.get(memberName) || 0) + 1);
+      }
+    });
 
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, margin + 22, pdfWidth - margin, margin + 22);
+    let problematicMembers = [];
 
-      const yPos = margin + 25;
-      pdf.addImage(imgData, "JPEG", margin, yPos, contentWidth, contentHeight);
+    members.forEach(member => {
+      const memberName = `${member.first_name} ${member.last_name}`;
+      const packageCount = member.subscribed_services?.length || 0;
+      const paymentCount = memberPaymentCounts.get(memberName) || 0;
 
-      const footerY = pdfHeight - 10;
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text("Loca Fit Studio Performans Raporu", margin, footerY);
-      pdf.text("Sayfa 1/1", pdfWidth - margin, footerY, { align: "right" });
+      if (packageCount !== paymentCount) {
+        problematicMembers.push({
+          name: memberName,
+          currentPackages: packageCount,
+          paymentsInPeriod: paymentCount
+        });
+      }
+    });
 
-      pdf.save(
-        `fitness-performans-metrikleri-${format(new Date(), "yyyy-MM-dd")}.pdf`
-      );
-
-      toast.success("Rapor başarıyla PDF olarak indirildi.");
-    } catch (error) {
-      console.error("PDF oluşturma hatası:", error);
-      toast.error("PDF oluşturulurken bir hata oluştu.");
+    if (problematicMembers.length > 0) {
+      console.log('Sorunlu Üyeler:');
+      problematicMembers.forEach(member => {
+        console.log(`\nÜye: ${member.name}`);
+        console.log(`  > Mevcut Paket Sayısı: ${member.currentPackages}`);
+        console.log(`  > Seçili Dönemdeki Ödeme Sayısı: ${member.paymentsInPeriod}`);
+        console.log(`  ! UYARI: Paket sayısı (${member.currentPackages}) ile ödeme sayısı (${member.paymentsInPeriod}) uyuşmuyor`);
+      });
+      console.log(`\nToplam ${problematicMembers.length} üyede uyuşmazlık tespit edildi.`);
+    } else {
+      console.log('Tüm üyelerin paket sayıları ve ödemeleri tutarlı.');
     }
+    console.log('-------------------');
   };
 
-  const metrics = calculateMetrics();
+  // Log package distribution
+  const logPackageDistribution = () => {
+    const packageCounts = {
+      one: 0,
+      two: 0,
+      three: 0,
+      four: 0,
+      moreThanFour: 0
+    };
 
+    let totalPackages = 0;
+    const problemUsers = [];
+
+    members.forEach(member => {
+      const packageCount = member.subscribed_services?.length || 0;
+      totalPackages += packageCount;
+
+      if (packageCount === 1) packageCounts.one++;
+      else if (packageCount === 2) packageCounts.two++;
+      else if (packageCount === 3) packageCounts.three++;
+      else if (packageCount === 4) packageCounts.four++;
+      else if (packageCount > 4) {
+        packageCounts.moreThanFour++;
+        problemUsers.push({
+          name: `${member.first_name} ${member.last_name}`,
+          packageCount
+        });
+      }
+
+      console.log(`${member.first_name} ${member.last_name}: ${packageCount} paket`);
+    });
+
+    console.log('Detaylı Paket Analizi:');
+    console.log('1 paketi olan üye sayısı:', packageCounts.one);
+    console.log('2 paketi olan üye sayısı:', packageCounts.two);
+    console.log('3 paketi olan üye sayısı:', packageCounts.three);
+    console.log('4 paketi olan üye sayısı:', packageCounts.four);
+    console.log('4\'ten fazla paketi olan üye sayısı:', packageCounts.moreThanFour);
+    console.log('Toplam paket sayısı:', totalPackages);
+    console.log('Toplam üye sayısı:', members.length);
+
+    if (problemUsers.length > 0) {
+      console.log('4\'ten fazla paketi olan üyeler:', problemUsers);
+    }
+
+    const calculatedTotal =
+      (packageCounts.one * 1) +
+      (packageCounts.two * 2) +
+      (packageCounts.three * 3) +
+      (packageCounts.four * 4);
+
+    console.log('Manuel hesaplanan toplam:', calculatedTotal);
+  };
+
+  // Run all data analysis functions
+  compareDataSources();
+  logApril30Payments();
+  logProblematicMembers();
+  logPackageDistribution();
+};
+
+/**
+ * Custom hook to process member packages for display
+ */
+const useMemberPackages = (members: Member[], services: Service[]) => {
+  return useMemo(() => {
+    // Flatten the array of member packages
+    const memberPackages = members.reduce((acc: any[], member) => {
+      const memberName = `${member.first_name} ${member.last_name}`;
+      
+      if (!member.subscribed_services || !Array.isArray(member.subscribed_services) || member.subscribed_services.length === 0) {
+        return acc;
+      }
+      
+      // Find matching service names for each service ID
+      const memberPackagesData = member.subscribed_services.map((serviceId: string) => {
+        const service = services.find(s => s.id === serviceId);
+        return {
+          member_id: member.id,
+          member_name: memberName,
+          service_id: serviceId,
+          service_name: service ? service.name : 'Bilinmeyen Hizmet',
+          created_at: member.created_at
+        };
+      });
+      
+      return [...acc, ...memberPackagesData];
+    }, []);
+    
+    // Sort by most recent first
+    return memberPackages.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [members, services]);
+};
+
+/**
+ * Custom hook to process and prepare chart data
+ */
+const useChartData = (appointments: Appointment[], services: Service[], memberPayments: MemberPayment[]) => {
+  // Service usage data for ServiceUsageStats component
   const serviceUsageData = useMemo(() => {
     return services.map((service) => ({
       name: service.name,
-      kullanim: filteredData.filter((app) => app.service_id === service.id)
-        .length,
+      kullanim: appointments.filter((app) => app.service_id === service.id).length,
     }));
-  }, [services, filteredData]);
+  }, [services, appointments]);
 
+  // Revenue chart data for RevenueChart component
   const revenueChartData = useMemo(() => {
     const monthlyRevenue = memberPayments.reduce(
       (acc: { [key: string]: number }, payment) => {
@@ -818,105 +416,209 @@ const ReportsPage = () => {
       {}
     );
 
+    const months = [
+      "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
+      "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+    ];
+
     return Object.entries(monthlyRevenue)
       .map(([month, gelir]) => ({
         month,
         gelir: Math.round(gelir),
       }))
-      .sort((a, b) => {
-        const months = [
-          "Ocak",
-          "Şubat",
-          "Mart",
-          "Nisan",
-          "Mayıs",
-          "Haziran",
-          "Temmuz",
-          "Ağustos",
-          "Eylül",
-          "Ekim",
-          "Kasım",
-          "Aralık",
-        ];
-        return months.indexOf(a.month) - months.indexOf(b.month);
-      });
+      .sort((a, b) => months.indexOf(a.month) - months.indexOf(b.month));
   }, [memberPayments]);
+
+  return {
+    serviceUsageData,
+    revenueChartData
+  };
+};
+
+/**
+ * Generate PDF from the metrics section
+ */
+const usePdfGenerator = () => {
+  const generatePDF = useCallback(async (metricsRef: React.RefObject<HTMLDivElement>) => {
+    if (!metricsRef.current) return;
+
+    try {
+      toast.info("PDF oluşturuluyor, lütfen bekleyin...");
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Canvas rendering options
+      const canvasOptions = {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        removeContainer: true,
+        foreignObjectRendering: false,
+        imageTimeout: 15000,
+        onclone: (clonedDoc: Document) => {
+          Array.from(
+            clonedDoc.querySelectorAll(".text-transparent, .bg-clip-text")
+          ).forEach((el) => {
+            if (el instanceof HTMLElement) {
+              el.classList.remove("text-transparent", "bg-clip-text");
+              el.style.color = "#000000";
+            }
+          });
+        },
+      };
+
+      // Render to canvas
+      const canvas = await html2canvas(metricsRef.current, canvasOptions);
+      const imgData = canvas.toDataURL("image/png", 1.0);
+
+      // Create PDF
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const contentWidth = pdfWidth - margin * 2;
+      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+      // Add title
+      pdf.setFontSize(18);
+      pdf.setTextColor(44, 62, 80);
+      pdf.text(
+        "Fitness Merkezi Performans Metrikleri",
+        pdfWidth / 2,
+        margin + 5,
+        { align: "center" }
+      );
+
+      // Add date
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      const currentDate = format(new Date(), "dd MMMM yyyy", { locale: tr });
+      pdf.text(
+        `Oluşturulma Tarihi: ${currentDate}`,
+        pdfWidth / 2,
+        margin + 12,
+        { align: "center" }
+      );
+
+      // Add date range info
+      pdf.text(
+        "Tarih Aralığı: Rapordan Kontrol Ediniz", 
+        pdfWidth / 2, 
+        margin + 18, 
+        { align: "center" }
+      );
+
+      // Add separator line
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, margin + 22, pdfWidth - margin, margin + 22);
+
+      // Add main content
+      const yPos = margin + 25;
+      pdf.addImage(imgData, "JPEG", margin, yPos, contentWidth, contentHeight);
+
+      // Add footer
+      const footerY = pdfHeight - 10;
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text("Loca Fit Studio Performans Raporu", margin, footerY);
+      pdf.text("Sayfa 1/1", pdfWidth - margin, footerY, { align: "right" });
+
+      // Save PDF
+      pdf.save(`fitness-performans-metrikleri-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      toast.success("Rapor başarıyla PDF olarak indirildi.");
+    } catch (error) {
+      console.error("PDF oluşturma hatası:", error);
+      toast.error("PDF oluşturulurken bir hata oluştu.");
+    }
+  }, []);
+
+  return { generatePDF };
+};
+
+/**
+ * Main ReportsPage component
+ */
+const ReportsPage: React.FC = () => {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const metricsRef = useRef<HTMLDivElement>(null);
+
+  // Load all report data
+  const { 
+    appointments, 
+    members, 
+    services, 
+    memberPayments, 
+    trainers, 
+    isLoading, 
+    refreshData 
+  } = useReportData();
+
+  // Process member packages
+  const memberPackages = useMemberPackages(members, services);
+
+  // Process chart data
+  const { serviceUsageData, revenueChartData } = useChartData(
+    appointments, 
+    services, 
+    memberPayments
+  );
+
+  // PDF generation
+  const { generatePDF } = usePdfGenerator();
+  const handleGeneratePDF = useCallback(() => {
+    generatePDF(metricsRef);
+  }, [generatePDF, metricsRef]);
+
+  if (isLoading) {
+    return <LoadingSpinner text="Veriler yükleniyor..." />;
+  }
 
   return (
     <div className="container my-0 p-0 mx-auto">
-      {isLoading ? (
-        <LoadingSpinner text="Veriler yükleniyor..." />
-      ) : (
-        <>
-          <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
-            <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
-            <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
-              <Button onClick={generatePDF} className="w-full md:w-auto">
-                <Download className="mr-2 h-4 w-4" />
-                PDF İndir
-              </Button>
-              <Button
-                onClick={refreshData}
-                variant="outline"
-                className="w-full md:w-auto"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Yenile
-              </Button>
-            </div>
-          </div>
+      {/* Header with actions */}
+      <div className="mb-6 gap-4 flex flex-col md:items-center justify-between md:flex-row">
+        <h1 className="text-3xl font-bold md:text-left">Raporlar</h1>
+        <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-end">
+          <Button 
+            onClick={handleGeneratePDF} 
+            className="w-full md:w-auto"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            PDF İndir
+          </Button>
+          <Button
+            onClick={refreshData}
+            variant="outline"
+            className="w-full md:w-auto"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Yenile
+          </Button>
+        </div>
+      </div>
 
-          <div ref={reportRef} className="space-y-6">
-            <div ref={metricsRef} className="mb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Performans Metrikleri</h3>
-                <div className="flex flex-col md:flex-row md:items-center gap-2">
-                  <Select
-                    value={selectedDateRange}
-                    onValueChange={(
-                      value: "all" | "week" | "month" | "year" | "custom"
-                    ) => setSelectedDateRange(value)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Tarih aralığı seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tüm Zamanlar</SelectItem>
-                      <SelectItem value="week">Bu Hafta</SelectItem>
-                      <SelectItem value="month">Bu Ay</SelectItem>
-                      <SelectItem value="year">Bu Yıl</SelectItem>
-                      <SelectItem value="custom">Özel Aralık</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {selectedDateRange === "custom" && (
-                    <DatePickerWithRange
-                      date={customDateRange}
-                      setDate={handleDateRangeChange}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <PerformanceMetrics metrics={metrics} />
-              <div className="mt-6">
-                <TrainerClassesChart
-                  appointments={filteredData}
-                  trainers={trainers}
-                  services={services}
-                />
-              </div>
-            </div>
-            <MemberPaymentsCard />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <PackageIncomeCard />
-              <ServiceUsageStats data={serviceUsageData} />
-              <RevenueChart data={revenueChartData} />
-              <AppointmentDistribution appointments={appointments} />
-            </div>
-          </div>
-        </>
-      )}
+      {/* Report content */}
+      <div ref={reportRef} className="space-y-6">
+        {/* Performance metrics - captured for PDF */}
+          <MemberPaymentsCard />
+        <div ref={metricsRef} className="mb-6">
+          <PerformanceMetrics 
+            appointments={appointments}
+            trainers={trainers}
+            services={services}
+            members={members}
+            memberPayments={memberPayments}
+          />
+        </div>
+        {/* Additional reports */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <PackageIncomeCard />
+          <ServiceUsageStats data={serviceUsageData} />
+          <RevenueChart data={revenueChartData} />
+          <AppointmentDistribution appointments={appointments} />
+        </div>
+      </div>
     </div>
   );
 };

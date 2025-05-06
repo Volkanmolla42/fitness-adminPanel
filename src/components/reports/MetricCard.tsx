@@ -1,7 +1,7 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
-import { TrendingUp, TrendingDown, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface MetricCardProps {
   title: string;
@@ -27,125 +27,97 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   const isPositiveChange = changeRate !== undefined && changeRate >= 0;
   const changeRateAbs = changeRate !== undefined ? Math.abs(changeRate) : 0;
 
-  // Color variables for dynamic coloring
-  const getMainColor = () => {
-    if (color.includes("blue")) return "bg-blue-500 dark:bg-blue-600";
-    if (color.includes("green")) return "bg-green-500 dark:bg-green-600";
-    if (color.includes("purple")) return "bg-purple-500 dark:bg-purple-600";
-    if (color.includes("pink")) return "bg-pink-500 dark:bg-pink-600";
-    if (color.includes("red")) return "bg-red-500 dark:bg-red-600";
-    if (color.includes("yellow")) return "bg-yellow-500 dark:bg-yellow-600";
-    if (color.includes("orange")) return "bg-orange-500 dark:bg-orange-600";
-    return "bg-indigo-500 dark:bg-indigo-600";
+  // Generate CSS variables based on color prop
+  const getBaseColor = () => {
+    if (color.includes("blue")) return "var(--blue)";
+    if (color.includes("green")) return "var(--green)";
+    if (color.includes("purple")) return "var(--purple)";
+    if (color.includes("pink")) return "var(--pink)";
+    if (color.includes("red")) return "var(--red)";
+    if (color.includes("yellow")) return "var(--yellow)";
+    if (color.includes("orange")) return "var(--orange)";
+    if (color.includes("cyan")) return "var(--cyan)";
+    return "var(--primary)";
   };
 
-  const getGradientColors = () => {
-    if (color.includes("blue"))
-      return "from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/10";
-    if (color.includes("green"))
-      return "from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/10";
-    if (color.includes("purple"))
-      return "from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/10";
-    if (color.includes("pink"))
-      return "from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/10";
-    if (color.includes("red"))
-      return "from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/10";
-    if (color.includes("yellow"))
-      return "from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/10";
-    if (color.includes("orange"))
-      return "from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/10";
-    return "from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-800/10";
-  };
-
-  const mainColor = getMainColor();
-  const gradientColors = getGradientColors();
-
+  // Get style variables
+  const baseColor = getBaseColor();
+  
   return (
-    <Card
-      className={`tracking-wide flex-grow basis-[calc(25%-12px)] min-w-[250px] bg-gradient-to-br ${gradientColors} shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-0`}
+    <Card 
+      className="h-full overflow-hidden border border-gray-300 dark:border-gray-700 shadow-md transition-all hover:shadow-lg text-[110%]"
+      style={{
+        "--blue": "rgb(37, 99, 235)",
+        "--green": "rgb(22, 163, 74)",
+        "--purple": "rgb(126, 34, 206)",
+        "--pink": "rgb(219, 39, 119)",
+        "--red": "rgb(220, 38, 38)",
+        "--yellow": "rgb(202, 138, 4)",
+        "--orange": "rgb(234, 88, 12)",
+        "--cyan": "rgb(8, 145, 178)",
+        "--primary": "rgb(79, 70, 229)",
+      } as React.CSSProperties}
     >
-      {/* Colorful top accent bar */}
-      <div className={`h-1.5 w-full ${mainColor}`}></div>
-
-      <div className="relative">
-        <div className="p-5 relative z-10">
-          {/* Title and icon in colored circle with glow effect */}
-          <div className="flex items-center mb-4">
-            <div
-              className={`rounded-full ${iconColor} p-3 mr-3 shadow-md ring-2 ring-white dark:ring-gray-800 ring-opacity-60`}
+      <div 
+        className="h-1.5" 
+        style={{ backgroundColor: baseColor }}
+      />
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div 
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${baseColor}15` }}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" style={{ color: baseColor }} />
             </div>
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">
+            <h3 className="font-medium text-[15px] text-gray-900 dark:text-white">
               {title}
             </h3>
           </div>
-
-          {/* Main value area with colorful accent */}
-          <div
-            className="ml-2 mb-6 border-l-2 pl-3 border-opacity-70 "
-            style={{ borderColor: "var(--accent-color, #6366f1)" }}
-          >
-            <div className="flex items-center">
-              <p className="text-4xl font-black tracking-tight text-gray-900 dark:text-white">
-                {value}
-              </p>
-
-              {/* Change rate with trend icon and sparkle for positive change */}
-              {changeRate !== undefined && (
-                <div
-                  className={`ml-3 flex items-center ${
-                    isPositiveChange
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
-                  }`}
-                >
-                  {isPositiveChange ? (
-                    <>
-                      <TrendingUp className="h-5 w-5 mr-1" />
-                      <span className="text-xl font-bold">
-                        {changeRateAbs.toFixed(1)}%
-                      </span>
-                      <Sparkles className="h-3.5 w-3.5 ml-1 text-yellow-500" />
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-bold">
-                        {changeRateAbs.toFixed(1)}%
-                      </span>
-                    </>
-                  )}
-                </div>
+          
+          {changeRate !== undefined && (
+            <div 
+              className={`flex items-center gap-1 rounded-full px-2 py-1 text-[13px] font-medium ${
+                isPositiveChange 
+                  ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400" 
+                  : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
+              }`}
+            >
+              {isPositiveChange ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
               )}
+              <span>{changeRateAbs.toFixed(1)}%</span>
             </div>
-
-            {/* Change label right under the percentage with subtle styling */}
-            {changeLabel && (
-              <div className="mt-1 text-xs  font-medium text-gray-500 dark:text-gray-400 italic">
-                {changeLabel}
-              </div>
-            )}
-          </div>
-
-          {/* Card footer with subtle gradient */}
-          <div
-            className={`bg-gradient-to-r from-white to-gray-100 dark:from-gray-800 dark:to-gray-900 -mx-5 px-5 py-3 mt-3 border-t border-gray-200 dark:border-gray-700`}
-          >
-            <div className="flex justify-between items-center">
-              {/* Sub info with subtle styling */}
-              {subInfo && (
-                <div className="flex items-center text-xs text-gray-600 dark:text-gray-300 font-medium">
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${mainColor} mr-2`}
-                  ></div>
-                  <span>{subInfo}</span>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+          
+        <div className="my-3">
+          <div className="text-[33px] font-bold tracking-tight text-gray-900 dark:text-white">
+            {value}
+          </div>
+          
+          {changeLabel && (
+            <div className="mt-1 text-[13px] text-gray-900 dark:text-white">
+              {changeLabel}
+            </div>
+          )}
+        </div>
+        
+        {subInfo && (
+          <div className="flex items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div 
+              className="w-1.5 h-1.5 rounded-full mr-2"
+              style={{ backgroundColor: baseColor }}
+            />
+            <span className="text-[13px] text-gray-900 dark:text-white">
+              {subInfo}
+            </span>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

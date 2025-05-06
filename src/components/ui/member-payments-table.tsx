@@ -65,15 +65,15 @@ export function MemberPaymentsTable<TData, TValue>({
   })
 
   return (
-    <div className="space-y-4">
-      <div className={cn("rounded-md border", className)}>
+    <div className="space-y-4 text-[110%]">
+      <div className={cn("rounded-md border border-gray-300 dark:border-gray-700 shadow-sm", className)}>
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-gray-100 dark:hover:bg-gray-700">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="text-[14px] font-semibold text-gray-900 dark:text-white">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -89,9 +89,9 @@ export function MemberPaymentsTable<TData, TValue>({
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} className="border-b border-gray-200 dark:border-gray-700">
                   {Array.from({ length: columns.length }).map((_, cellIndex) => (
-                    <TableCell key={cellIndex}>
+                    <TableCell key={cellIndex} className="py-3">
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   ))}
@@ -102,9 +102,10 @@ export function MemberPaymentsTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-[14px] text-gray-900 dark:text-white"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="py-3">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -117,7 +118,13 @@ export function MemberPaymentsTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {!isLoading && <DataTablePagination table={table} />}
+      {!isLoading && table.getRowModel().rows.length === 0 ? (
+        <div className="text-center py-6 text-[15px] text-gray-900 dark:text-white">
+          Gösterilecek ödeme bulunmamaktadır
+        </div>
+      ) : (
+        !isLoading && <DataTablePagination table={table} />
+      )}
     </div>
   )
 }
