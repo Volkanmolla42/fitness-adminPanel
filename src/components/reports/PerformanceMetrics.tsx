@@ -564,7 +564,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
   ];
 
   return (
-    <div className="space-y-4 text-[110%] border border-gray-400 rounded-md dark:border-0 p-4 bg-white dark:bg-gray-800 overflow-hidden">
+    <div className="space-y-4 text-[110%] border border-gray-300 rounded-md dark:border-0 p-4 bg-white dark:bg-gray-800 overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-blue-700" />

@@ -543,7 +543,6 @@ const ReportsPage: React.FC = () => {
       {/* Report content */}
       <div ref={reportRef} className="space-y-6">
         {/* Performance metrics - captured for PDF */}
-          <MemberPaymentsCard />
         <div ref={metricsRef} className="mb-6">
           <PerformanceMetrics 
             appointments={appointments}
@@ -553,6 +552,7 @@ const ReportsPage: React.FC = () => {
             memberPayments={memberPayments}
           />
         </div>
+          <MemberPaymentsCard />
         {/* Additional reports */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <PackageIncomeCard />
