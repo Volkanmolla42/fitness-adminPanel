@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FormLabel } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
 import type { Service } from "@/types/index";
-import React, { useState } from "react";
-import { Calculator } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CreditCard, Banknote, ArrowRight, Wallet, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface PaymentData {
   credit_card_paid: string;
@@ -18,6 +21,7 @@ interface PaymentStepProps {
   selectedServices: Service[];
   paymentData: PaymentData;
   setPaymentData: (data: PaymentData) => void;
+  setCommissionAmount: (amount: number) => void;
   onBack: () => void;
   onSubmit: () => void;
 }
@@ -27,309 +31,405 @@ export function PaymentStep({
   selectedServices,
   paymentData,
   setPaymentData,
+  setCommissionAmount,
   onBack,
   onSubmit,
 }: PaymentStepProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [baseAmount, setBaseAmount] = useState<string>("");
-  const [commissionAmount, setCommissionAmount] = useState<number>(0);
-
-  // Calculate total and remaining amounts
-  const totalAmount = selectedServices.reduce(
+  const [totalWithCommission, setTotalWithCommission] = useState<number>(0);
+  
+  const totalPackageAmount = selectedServices.reduce(
     (total, service) => total + (service.price || 0),
     0
   );
   
-  // Kredi kartı tutarından komisyon kısmı çıkarılmalı (gerçek ödenecek tutar hesaplanmalı)
-  const actualPaidByCreditCard = paymentData.credit_card_paid 
-    ? parseFloat(paymentData.credit_card_paid) - commissionAmount 
-    : 0;
+  const netCreditCardPaid = parseFloat(paymentData.credit_card_paid.replace(/[^\d.-]/g, '')) || 0;
+  const cashPaid = parseFloat(paymentData.cash_paid.replace(/[^\d.-]/g, '')) || 0;
   
-  const remainingAmount =
-    totalAmount -
-    (actualPaidByCreditCard + (Number(paymentData.cash_paid) || 0));
+  const calculatedCommission = netCreditCardPaid > 0 ? netCreditCardPaid * 0.1 : 0;
+
+  // This is what's applied to the package
+  const totalAmountAppliedToPackage = netCreditCardPaid + cashPaid;
+  // This is what the member pays including commission
+  const totalPaidByMember = cashPaid + netCreditCardPaid + calculatedCommission;
+  const remainingAmount = totalPackageAmount - totalAmountAppliedToPackage;
+
+  useEffect(() => {
+    if (netCreditCardPaid > 0) {
+      const commission = netCreditCardPaid * 0.1;
+      setCommissionAmount(parseFloat(commission.toFixed(2)));
+      setTotalWithCommission(netCreditCardPaid + commission);
+    } else {
+      setCommissionAmount(0);
+      setTotalWithCommission(0);
+    }
+  }, [netCreditCardPaid, setCommissionAmount]);
+
+  const setFullCashPayment = (): void => {
+    if (totalPackageAmount === 0) {
+      toast.error("Lütfen önce paket seçin.");
+      return;
+    }
+    setPaymentData({
+      ...paymentData,
+      cash_paid: totalPackageAmount.toString(),
+      credit_card_paid: ""
+    });
+    setCommissionAmount(0);
+    setTotalWithCommission(0);
+    toast.success("Tüm tutar nakit ödeme olarak ayarlandı");
+  };
+
+  const setRemainingCashPayment = (): void => {
+    const remainingAmount = Math.max(0, totalPackageAmount - netCreditCardPaid);
+    if (remainingAmount <= 0) {
+      toast.info("Kalan ödeme tutarı yok.");
+      return;
+    }
+    setPaymentData({
+      ...paymentData,
+      cash_paid: remainingAmount.toString()
+    });
+    toast.success(`Kalan tutar nakit ödeme olarak ayarlandı: ${remainingAmount.toFixed(2)} ₺`);
+  };
+  
+  const handleCreditCardNetAmountChange = (value: string): void => {
+    // Store the raw input value in the state
+    setPaymentData({
+      ...paymentData,
+      credit_card_paid: value,
+    });
+    
+    // Process for calculations
+    const netAmount = parseFloat(value.replace(/[^\d.-]/g, '')) || 0;
+    
+    if (netAmount > 0) {
+      const commission = netAmount * 0.1;
+      setCommissionAmount(parseFloat(commission.toFixed(2)));
+      setTotalWithCommission(netAmount + commission);
+    } else {
+      setCommissionAmount(0);
+      setTotalWithCommission(0);
+    }
+  };
+
+  const setFullCardPayment = (): void => {
+    if (totalPackageAmount === 0) {
+      toast.error("Lütfen önce paket seçin.");
+      return;
+    }
+
+    // Set the net amount as the full package price
+    const netAmount = totalPackageAmount;
+    const commission = netAmount * 0.1;
+    const grossAmount = netAmount + commission;
+    
+    setPaymentData({
+      ...paymentData,
+      credit_card_paid: netAmount.toString(),
+      cash_paid: ""
+    });
+    setCommissionAmount(parseFloat(commission.toFixed(2)));
+    setTotalWithCommission(grossAmount);
+
+    toast.success("Kredi kartı için tam ödeme hesaplandı");
+  };
+
+  const setRemainingCardPayment = (): void => {
+    const remainingForCard = Math.max(0, totalPackageAmount - cashPaid);
+    if (remainingForCard <= 0) {
+      toast.info("Kalan ödeme tutarı yok.");
+      setPaymentData({ ...paymentData, credit_card_paid: "" });
+      setCommissionAmount(0);
+      setTotalWithCommission(0);
+      return;
+    }
+
+    // Set the net amount as the remaining package price
+    const netAmount = remainingForCard;
+    const commission = netAmount * 0.1;
+    const grossAmount = netAmount + commission;
+    
+    setPaymentData({
+      ...paymentData,
+      credit_card_paid: netAmount.toString(),
+    });
+    setCommissionAmount(parseFloat(commission.toFixed(2)));
+    setTotalWithCommission(grossAmount);
+
+    toast.success("Kredi kartı için kalan tutar hesaplandı");
+  };
+
+  const handleContinue = () => {
+    if (totalAmountAppliedToPackage === 0 && totalPackageAmount > 0 && selectedServices.length > 0) {
+      toast.error("Ödeme bilgisi girilmedi", {
+        description: "Lütfen nakit veya kredi kartı ile ödeme alınız."
+      });
+      return;
+    }
+    
+    if (remainingAmount > 0.01 && totalPackageAmount > 0) {
+      toast.warning("Eksik ödeme var!", {
+        description: "Devam etmek için tekrar tıklayın veya ödemeyi tamamlayın",
+        action: {
+          label: "Devam Et",
+          onClick: () => onSubmit()
+        }
+      });
+      return;
+    }    
+    onSubmit();
+  };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className={`p-4 space-y-4 ${isDark ? "bg-gray-900/40" : "bg-white"}`}>
       <div className="space-y-4">
-        {/* Selected Packages Summary */}
-        <div className="bg-muted/30 p-4 rounded-lg border">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold">Seçilen Paketler</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Toplam:</span>
-              <span className="font-semibold text-primary">
-                {totalAmount.toLocaleString("tr-TR")} ₺
-              </span>
-            </div>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Ödeme Adımı</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Paket Tutarı:</span>
+            <span className="text-lg font-bold text-primary">
+              {totalPackageAmount.toLocaleString("tr-TR")} ₺
+            </span>
           </div>
-          <div className="space-y-1.5">
-            {selectedServices.map((service, index) => (
-              <div
-                key={`${service.id}-${index}`}
-                className={`flex justify-between items-center py-2 px-3 rounded-md border ${
-                  isDark
-                    ? "bg-gray-800/50 border-gray-700"
-                    : "bg-gray-50 border-gray-200"
-                }`}
-              >
-                <div className="flex flex-col">
-                  <span
-                    className={`font-medium ${
-                      isDark ? "text-gray-200" : ""
-                    }`}
-                  >
-                    {service.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {service.session_count} Seans | {service.duration}{" "}
-                    Dakika | {service.max_participants} Kişi
-                  </span>
-                </div>
-                <div className="text-sm font-medium text-primary">
-                  {service.price?.toLocaleString("tr-TR")} ₺
-                </div>
-              </div>
-            ))}
+        </div>
+        
+        <Separator />
+        <div className="grid grid-cols-1 gap-4 items-end">
+          <div>
+            <FormLabel htmlFor="payment_date" className="text-sm font-medium">Ödeme Tarihi</FormLabel>
+            <Input
+              id="payment_date"
+              type="date"
+              value={paymentData.payment_date}
+              onChange={(e) =>
+                setPaymentData({ ...paymentData, payment_date: e.target.value })
+              }
+              className={cn("h-10", isDark ? "bg-gray-800 border-gray-700" : "bg-white")}
+            />
           </div>
         </div>
 
-        {/* Payment Details */}
-        <div className="bg-muted/30 p-4 rounded-lg border">
-          <h3 className="text-sm font-semibold mb-3">Ödeme Detayları</h3>
-          
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <FormLabel
-                className={`text-xs font-medium ${
-                  isDark ? "text-gray-300" : "text-gray-700"
-                }`}
-              >
-                Ödeme Tarihi
-              </FormLabel>
-              <Input
-                type="date"
-                value={paymentData.payment_date}
-                onChange={(e) =>
-                  setPaymentData({
-                    ...paymentData,
-                    payment_date: e.target.value,
-                  })
-                }
-                className={`border h-9 text-sm focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary ${
-                  isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <FormLabel
-                    className={`text-xs font-medium ${
-                      isDark ? "text-gray-300" : "text-gray-700"
-                    }`}
+        <div className="grid grid-cols-1 gap-6">
+          <div className="space-y-4">
+            <Card className={cn("p-4", isDark ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200")}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Banknote className={cn("h-5 w-5", isDark ? "text-green-400" : "text-green-600")} />
+                  <FormLabel htmlFor="cash_paid" className="text-sm font-medium m-0">Nakit Ödeme</FormLabel>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-2"
+                    onClick={setRemainingCashPayment}
+                    disabled={totalPackageAmount === 0}
+                    title="Kalan tutarı nakit olarak öde"
                   >
-                    Kredi Kartı
-                  </FormLabel>
-                  {commissionAmount > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      (Komisyon: {commissionAmount.toFixed(2)} ₺)
-                    </div>
-                  )}
+                    Kalanı Öde
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-2"
+                    onClick={setFullCashPayment}
+                    disabled={totalPackageAmount === 0}
+                    title="Tüm paket tutarını nakit olarak ayarla"
+                  >
+                    Tamamını Öde
+                  </Button>
                 </div>
-                
-                <div className="grid grid-cols-7 gap-2">
-                  <div className="relative col-span-5">
-                    <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                      ₺
-                    </div>
-                    <Input
-                      type="number"
-                      value={paymentData.credit_card_paid}
-                      onChange={(e) => {
-                        // Komisyon sıfırlanmalı çünkü manuel değer değişti
-                        setCommissionAmount(0);
-                        setPaymentData({
-                          ...paymentData,
-                          credit_card_paid: e.target.value,
-                        });
-                      }}
-                      className={`border h-9 text-sm pl-7 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary ${
-                        isDark
-                          ? "bg-gray-800 border-gray-700 text-gray-200"
-                          : ""
-                      }`}
-                      placeholder="0"
-                    />
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <Button 
-                      type="button" 
-                      size="sm" 
-                      variant="outline"
-                      className="h-9 w-full text-xs"
-                      title="Tutara %10 komisyon ekle"
-                      onClick={() => {
-                        const currentValue = paymentData.credit_card_paid;
-                        if (currentValue) {
-                          // Gerçek ödeme tutarı aynı kalmalı, komisyon eklenmeli
-                          const baseValue = parseFloat(currentValue);
-                          if (!isNaN(baseValue)) {
-                            const newCommission = baseValue * 0.1;
-                            const withCommission = baseValue + newCommission;
-                            
-                            setCommissionAmount(newCommission);
-                            setPaymentData({
-                              ...paymentData,
-                              credit_card_paid: withCommission.toFixed(2),
-                            });
-                          }
-                        }
-                      }}
-                    >
-                      <Calculator className="h-3.5 w-3.5 mr-1" />
-                      %10
-                    </Button>
-                  </div>
+              </div>
+              <Input
+                id="cash_paid"
+                type="text"
+                inputMode="decimal"
+                placeholder="Miktar giriniz"
+                value={paymentData.cash_paid}
+                onChange={(e) =>
+                  setPaymentData({ ...paymentData, cash_paid: e.target.value })
+                }
+                className={cn("h-10 text-base", isDark ? "bg-gray-700 border-gray-600" : "bg-white")}
+              />
+            </Card>
+
+            <Card className={cn("p-4", isDark ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200")}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className={cn("h-5 w-5", isDark ? "text-blue-400" : "text-blue-600")} />
+                  <FormLabel htmlFor="credit_card_paid" className="text-sm font-medium m-0">Kredi Kartı ile Ödeme</FormLabel>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-2"
+                    onClick={setRemainingCardPayment}
+                    disabled={totalPackageAmount === 0}
+                    title="Kalan tutarı komisyon dahil kredi kartı ile ödemek için hesapla"
+                  >
+                    Kalanı Öde
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs px-2"
+                    onClick={setFullCardPayment}
+                    disabled={totalPackageAmount === 0}
+                    title="Tüm tutarı komisyon dahil kredi kartı ile ödemek için hesapla"
+                  >
+                    Tamamını Öde
+                  </Button>
                 </div>
               </div>
 
               <div>
-                <FormLabel
-                  className={`text-xs font-medium ${
-                    isDark ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  Nakit
-                </FormLabel>
-                <div className="relative">
-                  <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                    ₺
-                  </div>
-                  <Input
-                    type="number"
-                    value={paymentData.cash_paid}
-                    onChange={(e) =>
-                      setPaymentData({
-                        ...paymentData,
-                        cash_paid: e.target.value,
-                      })
-                    }
-                    className={`border h-9 text-sm pl-7 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary ${
-                      isDark
-                        ? "bg-gray-800 border-gray-700 text-gray-200"
-                        : ""
-                    }`}
-                    placeholder="0"
-                  />
-                </div>
+                <FormLabel htmlFor="credit_card_paid" className="text-xs text-muted-foreground">Net Tutar (Komisyon Hariç)</FormLabel>
+                <Input
+                  id="credit_card_paid"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Miktar giriniz"
+                  value={paymentData.credit_card_paid}
+                  onChange={(e) => handleCreditCardNetAmountChange(e.target.value)}
+                  className={cn("h-10 text-base mb-2", isDark ? "bg-gray-700 border-gray-600" : "bg-white")}
+                />
               </div>
-            </div>
 
+              {netCreditCardPaid > 0 && (
+                <div className="space-y-1 mt-2 text-xs">
+                  <div className={`flex justify-between p-1.5 rounded-sm ${isDark ? "bg-gray-700/50" : "bg-gray-100"}`}>
+                    <span className="text-muted-foreground">Hesaplanan Komisyon (%10):</span>
+                    <span className={isDark ? "text-amber-400" : "text-amber-600"}>
+                      {calculatedCommission.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                    </span>
+                  </div>
+                  <div className={`flex justify-between p-1.5 rounded-sm ${isDark ? "bg-gray-700/50" : "bg-gray-100"}`}>
+                    <span className="text-muted-foreground">Komisyon Dahil Toplam:</span>
+                    <span className={isDark ? "text-sky-400" : "text-sky-600 font-medium"}>
+                      {totalWithCommission.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Card>
           </div>
 
-          {/* Remaining Amount */}
-          <div
-            className={`p-3 rounded-md mt-4 ${
-              remainingAmount > 0
-                ? "bg-destructive/10 border border-destructive/30"
-                : "bg-emerald-500/10 border border-emerald-500/30"
-            }`}
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-xs text-muted-foreground">
-                  Kalan Tutar
+          <Card className={cn("p-4 space-y-3", isDark ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200")}>
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              <Wallet className={cn("h-5 w-5", isDark ? "text-primary" : "text-primary")} />
+              Ödeme Özeti
+            </h4>
+            <div className="space-y-2 text-sm">
+              {/* Combined payment summary and total section */}
+              <div className={cn(
+                "rounded-md border-2 mt-3 mb-2 overflow-hidden",
+                isDark 
+                  ? "border-blue-700" 
+                  : "border-blue-200"
+              )}>
+                
+                
+                {/* Payment details */}
+                <div className={cn(
+                  "p-3",
+                  isDark ? "bg-blue-900/20" : "bg-blue-50/50"
+                )}>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      <CreditCard className={cn("h-4 w-4", isDark ? "text-blue-400" : "text-blue-600")} />
+                      <span className="font-medium">K.K. Toplam:</span>
+                    </span>
+                      <span className={cn(isDark ? "text-sky-400" : "text-sky-600", "font-medium")}>
+                        {totalWithCommission.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                      </span>
+                    </div>
+                    
+                    {/* Cash Total */}
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="flex items-center gap-1">
+                        <Banknote className={cn("h-4 w-4", isDark ? "text-green-400" : "text-green-600")} />
+                        <span className="font-medium">Nakit Toplam:</span>
+                      </span>
+                      <span className="font-medium">{cashPaid.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</span>
+                    </div>
+                    
+                    {/* General Total */}
+                    <div className={cn(
+                      "flex justify-between items-center pt-2 mt-2 border-t",
+                      isDark ? "border-blue-800" : "border-blue-200"
+                    )}>
+                      <span className="text-base font-bold">Genel Toplam:</span>
+                      <span className="text-xl font-bold">
+                        {totalPaidByMember.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div
-                  className={`text-lg font-semibold ${
-                    remainingAmount > 0
-                      ? "text-destructive"
-                      : remainingAmount < 0
-                      ? "text-yellow-600"
-                      : "text-emerald-600"
-                  }`}
-                >
-                  {remainingAmount.toLocaleString("tr-TR", {
+              </div>
+
+              {/* Less prominent remaining amount section */}
+              {remainingAmount !== 0 && (
+              <div className="flex justify-between text-sm mt-2 px-1">
+                <span className={cn(
+                  "font-medium",
+                  remainingAmount > 0.01 
+                    ? (isDark ? "text-red-400" : "text-red-600") 
+                    : remainingAmount < -0.01 
+                      ? (isDark ? "text-yellow-400" : "text-yellow-600") 
+                      : (isDark ? "text-green-400" : "text-green-600")
+                )}>
+                  {remainingAmount > 0.01 ? "Kalan Tutar:" :
+                   remainingAmount < -0.01 ? "Fazla Ödeme:" :
+                   ""}
+                </span>
+                <span className={cn(
+                  "font-medium",
+                  remainingAmount > 0.01 
+                    ? (isDark ? "text-red-400" : "text-red-600") 
+                    : remainingAmount < -0.01 
+                      ? (isDark ? "text-yellow-400" : "text-yellow-600") 
+                      : (isDark ? "text-green-400" : "text-green-600")
+                )}>
+                  {Math.abs(remainingAmount).toLocaleString("tr-TR", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                   })} ₺
-                </div>
+                </span>
               </div>
-              <div className="flex items-center gap-1">
-                {remainingAmount === 0 && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-emerald-500"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                )}
-              </div>
+              )}
             </div>
-          </div>
+          </Card>
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-between mt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          disabled={isSubmitting}
-          className="flex items-center gap-1"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="flex justify-between mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            disabled={isSubmitting}
+            className="flex items-center gap-1.5"
           >
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-          </svg>
-          Geri
-        </Button>
-        <Button
-          type="button"
-          disabled={isSubmitting}
-          className="min-w-[120px] flex items-center gap-1"
-          onClick={onSubmit}
-        >
-          {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
-          {!isSubmitting && (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          )}
-        </Button>
+            <ArrowLeft className="h-4 w-4"/>
+             Geri
+          </Button>
+          <Button
+            type="button"
+            disabled={isSubmitting || (totalPackageAmount > 0 && totalAmountAppliedToPackage < 0.01 && selectedServices.length > 0) }
+            className="min-w-[130px] flex items-center gap-1.5 bg-green-900 hover:bg-green-800 text-white"
+            onClick={handleContinue}
+          >
+            {isSubmitting ? "İşleniyor..." : "Ödemeyi aldım. Önizleme yap"}
+            {!isSubmitting && <ArrowRight className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </Card>
   );

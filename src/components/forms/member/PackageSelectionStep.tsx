@@ -54,9 +54,9 @@ export function PackageSelectionStep({
   };
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card className="p-4 space-y-4 shadow-sm border-2 border-gray-200 dark:border-gray-700">
       <div className="space-y-4">
-        <div className="bg-muted/30 p-4 rounded-lg border">
+        <div className="bg-muted/30 p-4 rounded-lg border-2 border-gray-300 dark:border-gray-700 shadow-sm">
           <div className="flex flex-col space-y-4">
             {/* Selected Packages with Total */}
             <div className="space-y-2">
@@ -90,10 +90,10 @@ export function PackageSelectionStep({
                     {existingServices.map((service, index) => (
                       <div
                         key={`existing-payment-${service.id}-${index}`}
-                        className={`flex justify-between items-center py-2 px-3 rounded-md border ${
+                        className={`flex justify-between items-center py-2 px-3 rounded-md border-2 shadow-sm ${
                           isDark
                             ? "bg-gray-800/50 border-gray-700"
-                            : "bg-gray-50 border-gray-200"
+                            : "bg-white border-gray-300"
                         }`}
                       >
                         <div className="flex flex-col">

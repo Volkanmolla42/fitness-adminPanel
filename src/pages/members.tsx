@@ -534,11 +534,6 @@ const MembersPage = () => {
           <DialogContent
             className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
           >
-            <DialogHeader>
-              <DialogTitle className={isDark ? "dark:text-white" : ""}>
-                Yeni Üye
-              </DialogTitle>
-            </DialogHeader>
             <MemberForm
               onSubmit={handleCreate}
               onCancel={() => setAddingMember(false)}
@@ -645,11 +640,6 @@ const MembersPage = () => {
           <DialogContent
             className={isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""}
           >
-            <DialogHeader>
-              <DialogTitle className={isDark ? "dark:text-white" : ""}>
-                Üye Düzenle
-              </DialogTitle>
-            </DialogHeader>
             <MemberForm
               member={editingMember}
               onSubmit={handleUpdate}

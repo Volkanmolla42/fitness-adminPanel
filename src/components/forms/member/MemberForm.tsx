@@ -23,6 +23,7 @@ import { MemberFormStepIndicator } from "./MemberFormStepIndicator";
 import { MemberInfoStep } from "./MemberInfoStep";
 import { PackageSelectionStep } from "./PackageSelectionStep";
 import { PaymentStep } from "./PaymentStep";
+import { ReviewStep } from "./ReviewStep";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -47,6 +48,7 @@ export function MemberForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [existingServices, setExistingServices] = useState<Service[]>([]);
+  const [commissionAmount, setCommissionAmount] = useState<number>(0);
   const [paymentData, setPaymentData] = useState<{
     credit_card_paid: string;
     cash_paid: string;
@@ -180,19 +182,24 @@ export function MemberForm({
               // Her paketin toplam tutara oranını hesapla
               const ratio = service.price ? service.price / totalAmount : 0;
               
+              // Komisyon hesapla (toplam komisyonun paket için olan kısmı)
+              const packageCommission = commissionAmount * ratio;
+              
               // Bu orana göre ödeme miktarlarını dağıt
               const packageCreditCardPaid = creditCardPaid * ratio;
+              // Kredi kartına komisyonu ekle
+              const packageCreditCardWithCommission = packageCreditCardPaid + packageCommission;
               const packageCashPaid = cashPaid * ratio;
               
               // Ödeme yoksa veya çok düşükse, kayıt oluşturma
-              const totalPackagePayment = packageCreditCardPaid + packageCashPaid;
+              const totalPackagePayment = packageCreditCardWithCommission + packageCashPaid;
               if (totalPackagePayment < 1) return { error: null };
               
               return supabase
                 .from("member_payments")
                 .insert({
                   member_name: `${formData.first_name} ${formData.last_name}`,
-                  credit_card_paid: Number(packageCreditCardPaid.toFixed(2)),
+                  credit_card_paid: Number(packageCreditCardWithCommission.toFixed(2)),
                   cash_paid: Number(packageCashPaid.toFixed(2)),
                   created_at: paymentData.payment_date,
                   package_name: service.name,
@@ -238,18 +245,17 @@ export function MemberForm({
 
       // Ödeme adımındayken
       if (currentStep === 3) {
-        if (
-          selectedServices.length > 0 &&
-          !paymentData.credit_card_paid &&
-          !paymentData.cash_paid
-        ) {
+        if (selectedServices.length > 0 && !paymentData.credit_card_paid && !paymentData.cash_paid) {
           toast.error("Lütfen nakit veya kredi kartı ile ödeme alınız.", {
             description: "Ödeme bilgileri boş bırakılamaz.",
           });
-          setIsSubmitting(false);
           return;
         }
-
+        setCurrentStep(4);
+      }
+      
+      // İnceleme (review) adımındayken
+      if (currentStep === 4) {
         // Önce üye bilgilerini kaydet
         await onSubmit({
           ...formData,
@@ -275,15 +281,20 @@ export function MemberForm({
               // Her paketin toplam tutara oranını hesapla
               const ratio = service.price ? service.price / totalAmount : 0;
               
+              // Komisyon hesapla (toplam komisyonun paket için olan kısmı)
+              const packageCommission = commissionAmount * ratio;
+              
               // Bu orana göre ödeme miktarlarını dağıt
               const packageCreditCardPaid = creditCardPaid * ratio;
+              // Kredi kartına komisyonu ekle
+              const packageCreditCardWithCommission = packageCreditCardPaid + packageCommission;
               const packageCashPaid = cashPaid * ratio;
               
               return supabase
                 .from("member_payments")
                 .insert({
                   member_name: `${formData.first_name} ${formData.last_name}`,
-                  credit_card_paid: Number(packageCreditCardPaid.toFixed(2)),
+                  credit_card_paid: Number(packageCreditCardWithCommission.toFixed(2)),
                   cash_paid: Number(packageCashPaid.toFixed(2)),
                   created_at: paymentData.payment_date,
                   package_name: service.name,
@@ -398,12 +409,24 @@ export function MemberForm({
         return;
       }
       setCurrentStep(3);
+    } else if (currentStep === 3) {
+      if (selectedServices.length > 0 && !paymentData.credit_card_paid && !paymentData.cash_paid) {
+        toast.error("Lütfen nakit veya kredi kartı ile ödeme alınız.", {
+          description: "Ödeme bilgileri boş bırakılamaz.",
+        });
+        return;
+      }
+      setCurrentStep(4);
     }
   };
 
   return (
     <Form {...form}>
-      <div className={`space-y-6 ${isDark ? "text-gray-200" : ""}`}>
+        {/* Adım Göstergesi */}
+        <MemberFormStepIndicator
+          currentStep={currentStep}
+        />
+      <div className={`${isDark ? "text-gray-200" : ""} form-scroll`}>
         {/* Paket Silme Onay Diyaloğu */}
         <AlertDialog
           open={showDeleteConfirm}
@@ -432,11 +455,6 @@ export function MemberForm({
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Adım Göstergesi */}
-        <MemberFormStepIndicator
-          currentStep={currentStep}
-          isEditing={isEditing}
-        />
 
         {/* Form Adımları */}
         {currentStep === 1 ? (
@@ -464,13 +482,24 @@ export function MemberForm({
             onBack={() => setCurrentStep(1)}
             onNext={handleNext}
           />
-        ) : (
+        ) : currentStep === 3 ? (
           <PaymentStep
             isSubmitting={isSubmitting}
             selectedServices={selectedServices}
             paymentData={paymentData}
             setPaymentData={setPaymentData}
+            setCommissionAmount={setCommissionAmount}
             onBack={() => setCurrentStep(2)}
+            onSubmit={handleNext}
+          />
+        ) : (
+          <ReviewStep
+            form={form}
+            isSubmitting={isSubmitting}
+            selectedServices={selectedServices}
+            paymentData={paymentData}
+            commissionAmount={commissionAmount}
+            onBack={() => setCurrentStep(3)}
             onSubmit={handleFormSubmit}
           />
         )}

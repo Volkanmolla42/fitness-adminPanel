@@ -2,55 +2,42 @@ import React from "react";
 
 interface MemberFormStepIndicatorProps {
   currentStep: number;
-  isEditing: boolean;
 }
 
 export function MemberFormStepIndicator({
   currentStep,
-  isEditing,
 }: MemberFormStepIndicatorProps) {
-  if (isEditing) return null;
+ 
+
+  const steps = [
+    { id: 1, label: "Üye Bilgileri" },
+    { id: 2, label: "Paket Seçimi" },
+    { id: 3, label: "Ödeme Bilgileri" },
+    { id: 4, label: "Önizleme" },
+  ];
 
   return (
-    <div className="flex justify-between items-center mb-4">
-      <div className="flex items-center space-x-2">
-        <div
-          className={`rounded-full h-8 w-8 flex items-center justify-center text-sm font-medium ${
-            currentStep === 1
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
-          }`}
-        >
-          1
-        </div>
-        <div className="text-sm font-medium">Üye Bilgileri</div>
-      </div>
-      <div className="h-0.5 w-10 bg-muted"></div>
-      <div className="flex items-center space-x-2">
-        <div
-          className={`rounded-full h-8 w-8 flex items-center justify-center text-sm font-medium ${
-            currentStep === 2
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
-          }`}
-        >
-          2
-        </div>
-        <div className="text-sm font-medium">Paket Seçimi</div>
-      </div>
-      <div className="h-0.5 w-10 bg-muted"></div>
-      <div className="flex items-center space-x-2">
-        <div
-          className={`rounded-full h-8 w-8 flex items-center justify-center text-sm font-medium ${
-            currentStep === 3
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
-          }`}
-        >
-          3
-        </div>
-        <div className="text-sm font-medium">Ödeme Bilgileri</div>
-      </div>
+    <div className="flex justify-between items-center px-8">
+      {steps.map((step, index) => (
+        <React.Fragment key={step.id}>
+          <div className="flex flex-col items-center space-y-1">
+            <div
+              className={`rounded-full h-8 w-8 flex items-center justify-center text-sm font-medium ${
+                currentStep === step.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {step.id}
+            </div>
+            <div className="text-sm text-center">{step.label}</div>
+          </div>
+
+          {index !== steps.length - 1 && (
+            <div className="flex-1 h-0.5 bg-muted mx-2"></div>
+          )}
+        </React.Fragment>
+      ))}
     </div>
   );
 }

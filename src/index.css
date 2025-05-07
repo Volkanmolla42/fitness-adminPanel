@@ -139,4 +139,18 @@
   .dark * {
     scrollbar-color: hsl(var(--primary) / 0.5) hsl(var(--secondary) / 0.2);
   }
+  
+  /* Form scrollbar için özel tasarım */
+  .form-scroll {
+    @apply max-h-[calc(100vh-120px)] overflow-y-auto pb-2;
+    scrollbar-width: thin;
+  }
+  
+  .form-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .form-scroll::-webkit-scrollbar-thumb {
+    @apply bg-primary/50 hover:bg-primary/70 rounded-full;
+  }
 }

@@ -47,7 +47,7 @@ export function MemberInfoStep({
   const isDark = theme === "dark";
 
   return (
-    <div className="space-y-4 mb-4">
+    <div className="space-y-4 mb-4 p-1">
       <div
         className={`text-xs font-medium ${
           isDark ? "text-gray-400" : "text-muted-foreground"
@@ -57,10 +57,10 @@ export function MemberInfoStep({
       </div>
 
       <div
-        className={`flex flex-col sm:flex-row gap-6 p-4 border rounded-lg ${
+        className={`flex flex-col sm:flex-row gap-6 p-4 border-2 rounded-lg shadow-sm ${
           isDark
             ? "bg-gray-800/50 border-gray-700"
-            : "bg-gray-50 border-gray-200"
+            : "bg-gray-50/80 border-gray-300"
         }`}
       >
         {/* Avatar Section */}
@@ -144,11 +144,11 @@ export function MemberInfoStep({
               <FormItem className="mt-2">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`relative inline-flex items-center ${
+                    className={`flex items-center border-2 px-3 py-2 rounded-md ${
                       isDark
-                        ? "bg-gray-700/50 hover:bg-gray-700"
-                        : "bg-gray-100 hover:bg-gray-200"
-                    } p-1.5 rounded-md transition-colors`}
+                        ? "bg-gray-800/50 border-gray-700"
+                        : "bg-white border-gray-300 shadow-sm"
+                    } hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring gap-2`}
                   >
                     <input
                       type="checkbox"
@@ -197,16 +197,16 @@ export function MemberInfoStep({
                       placeholder="Ad"
                       {...field}
                       onChange={(e) => {
-                        const words = e.target.value.split(' ');
-                        const capitalizedWords = words.map(word => 
+                        const words = e.target.value.split(" ");
+                        const capitalizedWords = words.map((word) =>
                           word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                         );
-                        field.onChange(capitalizedWords.join(' '));
+                        field.onChange(capitalizedWords.join(" "));
                       }}
                       className={`border-2 ${
                         isDark
                           ? "bg-gray-800/80 border-gray-700 text-gray-200 focus-visible:border-primary/70 focus-visible:ring-primary/30"
-                          : "bg-white border-gray-200 focus-visible:border-primary focus-visible:ring-primary/20"
+                          : "bg-white border-gray-300 text-gray-900 focus-visible:border-primary focus-visible:ring-primary/20"
                       }`}
                     />
                   </FormControl>
@@ -239,7 +239,7 @@ export function MemberInfoStep({
                       className={`border-2 ${
                         isDark
                           ? "bg-gray-800/80 border-gray-700 text-gray-200 focus-visible:border-primary/70 focus-visible:ring-primary/30"
-                          : "bg-white border-gray-200 focus-visible:border-primary focus-visible:ring-primary/20"
+                          : "bg-white border-gray-300 text-gray-900 focus-visible:border-primary focus-visible:ring-primary/20"
                       }`}
                     />
                   </FormControl>
@@ -276,7 +276,7 @@ export function MemberInfoStep({
                       className={`border-2 ${
                         isDark
                           ? "bg-gray-800/80 border-gray-700 text-gray-200 focus-visible:border-primary/70 focus-visible:ring-primary/30"
-                          : "bg-white border-gray-200 focus-visible:border-primary focus-visible:ring-primary/20"
+                          : "bg-white border-gray-300 text-gray-900 focus-visible:border-primary focus-visible:ring-primary/20"
                       }`}
                     />
                   </FormControl>
@@ -312,7 +312,7 @@ export function MemberInfoStep({
                       className={`border-2 ${
                         isDark
                           ? "bg-gray-800/80 border-gray-700 text-gray-200 focus-visible:border-primary/70 focus-visible:ring-primary/30"
-                          : "bg-white border-gray-200 focus-visible:border-primary focus-visible:ring-primary/20"
+                          : "bg-white border-gray-300 text-gray-900 focus-visible:border-primary focus-visible:ring-primary/20"
                       }`}
                     />
                   </FormControl>
@@ -431,7 +431,7 @@ export function MemberInfoStep({
                   placeholder="Notlar.."
                   {...field}
                   className={`border-2 focus-visible:border-primary ${
-                    isDark ? "bg-gray-800 border-gray-700 text-gray-200" : ""
+                    isDark ? "bg-gray-800 border-gray-700 text-gray-200" : "bg-white border-gray-300 text-gray-900"
                   }`}
                 />
               </FormControl>
