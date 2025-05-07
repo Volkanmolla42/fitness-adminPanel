@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { columns } from "@/components/member-payments-columns";
 import { MemberPaymentsTable } from "@/components/ui/member-payments-table";
 import { Database } from "@/types/supabase";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 // Import custom hooks
 import { useMemberPayments } from "@/hooks/useMemberPayments";
@@ -25,9 +27,8 @@ export function MemberPaymentsCard() {
   const { 
     memberPayments, 
     isLoading: paymentsLoading, 
-    addPayment, 
-    updatePayment, 
-    deletePayment 
+    deletePayment,
+    fetchMemberPayments
   } = useMemberPayments();
   
   // Fetch and manage member packages data
@@ -99,17 +100,30 @@ export function MemberPaymentsCard() {
     
     setIsSubmitting(true);
     try {
-      const success = await updatePayment(editingPayment.id, {
-        member_name: formData.member_name,
-        credit_card_paid: parseFloat(formData.credit_card_paid),
-        cash_paid: parseFloat(formData.cash_paid),
-        created_at: formData.created_at,
-        package_name: formData.package_name,
-      });
-      
-      if (success) {
-        setEditingPayment(null);
+      // Düz güncelleme yerine, düzenlemeyi uygulayalım
+      const { error } = await supabase
+        .from("member_payments")
+        .update({
+          member_name: formData.member_name,
+          credit_card_paid: formData.credit_card_paid === "" ? 0 : parseFloat(formData.credit_card_paid),
+          cash_paid: formData.cash_paid === "" ? 0 : parseFloat(formData.cash_paid),
+          created_at: formData.created_at,
+          package_name: formData.package_name,
+        })
+        .eq("id", editingPayment.id);
+        
+      if (error) {
+        throw error;
       }
+      
+      toast.success("Ödeme başarıyla güncellendi");
+      setEditingPayment(null);
+      await fetchMemberPayments();
+    } catch (error) {
+      console.error("Ödeme güncelleme hatası:", error);
+      toast.error("Ödeme güncellenirken bir hata oluştu", {
+        description: "Lütfen tekrar deneyin",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -133,24 +147,55 @@ export function MemberPaymentsCard() {
   const handleAddPayment = async () => {
     setIsSubmitting(true);
     try {
-      const success = await addPayment({
-        member_name: newPayment.member_name,
-        credit_card_paid: parseFloat(newPayment.credit_card_paid) || 0,
-        cash_paid: parseFloat(newPayment.cash_paid) || 0,
-        created_at: newPayment.created_at,
-        package_name: newPayment.package_name,
-      });
-      
-      if (success) {
-        setIsAddingPayment(false);
-        setNewPayment({
-          member_name: "",
-          credit_card_paid: "",
-          cash_paid: "",
-          created_at: new Date().toISOString().split("T")[0],
-          package_name: "",
-        });
+      // Tek bir paket için ödeme eklemek yerine, 
+      // birden fazla paket seçilebilmesi durumunu göz önüne alalım
+      if (!newPayment.member_name || !newPayment.package_name) {
+        toast.error("Lütfen üye ve paket bilgilerini doldurun");
+        setIsSubmitting(false);
+        return;
       }
+      
+      // Seçilen paket(ler)i bul
+      const selectedPackage = selectedMemberPackages.find(
+        pkg => pkg.name === newPayment.package_name
+      );
+      
+      if (!selectedPackage) {
+        toast.error("Seçilen paket bulunamadı");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Ödeme kaydını oluştur
+      const { error } = await supabase
+        .from("member_payments")
+        .insert({
+          member_name: newPayment.member_name,
+          credit_card_paid: newPayment.credit_card_paid === "" ? 0 : parseFloat(newPayment.credit_card_paid),
+          cash_paid: newPayment.cash_paid === "" ? 0 : parseFloat(newPayment.cash_paid),
+          created_at: newPayment.created_at,
+          package_name: newPayment.package_name,
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Ödeme başarıyla eklendi");
+      setIsAddingPayment(false);
+      setNewPayment({
+        member_name: "",
+        credit_card_paid: "",
+        cash_paid: "",
+        created_at: new Date().toISOString().split("T")[0],
+        package_name: "",
+      });
+      await fetchMemberPayments();
+    } catch (error) {
+      console.error("Ödeme ekleme hatası:", error);
+      toast.error("Ödeme eklenirken bir hata oluştu", {
+        description: "Lütfen tekrar deneyin",
+      });
     } finally {
       setIsSubmitting(false);
     }

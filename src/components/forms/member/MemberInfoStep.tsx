@@ -196,6 +196,13 @@ export function MemberInfoStep({
                     <Input
                       placeholder="Ad"
                       {...field}
+                      onChange={(e) => {
+                        const words = e.target.value.split(' ');
+                        const capitalizedWords = words.map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                        );
+                        field.onChange(capitalizedWords.join(' '));
+                      }}
                       className={`border-2 ${
                         isDark
                           ? "bg-gray-800/80 border-gray-700 text-gray-200 focus-visible:border-primary/70 focus-visible:ring-primary/30"

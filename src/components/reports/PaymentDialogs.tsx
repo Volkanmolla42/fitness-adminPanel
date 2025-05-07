@@ -152,9 +152,23 @@ export const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
             </Label>
             <Select
               value={formData.package_name}
-              onValueChange={(value) =>
-                setFormData({ ...formData, package_name: value })
-              }
+              onValueChange={(value) => {
+                // Seçilen paketi bul
+                const selectedPackage = selectedMemberPackages.find(
+                  pkg => pkg.name === value
+                );
+
+                // Eğer paket bulunduysa, onun fiyatını önerilen tutar olarak göster
+                if (selectedPackage) {
+                  setFormData({ 
+                    ...formData, 
+                    package_name: value,
+                    credit_card_paid: selectedPackage.price.toString()
+                  });
+                } else {
+                  setFormData({ ...formData, package_name: value });
+                }
+              }}
             >
               <SelectTrigger className="col-span-3 text-gray-900 dark:text-white">
                 <SelectValue placeholder="Paket seçin" />
@@ -166,7 +180,8 @@ export const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
                     value={pkg.name}
                     className="text-[14px]"
                   >
-                    {pkg.name} - {pkg.price}₺
+                    {pkg.name} -{" "}
+                    <span className="text-primary font-medium"> {pkg.price.toLocaleString("tr-TR")}₺</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -190,7 +205,7 @@ export const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
                 setFormData({
                   ...formData,
                   credit_card_paid:
-                    e.target.value === "" ? "0" : e.target.value,
+                    e.target.value === "" ? "" : e.target.value,
                 })
               }
               className="col-span-3 text-gray-900 dark:text-white"
@@ -212,7 +227,7 @@ export const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  cash_paid: e.target.value === "" ? "0" : e.target.value,
+                  cash_paid: e.target.value === "" ? "" : e.target.value,
                 })
               }
               className="col-span-3 text-gray-900 dark:text-white"
@@ -364,9 +379,24 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({
             </Label>
             <Select
               value={newPayment.package_name}
-              onValueChange={(value) =>
-                setNewPayment({ ...newPayment, package_name: value })
-              }
+              onValueChange={(value) => {
+                // Seçilen paketi bul
+                const selectedPackage = selectedMemberPackages.find(
+                  pkg => pkg.name === value
+                );
+
+                // Eğer paket bulunduysa, onun fiyatını önerilen tutar olarak göster
+                if (selectedPackage) {
+                  const suggestedValue = selectedPackage.price.toString();
+                  setNewPayment({ 
+                    ...newPayment, 
+                    package_name: value,
+                    credit_card_paid: suggestedValue
+                  });
+                } else {
+                  setNewPayment({ ...newPayment, package_name: value });
+                }
+              }}
             >
               <SelectTrigger className="col-span-3 text-gray-900 dark:text-white">
                 <SelectValue placeholder="Paket seçin" />
@@ -379,7 +409,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({
                     className="text-[14px]"
                   >
                     {pkg.name} -{" "}
-                    <span className="text-red-600"> {pkg.price}₺</span>
+                    <span className="text-primary font-medium"> {pkg.price.toLocaleString("tr-TR")}₺</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -402,7 +432,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({
                 setNewPayment({
                   ...newPayment,
                   credit_card_paid:
-                    e.target.value === "" ? "0" : e.target.value,
+                    e.target.value === "" ? "" : e.target.value,
                 })
               }
               className="col-span-3 text-gray-900 dark:text-white"
@@ -424,7 +454,7 @@ export const AddPaymentDialog: React.FC<AddPaymentDialogProps> = ({
               onChange={(e) =>
                 setNewPayment({
                   ...newPayment,
-                  cash_paid: e.target.value === "" ? "0" : e.target.value,
+                  cash_paid: e.target.value === "" ? "" : e.target.value,
                 })
               }
               className="col-span-3 text-gray-900 dark:text-white"

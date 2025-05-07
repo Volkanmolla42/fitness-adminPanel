@@ -165,27 +165,53 @@ export function MemberForm({
 
         if (selectedServices.length > 0) {
           try {
-            const { error: paymentError } = await supabase
-              .from("member_payments")
-              .insert({
-                member_name: `${formData.first_name} ${formData.last_name}`,
-                credit_card_paid: Number(paymentData.credit_card_paid) || 0,
-                cash_paid: Number(paymentData.cash_paid) || 0,
-                created_at: paymentData.payment_date,
-                package_name: selectedServices
-                  .map((service) => service.name)
-                  .join(", "),
+            // Toplam paket tutarını hesapla
+            const totalAmount = selectedServices.reduce(
+              (sum, service) => sum + (service.price || 0), 
+              0
+            );
+            
+            // Kredi kartı ve nakit ödemelerini toplam tutara oranlı olarak dağıt
+            const creditCardPaid = Number(paymentData.credit_card_paid) || 0;
+            const cashPaid = Number(paymentData.cash_paid) || 0;
+            
+            // Her yeni eklenen paket için ayrı bir ödeme kaydı oluştur
+            const paymentPromises = selectedServices.map(async (service) => {
+              // Her paketin toplam tutara oranını hesapla
+              const ratio = service.price ? service.price / totalAmount : 0;
+              
+              // Bu orana göre ödeme miktarlarını dağıt
+              const packageCreditCardPaid = creditCardPaid * ratio;
+              const packageCashPaid = cashPaid * ratio;
+              
+              // Ödeme yoksa veya çok düşükse, kayıt oluşturma
+              const totalPackagePayment = packageCreditCardPaid + packageCashPaid;
+              if (totalPackagePayment < 1) return { error: null };
+              
+              return supabase
+                .from("member_payments")
+                .insert({
+                  member_name: `${formData.first_name} ${formData.last_name}`,
+                  credit_card_paid: Number(packageCreditCardPaid.toFixed(2)),
+                  cash_paid: Number(packageCashPaid.toFixed(2)),
+                  created_at: paymentData.payment_date,
+                  package_name: service.name,
+                });
+            });
+            
+            // Tüm ödeme işlemlerini bekle
+            const results = await Promise.all(paymentPromises);
+            
+            // Hata kontrolü
+            const errors = results.filter(result => result.error);
+            
+            if (errors.length > 0) {
+              console.error("Payment errors:", errors);
+              toast.error("Bazı ödeme kayıtları oluşturulurken hatalar oluştu", {
+                description: "Lütfen ödeme kayıtlarını kontrol edin",
               });
-
-            if (paymentError) {
-              toast.error("Ödeme kaydı oluşturulurken bir hata oluştu", {
-                description: "Lütfen tekrar deneyin",
-              });
-              console.error("Payment error:", paymentError);
-            } else {
-              toast.success(
-                "Yeni paketler başarıyla eklendi ve ödeme kaydedildi"
-              );
+            } else if (selectedServices.length > 0) {
+              toast.success("Yeni paketler başarıyla eklendi ve ödemeler kaydedildi");
             }
           } catch (paymentError) {
             console.error("Ödeme kaydı oluşturma hatası:", paymentError);
@@ -234,23 +260,49 @@ export function MemberForm({
         // Varsa ödeme kaydını oluştur
         if (selectedServices.length > 0) {
           try {
-            const { error: paymentError } = await supabase
-              .from("member_payments")
-              .insert({
-                member_name: `${formData.first_name} ${formData.last_name}`,
-                credit_card_paid: Number(paymentData.credit_card_paid) || 0,
-                cash_paid: Number(paymentData.cash_paid) || 0,
-                created_at: paymentData.payment_date,
-                package_name: selectedServices
-                  .map((service) => service.name)
-                  .join(", "),
-              });
+            // Her paket için toplam tutarı hesapla
+            const totalAmount = selectedServices.reduce(
+              (sum, service) => sum + (service.price || 0),
+              0
+            );
 
-            if (paymentError) {
-              toast.error("Ödeme kaydı oluşturulurken bir hata oluştu", {
-                description: "Lütfen tekrar deneyin",
+            // Kredi kartı ve nakit ödemelerini toplam tutara oranlı olarak dağıt
+            const creditCardPaid = Number(paymentData.credit_card_paid) || 0;
+            const cashPaid = Number(paymentData.cash_paid) || 0;
+            
+            // Her paket için ayrı bir ödeme kaydı oluştur
+            const paymentPromises = selectedServices.map(async (service) => {
+              // Her paketin toplam tutara oranını hesapla
+              const ratio = service.price ? service.price / totalAmount : 0;
+              
+              // Bu orana göre ödeme miktarlarını dağıt
+              const packageCreditCardPaid = creditCardPaid * ratio;
+              const packageCashPaid = cashPaid * ratio;
+              
+              return supabase
+                .from("member_payments")
+                .insert({
+                  member_name: `${formData.first_name} ${formData.last_name}`,
+                  credit_card_paid: Number(packageCreditCardPaid.toFixed(2)),
+                  cash_paid: Number(packageCashPaid.toFixed(2)),
+                  created_at: paymentData.payment_date,
+                  package_name: service.name,
+                });
+            });
+            
+            // Tüm ödeme işlemlerini bekle
+            const results = await Promise.all(paymentPromises);
+            
+            // Hata kontrolü
+            const errors = results.filter(result => result.error);
+            
+            if (errors.length > 0) {
+              console.error("Payment errors:", errors);
+              toast.error("Bazı ödeme kayıtları oluşturulurken hatalar oluştu", {
+                description: "Lütfen ödeme kayıtlarını kontrol edin",
               });
-              console.error("Payment error:", paymentError);
+            } else {
+              toast.success("Üye ve paketleri başarıyla kaydedildi");
             }
           } catch (paymentError) {
             console.error("Ödeme kaydı oluşturma hatası:", paymentError);
