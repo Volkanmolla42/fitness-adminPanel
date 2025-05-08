@@ -165,6 +165,7 @@ export function MemberForm({
           subscribed_services: updatedServices,
         });
 
+        // Düzenleme modunda yeni paketler için ödeme kaydı oluştur
         if (selectedServices.length > 0) {
           try {
             // Toplam paket tutarını hesapla
@@ -190,10 +191,6 @@ export function MemberForm({
               // Kredi kartına komisyonu ekle
               const packageCreditCardWithCommission = packageCreditCardPaid + packageCommission;
               const packageCashPaid = cashPaid * ratio;
-              
-              // Ödeme yoksa veya çok düşükse, kayıt oluşturma
-              const totalPackagePayment = packageCreditCardWithCommission + packageCashPaid;
-              if (totalPackagePayment < 1) return { error: null };
               
               return supabase
                 .from("member_payments")
@@ -289,7 +286,7 @@ export function MemberForm({
               // Kredi kartına komisyonu ekle
               const packageCreditCardWithCommission = packageCreditCardPaid + packageCommission;
               const packageCashPaid = cashPaid * ratio;
-              
+                   
               return supabase
                 .from("member_payments")
                 .insert({
@@ -490,7 +487,7 @@ export function MemberForm({
             setPaymentData={setPaymentData}
             setCommissionAmount={setCommissionAmount}
             onBack={() => setCurrentStep(2)}
-            onSubmit={handleNext}
+            onNext={handleNext}
           />
         ) : (
           <ReviewStep

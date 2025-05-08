@@ -23,7 +23,7 @@ interface PaymentStepProps {
   setPaymentData: (data: PaymentData) => void;
   setCommissionAmount: (amount: number) => void;
   onBack: () => void;
-  onSubmit: () => void;
+  onNext: () => void;
 }
 
 export function PaymentStep({
@@ -33,7 +33,7 @@ export function PaymentStep({
   setPaymentData,
   setCommissionAmount,
   onBack,
-  onSubmit,
+  onNext,
 }: PaymentStepProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -162,24 +162,7 @@ export function PaymentStep({
   };
 
   const handleContinue = () => {
-    if (totalAmountAppliedToPackage === 0 && totalPackageAmount > 0 && selectedServices.length > 0) {
-      toast.error("Ödeme bilgisi girilmedi", {
-        description: "Lütfen nakit veya kredi kartı ile ödeme alınız."
-      });
-      return;
-    }
-    
-    if (remainingAmount > 0.01 && totalPackageAmount > 0) {
-      toast.warning("Eksik ödeme var!", {
-        description: "Devam etmek için tekrar tıklayın veya ödemeyi tamamlayın",
-        action: {
-          label: "Devam Et",
-          onClick: () => onSubmit()
-        }
-      });
-      return;
-    }    
-    onSubmit();
+    onNext();
   };
 
   return (
@@ -422,11 +405,14 @@ export function PaymentStep({
           </Button>
           <Button
             type="button"
-            disabled={isSubmitting || (totalPackageAmount > 0 && totalAmountAppliedToPackage < 0.01 && selectedServices.length > 0) }
-            className="min-w-[130px] flex items-center gap-1.5 bg-green-900 hover:bg-green-800 text-white"
+            disabled={isSubmitting}
+            className="min-w-[130px] flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white"
             onClick={handleContinue}
           >
-            {isSubmitting ? "İşleniyor..." : "Ödemeyi aldım. Önizleme yap"}
+            {isSubmitting ? "İşleniyor..." : 
+             (totalAmountAppliedToPackage === 0 && totalPackageAmount > 0) ? 
+             "Ödeme sonra yapılacak önizleme yap" : 
+             "Ödemeyi aldım. Önizleme yap"}
             {!isSubmitting && <ArrowRight className="h-4 w-4" />}
           </Button>
         </div>
