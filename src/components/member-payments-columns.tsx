@@ -25,6 +25,37 @@ export const columns = ({
   onDelete,
 }: MemberPaymentColumnProps): ColumnDef<MemberPayment>[] => [
   {
+    id: "actions",
+    size: 40,
+    cell: ({ row }) => {
+      const payment = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Menüyü aç</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(payment)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Düzenle
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => onDelete(payment)}
+              className="text-red-600"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              Sil
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+  {
     accessorKey: "member_name",
     header: ({ column }) => {
       return (
@@ -161,35 +192,5 @@ export const columns = ({
         <div className="font-medium text-primary">{formatted}</div>
       )
     },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const payment = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Menüyü aç</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(payment)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Düzenle
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onDelete(payment)}
-              className="text-red-600"
-            >
-              <Trash className="mr-2 h-4 w-4" />
-              Sil
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
+  }
 ]
