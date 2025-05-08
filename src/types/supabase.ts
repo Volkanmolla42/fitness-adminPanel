@@ -67,6 +67,33 @@ export type Database = {
           }
         ];
       };
+      contact_messages: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          phone: string;
+          message: string;
+          status: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          phone: string;
+          message: string;
+          status?: string;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          name?: string;
+          phone?: string;
+          message?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
       members: {
         Row: {
           avatar_url: string | null;

@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,11 @@ const navigationItems = [
     icon: UserCog,
     path: "/trainers",
   },
-
+  {
+    title: "Mesajlar",
+    icon: MessageSquare,
+    path: "/messages",
+  },
   {
     title: "Raporlar",
     icon: BarChart3,
