@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import TIME_SLOTS from "@/constants/timeSlots";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 
 interface SessionsDialogProps {
   open: boolean;
@@ -71,15 +71,22 @@ export function SessionsDialog({
   memberId,
   member,
 }: SessionsDialogProps) {
-  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-
+  const { TIME_SLOTS, WORKING_HOURS } = useAvailableTimeSlots();
+  
   const DATE_RESTRICTIONS = {
-    excludedDays: [0] as number[], // 0: Pazar
-  } as const;
+    excludedDays: [0], // Pazar günü (0)
+    workingHours: {
+      start: WORKING_HOURS.start || "10:00",
+      end: WORKING_HOURS.end || "20:00"
+    }
+  };
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
   // Zamanı HH:mm formatına çeviren yardımcı fonksiyon
   const formatTime = React.useCallback((time: string): string => {
-    return time.length === 8 ? time.substring(0, 5) : time;
+    if (time.length === 8) return time.substring(0, 5);
+    const [hours, minutes] = time.split(":");
+    return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
   }, []);
 
   // Tarih ve saat validasyonu

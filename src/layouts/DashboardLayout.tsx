@@ -19,9 +19,9 @@ export function DashboardLayout() {
     return null;
   }
   return (
-    <div className="relative h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <main className="md:ml-20 mt-6 h-screen overflow-auto p-4 md:p-8 bg-gray-100 dark:bg-gray-900">
+      <main className="md:ml-20 h-screen overflow-auto py-8 px-4 md:p-8">
         <Outlet />
       </main>
       <Toaster />

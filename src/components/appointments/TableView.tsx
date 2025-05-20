@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import TIME_SLOTS, { WORKING_HOURS } from "@/constants/timeSlots";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 import { useTheme } from "@/contexts/theme-context";
 
 interface TableViewProps {
@@ -36,18 +36,19 @@ interface TableViewProps {
   onEdit: (appointment: Appointment) => void;
 }
 
-const TableView: React.FC<TableViewProps> = ({
+export function TableView({
   appointments,
   members,
   trainers,
   services,
   onEdit,
-}) => {
+}: TableViewProps) {
   const { theme } = useTheme();
+  const { TIME_SLOTS } = useAvailableTimeSlots();
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [timeRange, setTimeRange] = useState({
-    start: WORKING_HOURS.start,
-    end: WORKING_HOURS.end,
+    start: TIME_SLOTS[0],
+    end: TIME_SLOTS[TIME_SLOTS.length - 1],
   });
 
   // Saat formatını normalize eden yardımcı fonksiyon
@@ -74,8 +75,8 @@ const TableView: React.FC<TableViewProps> = ({
   const filteredAppointments = useMemo(() => {
     return appointments
       .filter((appointment) => {
-        
-       
+
+
 
         const isStatusMatch =
           selectedStatus === "all" || appointment.status === selectedStatus;
@@ -86,7 +87,7 @@ const TableView: React.FC<TableViewProps> = ({
           normalizedAppointmentTime >= timeRange.start &&
           normalizedAppointmentTime <= timeRange.end;
 
-        return  isStatusMatch && isTimeMatch;
+        return isStatusMatch && isTimeMatch;
       })
       .sort((a, b) => {
         // Tarihleri karşılaştır (en eski tarih önce)
@@ -118,9 +119,8 @@ const TableView: React.FC<TableViewProps> = ({
 
     return (
       <Badge
-        className={`${
-          statusColors[status as keyof typeof statusColors]
-        } text-white`}
+        className={`${statusColors[status as keyof typeof statusColors]
+          } text-white`}
       >
         {statusText[status as keyof typeof statusText]}
       </Badge>
@@ -130,9 +130,8 @@ const TableView: React.FC<TableViewProps> = ({
   return (
     <div className="space-y-4">
       <div
-        className={`flex flex-col sm:flex-row gap-4 px-4 rounded-lg ${
-          theme === "dark" ? "bg-gray-00" : "bg-gray-50"
-        }`}
+        className={`flex flex-col sm:flex-row gap-4 px-4 rounded-lg ${theme === "dark" ? "bg-gray-00" : "bg-gray-50"
+          }`}
       >
         <div className="flex-1 space-y-2">
           <Label
@@ -267,18 +266,16 @@ const TableView: React.FC<TableViewProps> = ({
       </div>
 
       <div
-        className={`rounded-md border ${
-          theme === "dark" ? "border-gray-700" : "border-gray-200"
-        }`}
+        className={`rounded-md border ${theme === "dark" ? "border-gray-700" : "border-gray-200"
+          }`}
       >
         <Table>
           <TableHeader>
             <TableRow
-              className={`${
-                theme === "dark"
-                  ? "hover:bg-gray-800/50"
-                  : "hover:bg-gray-50/50"
-              }`}
+              className={`${theme === "dark"
+                ? "hover:bg-gray-800/50"
+                : "hover:bg-gray-50/50"
+                }`}
             >
               <TableHead
                 className={theme === "dark" ? "text-gray-100" : "text-gray-900"}
@@ -327,11 +324,10 @@ const TableView: React.FC<TableViewProps> = ({
               return (
                 <TableRow
                   key={appointment.id}
-                  className={`cursor-pointer ${
-                    theme === "dark"
-                      ? "hover:bg-gray-800/50"
-                      : "hover:bg-gray-50"
-                  }`}
+                  className={`cursor-pointer ${theme === "dark"
+                    ? "hover:bg-gray-800/50"
+                    : "hover:bg-gray-50"
+                    }`}
                   onClick={() => onEdit(appointment)}
                 >
                   <TableCell
@@ -379,9 +375,8 @@ const TableView: React.FC<TableViewProps> = ({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className={`text-center py-4 ${
-                    theme === "dark" ? "text-gray-500" : "text-gray-400"
-                  }`}
+                  className={`text-center py-4 ${theme === "dark" ? "text-gray-500" : "text-gray-400"
+                    }`}
                 >
                   Bu kriterlere uygun randevu bulunamadı
                 </TableCell>

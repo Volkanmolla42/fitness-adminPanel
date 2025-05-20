@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   MessageSquare,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,11 @@ const navigationItems = [
     icon: BarChart3,
     path: "/reports",
   },
+  {
+    title: "Ayarlar",
+    icon: Settings,
+    path: "/settings",
+  },
 ];
 
 interface SidebarContentProps {
@@ -129,7 +135,7 @@ const SidebarContent = memo(
         {/* Logo Area */}
         <div
           className={cn(
-            "relative flex h-44 justify-center flex-col items-center shrink-0 overflow-hidden",
+            "relative flex h-32 justify-center flex-col items-center shrink-0 overflow-hidden",
             theme === "dark"
               ? "bg-gradient-to-b from-gray-900 to-gray-950 border-b border-gray-800"
               : "bg-gradient-to-b from-pink-200 to-pink-300 border-b border-pink-300",
@@ -201,9 +207,9 @@ const SidebarContent = memo(
                           },
                           isActive
                             ? cn(
-                                "bg-pink-100/80 text-pink-700 hover:bg-pink-200/80 dark:bg-gray-800/80 dark:text-pink-400 dark:hover:bg-gray-800",
-                                "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-1 before:bg-gradient-to-b before:from-pink-400 before:to-purple-500 before:rounded-r-full"
-                              )
+                              "bg-pink-100/80 text-pink-700 hover:bg-pink-200/80 dark:bg-gray-800/80 dark:text-pink-400 dark:hover:bg-gray-800",
+                              "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-1 before:bg-gradient-to-b before:from-pink-400 before:to-purple-500 before:rounded-r-full"
+                            )
                             : "text-gray-700 hover:bg-pink-50 dark:text-gray-300 dark:hover:bg-gray-800/50"
                         )}
                         onClick={() => handleNavigation(item.path)}
@@ -494,7 +500,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
             )}
             aria-label="Open menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
         <SheetContent

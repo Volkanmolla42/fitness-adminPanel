@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import type { Database } from "@/types/supabase";
-
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type ServiceInput = Omit<Service, "id" | "created_at">;
@@ -31,10 +31,12 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
       max_participants: service?.max_participants || 1,
       session_count: service?.session_count || 1,
       isVipOnly: service?.isVipOnly || false,
+      active: service?.active ?? true,
     },
   });
 
   const isVipOnly = form.watch("isVipOnly");
+  const isActive = form.watch("active");
 
   // VIP durumu değiştiğinde maksimum katılımcı sayısını güncelle
   React.useEffect(() => {
@@ -141,16 +143,28 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          {...form.register("isVipOnly")}
-          id="isVipOnly"
-          className="h-4 w-4"
-        />
-        <label htmlFor="isVipOnly" className="text-sm font-medium">
-          Sadece VIP Üyelere Özel
-        </label>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between space-x-2">
+          <div className="space-y-0.5">
+            <label className="text-sm font-medium">VIP Üyelere Özel</label>
+            <p className="text-sm text-muted-foreground">Bu paket sadece VIP üyeler için geçerli olacak</p>
+          </div>
+          <Switch
+            checked={isVipOnly}
+            onCheckedChange={(checked) => form.setValue("isVipOnly", checked)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between space-x-2">
+          <div className="space-y-0.5">
+            <label className="text-sm font-medium">Aktif Paket</label>
+            <p className="text-sm text-muted-foreground">Bu paket sistemde görünür ve satın alınabilir olacak</p>
+          </div>
+          <Switch
+            checked={isActive}
+            onCheckedChange={(checked) => form.setValue("active", checked)}
+          />
+        </div>
       </div>
 
       <DialogFooter>

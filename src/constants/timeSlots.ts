@@ -1,25 +1,13 @@
  
- /** Ramazan saateri 
- const TIME_SLOTS = [
-  "11:30",
-  "12:30",
-  "13:30",
-  "15:00",
-  "16:30",
-  "20:00",
-  "21:00",
-  "22:00"
-];
-export default TIME_SLOTS;
-export const WORKING_HOURS = {
-  start: "11:30",
-  end: "23:00",
-};
-*/
+ import { useTimeSlots } from '@/hooks/useTimeSlots';
 
+export function useAvailableTimeSlots() {
+  const { timeSlots, workingHours, loading, error } = useTimeSlots();
+  return { TIME_SLOTS: timeSlots, WORKING_HOURS: workingHours, loading, error };
+}
 
- // Normal saatler
- const TIME_SLOTS = [
+// Fallback defaults in case database is not available
+const DEFAULT_TIME_SLOTS = [
   "10:00",
   "11:30",
   "13:00",
@@ -29,9 +17,11 @@ export const WORKING_HOURS = {
   "18:00",
   "19:00"
 ];
-export default TIME_SLOTS;
-export const WORKING_HOURS = {
+
+export const DEFAULT_WORKING_HOURS = {
   start: "10:00",
   end: "20:00",
 };
+
+export default DEFAULT_TIME_SLOTS;
  

@@ -87,6 +87,7 @@ export const serviceSchema = z.object({
     .max(50, "Katılımcı sayısı 50'den fazla olamaz"),
   session_count: z.number().min(1, "Seans sayısı en az 1 olmalıdır"),
   isVipOnly: z.boolean().default(false),
+  active: z.boolean().default(true),
 });
 
 // Appointment validation schema

@@ -137,6 +137,18 @@ export const updateService = async (
   return data;
 };
 
+export const updateServiceStatus = async (id: string, active: boolean) => {
+  const { data, error } = await supabase
+    .from("services")
+    .update({ active })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
 export const deleteService = async (id: string) => {
   const { error } = await supabase.from("services").delete().eq("id", id);
 

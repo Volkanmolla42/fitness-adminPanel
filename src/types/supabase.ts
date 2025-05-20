@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      settings: {
+        Row: {
+          id: number;
+          key: string;
+          value: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          key: string;
+          value: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          key?: string;
+          value?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       appointments: {
         Row: {
           created_at: string;
@@ -177,6 +201,7 @@ export type Database = {
           max_participants: number;
           session_count: number;
           isVipOnly: boolean;
+          active: boolean;
         };
         Insert: {
           id?: string;
@@ -188,6 +213,7 @@ export type Database = {
           max_participants: number;
           session_count: number;
           isVipOnly: boolean;
+          active?: boolean;
         };
         Update: {
           id?: string;
@@ -199,6 +225,7 @@ export type Database = {
           max_participants?: number;
           session_count?: number;
           isVipOnly?: boolean;
+          active?: boolean;
         };
         Relationships: [];
       };

@@ -8,6 +8,7 @@ import Appointments from "@/pages/appointments";
 import Services from "@/pages/services";
 import Reports from "@/pages/reports";
 import Messages from "@/pages/messages";
+import Settings from "@/pages/settings";
 import Login from "@/pages/login";
 import ErrorPage from "@/pages/error";
 import NotFoundPage from "@/pages/not-found";
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       {/* Catch-all route for 404 - must be the last route */}
       <Route path="*" element={<NotFoundPage />} />

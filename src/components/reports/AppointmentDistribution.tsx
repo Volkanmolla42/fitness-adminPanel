@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Database } from "@/types/supabase";
-import TIME_SLOTS  from "@/constants/timeSlots";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 import { useTheme } from "@/contexts/theme-context";
 
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -44,6 +44,7 @@ export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = (
   appointments,
 }) => {
   const { theme } = useTheme();
+  const { TIME_SLOTS } = useAvailableTimeSlots();
   const barColor = theme === 'dark' ? '#6EE7B7' : '#82ca9d'; // Daha parlak yeşil karanlık tema için
   const textColor = theme === 'dark' ? '#e0e0e0' : '#666';
   const gridColor = theme === 'dark' ? '#333' : '#d0d0d0';
@@ -79,7 +80,7 @@ export const AppointmentDistribution: React.FC<AppointmentDistributionProps> = (
       saat,
       randevu: slotDistribution[saat]
     }));
-  }, [appointments]);
+  }, [appointments, TIME_SLOTS]);
   
   return (
     <Card>

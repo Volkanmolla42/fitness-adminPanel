@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { deleteAppointmentById } from "@/lib/queries";
 import { toast } from "sonner";
-import TIME_SLOTS from "@/constants/timeSlots";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 
 interface WeeklyViewProps {
   appointments: Appointment[];
@@ -63,6 +63,7 @@ export default function WeeklyView({
   onAppointmentClick,
   onAddAppointment,
 }: WeeklyViewProps) {
+  const { TIME_SLOTS } = useAvailableTimeSlots();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());

@@ -13,6 +13,8 @@ import { ServiceSearch } from "@/components/services/ServiceSearch";
 import { ServiceList } from "@/components/services/ServiceList";
 import { ServiceDialogs } from "@/components/services/ServiceDialogs";
 import { LoadingSpinner } from "@/App";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 
@@ -86,13 +88,17 @@ const ServicesPage = () => {
         (membershipFilter === "all"
           ? true
           : membershipFilter === "vip"
-          ? service.isVipOnly
-          : membershipFilter === "standard"
-          ? !service.isVipOnly
-          : true)
+            ? service.isVipOnly
+            : membershipFilter === "standard"
+              ? !service.isVipOnly
+              : true)
       );
     })
     .sort((a, b) => {
+      // Sort active services first
+      if (a.active && !b.active) return -1;
+      if (!a.active && b.active) return 1;
+      // Then sort VIP services first within each group
       if (a.isVipOnly && !b.isVipOnly) return -1;
       if (!a.isVipOnly && b.isVipOnly) return 1;
       return a.name.localeCompare(b.name, "tr");
@@ -137,7 +143,20 @@ const ServicesPage = () => {
   }
 
   return (
-    <div className="space-y-4  container mt-4 p-0">
+    <div className="container mx-auto py-6 space-y-6">
+      <Alert variant="destructive" className="text-red-500">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Dikkat</AlertTitle>
+        <AlertDescription>
+          <>
+            <p>Paket silme işlemi geri alınamaz ve sistemde beklenmedik sorunlara yol açabilir. Silinen pakete bağlı tüm randevular, üyelikler ve kayıtlar da silinecektir.</p>
+            <p>Bir paketi silmeden önce: Hiçbir üyeye atanmadığından, Aktif bir randevusunun bulunmadığından emin olun.</p>
+            <p><strong>Silmek yerine, paketi pasif duruma getirmeniz önerilir.</strong></p>
+          </>
+
+        </AlertDescription>
+      </Alert>
+
       <ServiceHeader />
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <ServiceSearch

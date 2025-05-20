@@ -32,7 +32,7 @@ import { SessionsDialog } from "./SessionsDialog";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Session } from "@/types/sessions";
-import { WORKING_HOURS } from "@/constants/timeSlots";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -68,6 +68,7 @@ export function AppointmentForm({
   defaultMemberId,
   defaultServiceId,
 }: AppointmentFormProps) {
+  const { WORKING_HOURS } = useAvailableTimeSlots();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);

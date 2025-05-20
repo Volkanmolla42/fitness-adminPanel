@@ -21,21 +21,31 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   onDelete,
 }) => {
   const { theme } = useTheme();
-  
+
   return (
-    <Card className={`border ${theme === 'dark' ? 'border-gray-800 hover:border-destructive/70' : 'border-gray-100 hover:border-destructive/50'} transition-all hover:shadow-md group relative p-5`}>
+    <Card className={`border ${!service.active
+        ? 'opacity-60'
+        : ''
+      } ${theme === 'dark' ? 'border-gray-800 hover:border-destructive/70' : 'border-gray-100 hover:border-destructive/50'} transition-all hover:shadow-md group relative p-5`}>
       <div className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
-            
-              <h3 className={`text-xl tracking-tight font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>{service.name}</h3>
-              
-           
-            {service.isVipOnly && (
-                <Badge variant="destructive" className="opacity-90 absolute top-3 right-3 text-[11px] font-medium uppercase tracking-wider">
-                  VIP
+            <div className="flex items-center gap-2">
+              <h3 className={`text-xl tracking-tight font-semibold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}>
+                {service.name}
+              </h3>
+              {!service.active && (
+                <Badge variant="secondary" className="text-[11px] font-medium">
+                  Pasif
                 </Badge>
               )}
+            </div>
+
+            {service.isVipOnly && (
+              <Badge variant="destructive" className="opacity-90 absolute top-3 right-3 text-[11px] font-medium uppercase tracking-wider">
+                VIP
+              </Badge>
+            )}
             <p className={`text-sm leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} pr-4`}>{service.description}</p>
           </div>
         </div>
@@ -62,14 +72,14 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => onEdit(service)}
-            className={`h-8 w-8 p-0 ${theme === 'dark' ? 'hover:text-destructive hover:bg-destructive/20' : 'hover:text-destructive hover:bg-destructive/10'}`}
+            className={`h-8 w-8 p-0 ${theme === 'dark' ? 'hover:bg-destructive/20' : 'hover:text-green-500 hover:bg-destructive/10'}`}
           >
             <Pencil className="h-4 w-4" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 className={`h-8 w-8 p-0 text-destructive ${theme === 'dark' ? 'hover:bg-destructive/20' : 'hover:bg-destructive/10'}`}
               >
@@ -79,13 +89,15 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Paketi Sil</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bu paketi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                </AlertDialogDescription>
+                <AlertDialogDescription className="text-sm text-red-500">
+                  {service.name} paketini silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve sistemde ciddi aksaklıklara neden olabilir. Lütfen silme işlemi öncesinde pakete bağlı randevu ve üyelikleri kontrol ettiğinizden emin olun.
+                  <br />
+                  Silmek yerine pasife almanız önerilir.
+                  </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-                <AlertDialogAction 
+                <AlertDialogAction
                   onClick={() => onDelete(service.id)}
                   className="bg-destructive hover:bg-destructive/90"
                 >

@@ -14,11 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
-import { WORKING_HOURS } from "@/constants/timeSlots";
 import type { Database } from "@/types/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useAvailableTimeSlots } from "@/constants/timeSlots";
 
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type TrainerInput = Omit<Trainer, "id" | "created_at">;
@@ -59,6 +59,7 @@ export const formatPhoneNumber = (value: string) => {
 
 export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { WORKING_HOURS ,loading } = useAvailableTimeSlots();
 
   const form = useForm<TrainerInput>({
     resolver: zodResolver(trainerSchema),
@@ -69,10 +70,9 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
       phone: trainer?.phone || "",
       bio: trainer?.bio || "",
       categories: trainer?.categories || [],
-      start_date: trainer?.start_date || new Date().toISOString().split("T")[0],
-      working_hours: trainer?.working_hours || {
-        start: WORKING_HOURS.start,
-        end: WORKING_HOURS.end,
+      start_date: trainer?.start_date || new Date().toISOString().split("T")[0], working_hours: trainer?.working_hours || {
+        start: "10:00", // Default start time
+        end: "20:00", // Default end time
       },
     },
   });
@@ -133,10 +133,10 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                   <FormItem>
                     <FormLabel className="text-base font-semibold after:content-['(opsiyonel)'] after:ml-1 after:text-gray-500">E-posta</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        type="email" 
-                        value={field.value || ''} 
+                      <Input
+                        {...field}
+                        type="email"
+                        value={field.value || ''}
                         onChange={(e) => {
                           const value = e.target.value;
                           field.onChange(value || null);
@@ -237,16 +237,19 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-
-              <FormField
+              />              <FormField
                 control={form.control}
                 name="working_hours.start"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold">Mesai Başlangıç</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input 
+                        type="time" 
+                        {...field} 
+                        defaultValue={WORKING_HOURS.start}
+                        disabled={loading}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -260,7 +263,12 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
                   <FormItem>
                     <FormLabel className="text-base font-semibold">Mesai bitiş </FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input 
+                        type="time" 
+                        {...field} 
+                        defaultValue={WORKING_HOURS.end}
+                        disabled={loading}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -271,18 +279,18 @@ export function TrainerForm({ trainer, onSubmit, onCancel }: TrainerFormProps) {
         </Card>
 
         <DialogFooter className="gap-2">
-          <Button 
-            variant="outline" 
-            onClick={onCancel} 
+          <Button
+            variant="outline"
+            onClick={onCancel}
             type="button"
-            disabled={isSubmitting} 
+            disabled={isSubmitting}
             className="min-w-[100px]"
           >
             İptal
           </Button>
-          <Button 
-            type="submit" 
-            disabled={isSubmitting} 
+          <Button
+            type="submit"
+            disabled={isSubmitting}
             className="min-w-[100px]"
           >
             {isSubmitting ? (
