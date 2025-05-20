@@ -27,6 +27,7 @@ export interface Service {
   max_participants: number;
   session_count: number;
   isVipOnly: boolean;
+  active: boolean;
   created_at: string;
 }
 
