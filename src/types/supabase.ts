@@ -132,6 +132,7 @@ export type Database = {
           subscribed_services: string[];
           notes: string | null;
           active: boolean;
+          postponement_count: number;
         };
         Insert: {
           avatar_url?: string | null;
@@ -146,6 +147,7 @@ export type Database = {
           subscribed_services?: string[];
           notes?: string | null;
           active?: boolean;
+          postponement_count?: number;
         };
         Update: {
           avatar_url?: string | null;
@@ -160,6 +162,7 @@ export type Database = {
           subscribed_services?: string[];
           notes?: string | null;
           active?: boolean;
+          postponement_count?: number;
         };
         Relationships: [];
       };

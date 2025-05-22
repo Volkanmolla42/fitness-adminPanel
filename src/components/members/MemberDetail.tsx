@@ -13,6 +13,7 @@ import {
   Settings,
   Mail,
   CalendarPlus,
+  Save,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -77,6 +78,8 @@ export const MemberDetail = ({
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [showAddAppointmentDialog, setShowAddAppointmentDialog] =
     useState(false);
+  const [editingPostponement, setEditingPostponement] = useState(false);
+  const [postponementCount, setPostponementCount] = useState(member.postponement_count);
   const isVip = member.membership_type === "vip";
 
   // Filter appointments for this member
@@ -123,6 +126,17 @@ export const MemberDetail = ({
     if (member.id) {
       await onDelete(member.id);
       setShowDeleteDialog(false);
+    }
+  };
+
+  const handleSavePostponement = async () => {
+    if (onUpdate) {
+      await onUpdate({
+        ...member,
+        postponement_count: postponementCount,
+      });
+      setEditingPostponement(false);
+      toast.success("Erteleme hakkı güncellendi.");
     }
   };
 
@@ -237,12 +251,44 @@ export const MemberDetail = ({
                     </span>
                   </div>
                 </div>
-                {member.email && (
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                {member.email &&
+                  (<div className="flex items-center gap-1.5 text-muted-foreground">
                     <Mail className="h-3.5 w-3.5" />
                     <span>{member.email}</span>
-                  </div>
-                )}
+                  </div>)}<div className="flex items-center gap-1.5 mt-1">
+                  <Badge variant="outline" className={`${member.postponement_count > 0 ?
+                    'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'} flex items-center`}>
+                    <CalendarPlus className="h-3 w-3 mr-1" />
+                    {editingPostponement ? (
+                      <>
+                        <input
+                          type="number"
+                          min="0"
+                          value={postponementCount}
+                          onChange={(e) => setPostponementCount(Number(e.target.value))}
+                          className="w-8 h-5 bg-transparent text-center focus:outline-none"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSavePostponement}
+                          className="ml-1 flex items-center justify-center"
+                        >
+                          <Save className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {member.postponement_count} Erteleme Hakkı
+                        <button
+                          onClick={() => setEditingPostponement(true)}
+                          className="ml-1 flex items-center justify-center"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </>
+                    )}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
@@ -455,9 +501,8 @@ export const MemberDetail = ({
         onOpenChange={setShowAddAppointmentDialog}
       >
         <DialogContent
-          className={`sm:max-w-[425px] ${
-            isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""
-          }`}
+          className={`sm:max-w-[425px] ${isDark ? "dark:bg-gray-800 dark:text-gray-100" : ""
+            }`}
         >
           <DialogHeader>
             <DialogTitle className={isDark ? "dark:text-white" : ""}>
@@ -480,7 +525,6 @@ export const MemberDetail = ({
                 toast.error("Randevu oluşturulurken bir hata oluştu.");
               }
             }}
-            onCancel={() => setShowAddAppointmentDialog(false)}
           />
         </DialogContent>
       </Dialog>

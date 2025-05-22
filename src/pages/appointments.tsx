@@ -59,12 +59,13 @@ function AppointmentsPage() {
   const [defaultTime, setDefaultTime] = useState<string | undefined>();
 
   const handleFormSubmit = async (
-    data: Omit<AppointmentType, "id" | "created_at" | "status">
+    data: Omit<AppointmentType, "id" | "created_at" | "status">,
+    isPostpone?: boolean
   ) => {
     try {
       if (selectedAppointment) {
         // Editing existing appointment
-        await updateAppointment(selectedAppointment.id, data);
+        await updateAppointment(selectedAppointment.id, data, isPostpone);
         toast({
           title: "Başarılı",
           description: "Randevu başarıyla güncellendi.",
@@ -280,12 +281,6 @@ function AppointmentsPage() {
                 defaultTime={defaultTime}
                 defaultTrainerId={selectedTrainerId || undefined}
                 onSubmit={handleFormSubmit}
-                onCancel={() => {
-                  setIsDialogOpen(false);
-                  setSelectedAppointment(null);
-                  setDefaultDate(undefined);
-                  setDefaultTime(undefined);
-                }}
               />
             </DialogContent>
           </Dialog>

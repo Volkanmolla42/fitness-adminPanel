@@ -51,6 +51,7 @@ interface AppointmentCardProps {
     membership_type?: string;
     phone_number?: string;
     email?: string;
+    postponement_count?: number;
   };
   trainer: {
     firstName: string;
@@ -187,19 +188,27 @@ const AppointmentCard = ({
         ref={cardRef}
         onClick={() => setIsMemberModalOpen(true)}
       >
-        <div
-          className={`z-50 absolute bottom-4 right-4 cursor-pointer flex items-center rounded-md p-2 ${
+        {member.postponement_count === 0 && (
+          <span className="text-xs absolute text-white bottom-2 bg-red-500 right-14 dark:bg-red-500/40 rounded-full px-2 py-1">
+            {member.postponement_count} Erteleme Hakkı
+          </span>
+        )}
+        <button
+          className={`z-50 absolute bottom-2 right-2 cursor-pointer flex items-center rounded-md p-2 ${
             isDark
-              ? "text-blue-400 border-blue-600 hover:bg-blue-900/40"
+              ? "text-blue-400 bg-blue-900/40 border-blue-600 hover:bg-blue-800"
               : "text-blue-600 border border-blue-300 hover:bg-blue-50"
           }`}
+          type="button"
+          title="Randevuyu Düzenle"
           onClick={(e) => {
             e.stopPropagation();
             onEdit(appointment);
           }}
         >
           <Pencil className="h-4 w-4" />
-        </div>
+        </button>
+
         <div className="p-4">
           {/* Status Badge with Dropdown */}
           <div className="absolute top-3 right-3">
@@ -282,8 +291,16 @@ const AppointmentCard = ({
             {/* Tarih ve Saat */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
               <div className="flex items-center space-x-2">
-                <div className={`p-1.5 sm:p-2 rounded-lg ${isDark ? "bg-gray-700" : "bg-gray-50"}`}>
-                  <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${isDark ? "text-gray-300" : "text-gray-600"}`} />
+                <div
+                  className={`p-1.5 sm:p-2 rounded-lg ${
+                    isDark ? "bg-gray-700" : "bg-gray-50"
+                  }`}
+                >
+                  <Calendar
+                    className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                      isDark ? "text-gray-300" : "text-gray-600"
+                    }`}
+                  />
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center space-x-2 sm:space-x-3">
@@ -291,13 +308,19 @@ const AppointmentCard = ({
                       className={`text-xl sm:text-2xl font-bold tracking-tight ${
                         isUpcoming || isAboutToStart
                           ? "text-orange-500 dark:text-orange-400"
-                          : isDark ? "text-gray-100" : "text-gray-900"
+                          : isDark
+                          ? "text-gray-100"
+                          : "text-gray-900"
                       }`}
                     >
                       {appointment.time.slice(0, 5)}
                     </span>
                     {isAboutToStart && appointment.status === "scheduled" && (
-                      <div className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${isDark ? "bg-orange-900/50" : "bg-orange-100"}`}>
+                      <div
+                        className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${
+                          isDark ? "bg-orange-900/50" : "bg-orange-100"
+                        }`}
+                      >
                         <Timer className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 dark:text-orange-400 mr-1" />
                         <span className="text-xs font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
                           Başlamak Üzere
@@ -307,7 +330,11 @@ const AppointmentCard = ({
                     {isUpcoming &&
                       !isAboutToStart &&
                       appointment.status === "scheduled" && (
-                        <div className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${isDark ? "bg-orange-900/50" : "bg-orange-100"}`}>
+                        <div
+                          className={`flex items-center px-1.5 sm:px-2 py-0.5 rounded-full ${
+                            isDark ? "bg-orange-900/50" : "bg-orange-100"
+                          }`}
+                        >
                           <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-600 dark:text-orange-400 mr-1" />
                           <span className="text-xs font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
                             Yaklaşıyor
@@ -315,7 +342,11 @@ const AppointmentCard = ({
                         </div>
                       )}
                   </div>
-                  <span className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  <span
+                    className={`text-xs sm:text-sm ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
                     {(() => {
                       const appointmentDate = new Date(appointment.date);
                       const isAppointmentToday = isToday(appointmentDate);
@@ -332,9 +363,11 @@ const AppointmentCard = ({
               </div>
 
               {appointment.status === "in-progress" && (
-                <div className={`flex items-center px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto ${
-                  isDark ? "bg-yellow-900/30" : "bg-yellow-50"
-                }`}>
+                <div
+                  className={`flex items-center px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg ml-0 sm:ml-auto ${
+                    isDark ? "bg-yellow-900/30" : "bg-yellow-50"
+                  }`}
+                >
                   <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-600 dark:text-yellow-400 mr-1 sm:mr-1.5" />
                   <span className="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-400">
                     {remainingTime}dk kaldı
@@ -353,15 +386,27 @@ const AppointmentCard = ({
                     className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-white dark:border-gray-700 shadow-sm"
                   />
                 ) : (
-                  <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-sm ${
-                    isDark ? "bg-gradient-to-br from-gray-700 to-gray-800" : "bg-gradient-to-br from-gray-100 to-gray-200"
-                  }`}>
-                    <User className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isDark ? "text-gray-300" : "text-gray-600"}`} />
+                  <div
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center shadow-sm ${
+                      isDark
+                        ? "bg-gradient-to-br from-gray-700 to-gray-800"
+                        : "bg-gradient-to-br from-gray-100 to-gray-200"
+                    }`}
+                  >
+                    <User
+                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
+                        isDark ? "text-gray-300" : "text-gray-600"
+                      }`}
+                    />
                   </div>
                 )}
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                    <span className={`text-sm sm:text-base font-medium ${isDark ? "text-gray-100" : "text-gray-900"}`}>
+                    <span
+                      className={`text-sm sm:text-base font-medium ${
+                        isDark ? "text-gray-100" : "text-gray-900"
+                      }`}
+                    >
                       {member.firstName && member.lastName
                         ? `${member.firstName} ${member.lastName}`
                         : "Üye adı bulunamadı"}
@@ -370,13 +415,25 @@ const AppointmentCard = ({
                       <span className="text-sm text-gray-400 hidden sm:inline">
                         •
                       </span>
-                      <span className={`text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-600"} sm:ml-2`}>
+                      <span
+                        className={`text-xs sm:text-sm ${
+                          isDark ? "text-gray-400" : "text-gray-600"
+                        } sm:ml-2`}
+                      >
                         {trainer.firstName} {trainer.lastName}
                       </span>
                     </div>
                   </div>
-                  <div className={`flex items-center text-xs sm:text-sm ${isDark ? "text-gray-400" : "text-gray-500"} mt-0.5`}>
-                    <Package className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${isDark ? "text-gray-500" : "text-gray-400"} mr-1.5`} />
+                  <div
+                    className={`flex items-center text-xs sm:text-sm ${
+                      isDark ? "text-gray-400" : "text-gray-500"
+                    } mt-0.5`}
+                  >
+                    <Package
+                      className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${
+                        isDark ? "text-gray-500" : "text-gray-400"
+                      } mr-1.5`}
+                    />
                     <span className="truncate">{service.name}</span>
                     <span className="mx-1.5">•</span>
                     <span>{service.duration}dk</span>
@@ -387,9 +444,13 @@ const AppointmentCard = ({
 
             {/* Notlar */}
             {appointment.notes && (
-              <div className={`text-xs sm:text-sm ${
-                isDark ? "text-gray-300 bg-gray-700/50 border-gray-600/80" : "text-gray-600 bg-gray-50/50 border-gray-100/80"
-              } rounded-lg p-2 sm:p-2.5 border`}>
+              <div
+                className={`text-xs sm:text-sm ${
+                  isDark
+                    ? "text-gray-300 bg-gray-700/50 border-gray-600/80"
+                    : "text-gray-600 bg-gray-50/50 border-gray-100/80"
+                } rounded-lg p-2 sm:p-2.5 border`}
+              >
                 {appointment.notes}
               </div>
             )}

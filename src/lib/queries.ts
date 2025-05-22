@@ -214,7 +214,8 @@ export const createAppointment = async (
 
 export const updateAppointment = async (
   id: string,
-  appointment: Tables["appointments"]["Update"]
+  appointment: Tables["appointments"]["Update"],
+  isPostpone: boolean = false
 ) => {
   const { data, error } = await supabase
     .from("appointments")
@@ -224,6 +225,27 @@ export const updateAppointment = async (
     .single();
 
   if (error) throw error;
+  if (isPostpone) {
+    // Önce ilgili üyeyi getir
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .select("postponement_count")
+      .eq("id", appointment.member_id)
+      .single();
+  
+    if (memberError) throw memberError;
+
+    // Sonra postponement_count değerini 1 azalt
+    const newCount = (member.postponement_count || 0) - 1;
+
+    const { error: updateError } = await supabase
+      .from("members")
+      .update({ postponement_count: newCount })
+      .eq("id", appointment.member_id);
+  
+    if (updateError) throw updateError;
+  }
+  
   return data;
 };
 

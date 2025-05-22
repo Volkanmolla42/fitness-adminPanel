@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,12 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Session } from "@/types/sessions";
 import { useAvailableTimeSlots } from "@/constants/timeSlots";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
@@ -45,8 +51,7 @@ interface AppointmentFormProps {
   trainers: Trainer[];
   services: Service[];
   appointments: Appointment[];
-  onSubmit: (data: AppointmentInput) => Promise<void>;
-  onCancel: () => void;
+  onSubmit: (data: AppointmentInput, isPostpone?: boolean) => Promise<void>;
   defaultDate?: string;
   defaultTime?: string;
   defaultTrainerId?: string;
@@ -61,7 +66,6 @@ export function AppointmentForm({
   services,
   appointments,
   onSubmit,
-  onCancel,
   defaultDate,
   defaultTime,
   defaultTrainerId,
@@ -76,8 +80,15 @@ export function AppointmentForm({
   const [searchMembers, setSearchMembers] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [showPassiveWarning, setShowPassiveWarning] = useState(false);
-
+  const [showPostponementWarning, setShowPostponementWarning] = useState(false);
+  const [isPostpone, setIsPostpone] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Randevu tarih veya saatinin değişip değişmediğini kontrol eden fonksiyon
+  const hasDateTimeChanged = () => {
+    if (!appointment || !sessions[0]?.date || !sessions[0]?.time) return false;
+    return appointment.date !== sessions[0].date || appointment.time !== sessions[0].time;
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -133,11 +144,14 @@ export function AppointmentForm({
     }
   };
 
-  const handleSessionsConfirm = () => {
+  const handleSessionsConfirm = (isPostpone?: boolean) => {
     if (sessions.length > 0 && sessions.every((s) => s.date && s.time)) {
       form.setValue("date", sessions[0].date);
       form.setValue("time", sessions[0].time);
       setShowSessionsDialog(false);
+      if (isPostpone) {
+        setIsPostpone(true);
+      }
     }
   };
 
@@ -220,6 +234,7 @@ export function AppointmentForm({
       );
     }
   }, [appointment, services]);
+  
 
   // Varsayılan servis ID'sini saklamak için bir state
   const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
@@ -281,15 +296,29 @@ export function AppointmentForm({
     try {
       if (sessions.length > 1) {
         for (const session of sessions) {
-          await onSubmit({ ...data, date: session.date, time: session.time });
+          await onSubmit({ ...data, date: session.date, time: session.time }, isPostpone);
         }
       } else {
-        await onSubmit(data);
+        await onSubmit(data, isPostpone);
       }
     } finally {
       setIsSubmitting(false);
+      setIsPostpone(false);
     }
   };
+  // Erteleme hakkı kontrolü
+  useEffect(() => {
+    if (selectedMember && appointment) {
+      // Erteleme hakkı 0 ise uyarı göster
+      if (selectedMember.postponement_count === 0) {
+        setShowPostponementWarning(true);
+      } else {
+        setShowPostponementWarning(false);
+      }
+    } else {
+      setShowPostponementWarning(false);
+    }
+  }, [selectedMember, appointment]);
 
   // Üye değiştiğinde kontroller
   useEffect(() => {
@@ -430,7 +459,7 @@ export function AppointmentForm({
                                   ? "cursor-pointer hover:bg-accent hover:text-accent-foreground"
                                   : "cursor-not-allowed opacity-60",
                                 member.id === field.value &&
-                                  "bg-accent text-accent-foreground"
+                                "bg-accent text-accent-foreground"
                               )}
                             >
                               <div className="flex items-center justify-between w-full">
@@ -512,7 +541,7 @@ export function AppointmentForm({
                         <SelectValue
                           placeholder={
                             !form.watch("member_id") ||
-                            !form.watch("trainer_id")
+                              !form.watch("trainer_id")
                               ? "Önce üye ve antrenör seçin"
                               : "Paket seçin"
                           }
@@ -605,22 +634,64 @@ export function AppointmentForm({
           )}
         />
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            İptal
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}
-            className="w-full sm:w-auto"
-          >
-            {isSubmitting ? "İşleniyor..." : appointment ? "Güncelle" : "Ekle"}
-          </Button>
+        <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  onClick={() => setIsPostpone(false)}
+                  disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}
+                  className="w-full sm:w-auto"
+                  variant="outline"
+                >
+                  {isSubmitting ? "İşleniyor..." : appointment ? "Güncelle" : "Ekle"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{appointment ? <p>Erteleme hakkı <span className="font-bold text-red-500 ">kullanılmaz</span> ve randevu bilgileri günceller</p> : "Yeni randevu ekle"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {appointment && (
+            <>
+              {showPostponementWarning && (
+                <Alert className="bg-amber-50  text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-900/30">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    Üyenin erteleme hakkı kalmamıştır
+                  </AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Yanlışlık olduğunu düşünüyorsanız üyeler sayfasından düzenleyebilirsiniz.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {selectedMember?.postponement_count > 0 && hasDateTimeChanged() && (
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsPostpone(true);
+                          form.handleSubmit(handleSubmit)(e);
+                        }}
+                        variant="default"
+                        disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time || (selectedMember?.postponement_count === 0)}
+                        className="w-full hover:bg-gray-500 sm:w-auto"
+                      >
+                        {isSubmitting ? "İşleniyor..." : "Ertele"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Erteleme hakkı <span className="font-bold text-green-500 ">kullanılır</span> ve randevu bilgileri günceller</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </>
+          )}
+         
         </DialogFooter>
       </form>
 
