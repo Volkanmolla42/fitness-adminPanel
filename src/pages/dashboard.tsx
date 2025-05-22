@@ -24,6 +24,7 @@ interface Stats {
   activeMembers: number;
   todayAppointments: number;
   monthlyAppointments: number;
+  inactiveMembers: number;
 }
 
 const DashboardPage: React.FC = () => {
@@ -116,6 +117,7 @@ const DashboardPage: React.FC = () => {
       const currentYear = now.getFullYear();
 
       const activeMembers = members.filter(member => member.active === true).length;
+      const inactiveMembers = members.filter(member => member.active === false).length;
       const todayAppointments = appointments.filter(
         (app) =>
           new Date(app.date).toISOString().split("T")[0] === today
@@ -132,6 +134,7 @@ const DashboardPage: React.FC = () => {
         activeMembers,
         todayAppointments,
         monthlyAppointments,
+        inactiveMembers,
       };
     },
     []
@@ -149,6 +152,12 @@ const DashboardPage: React.FC = () => {
         value: stats.activeMembers.toString(),
         icon: <Users className="h-6 w-6 text-primary" />,
       },
+      
+      {
+        title: "Pasif Üyeler",
+        value: stats.inactiveMembers.toString(),
+        icon: <Users className="h-6 w-6 text-muted-foreground" />,
+      },
       {
         title: "Günün Randevuları",
         value: stats.todayAppointments.toString(),
@@ -159,7 +168,6 @@ const DashboardPage: React.FC = () => {
         value: stats.monthlyAppointments.toString(),
         icon: <TrendingUp className="h-6 w-6 text-primary" />,
       },
-      
     ],
     [stats]
   );
