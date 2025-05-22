@@ -34,7 +34,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { BugReportModal } from "@/components/BugReportModal";
 import { useTheme } from "@/contexts/theme-context";
-
+import version from "@/version";
 interface SidebarProps {
   className?: string;
 }
@@ -352,21 +352,21 @@ const SidebarContent = memo(
           {/* Footer */}
           <footer
             className={cn(
-              "py-3 px-4 text-sm",
+              "px-4 py-3 text-sm ",
               theme === "dark"
                 ? "border-t border-gray-800 text-gray-400"
                 : "border-t border-pink-200 text-gray-600"
             )}
           >
             <div
-              className={cn("flex flex-col", {
+              className={cn("flex gap-3", {
                 hidden: isCollapsed,
                 "items-center": !isCollapsed,
               })}
             >
               {/* Support info and contact */}
-              <div className="flex flex-col items-center mb-2">
-                <p className="font-medium mb-1 text-xs">Destek: Volkan Molla</p>
+              <div className="flex flex-col items-center">
+                <p className="font-medium text-xs opacity-75">Destek: Volkan Molla</p>
                 <TooltipProvider>
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
@@ -375,7 +375,7 @@ const SidebarContent = memo(
                         variant="link"
                         size="sm"
                         className={cn(
-                          "p-0 h-auto text-xs",
+                          "p-0 h-auto text-xs mt-0.5",
                           theme === "dark"
                             ? "text-pink-400 hover:text-pink-300"
                             : "text-pink-600 hover:text-pink-700"
@@ -402,11 +402,11 @@ const SidebarContent = memo(
               </div>
 
               {/* Bug Report button */}
-              <div className="mt-2">
+              <div className="flex justify-center">
                 <TooltipProvider>
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
-                      <div className="flex justify-center">
+                      <div>
                         <BugReportModal />
                       </div>
                     </TooltipTrigger>
@@ -418,6 +418,11 @@ const SidebarContent = memo(
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              </div>
+
+              {/* Version number */}
+              <div className="text-center">
+                <span className="text-xs opacity-50">v{version}</span>
               </div>
             </div>
           </footer>
@@ -470,7 +475,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
           variant="outline"
           size="icon"
           className={cn(
-            "absolute -right-4 top-44 -translate-y-1/2  h-8 w-8 rounded-full border shadow-md",
+            "absolute -right-4 top-32 -translate-y-1/2  h-8 w-8 rounded-full border shadow-md",
             theme === "dark"
               ? "bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300"
               : "bg-white hover:bg-pink-50 border-pink-200 text-pink-600 hover:text-pink-700"
