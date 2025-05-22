@@ -84,8 +84,10 @@ export function SessionsDialog({
 
   // Zamanı HH:mm formatına çeviren yardımcı fonksiyon
   const formatTime = React.useCallback((time: string): string => {
+    if (!time || typeof time !== "string") return "00:00";
     if (time.length === 8) return time.substring(0, 5);
     const [hours, minutes] = time.split(":");
+    if (!hours || !minutes) return "00:00";
     return `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
   }, []);
 
@@ -623,6 +625,7 @@ export function SessionsDialog({
         </div>
 
         <ScrollArea className="h-[60vh] md:h-[65vh]">
+          {!appointment && (
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
@@ -665,7 +668,8 @@ export function SessionsDialog({
                 +
               </Button>
             </div>
-          </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 p-2">
             {sessions.map((session, index) => {
