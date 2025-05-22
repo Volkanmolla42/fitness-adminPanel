@@ -115,7 +115,7 @@ const DashboardPage: React.FC = () => {
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
-      const activeMembers = members.length;
+      const activeMembers = members.filter(member => member.active === true).length;
       const todayAppointments = appointments.filter(
         (app) =>
           new Date(app.date).toISOString().split("T")[0] === today
