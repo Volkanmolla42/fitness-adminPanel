@@ -355,14 +355,15 @@ const SidebarContent = memo(
               "px-4 py-3 text-sm ",
               theme === "dark"
                 ? "border-t border-gray-800 text-gray-400"
-                : "border-t border-pink-200 text-gray-600"
+                : "border-t border-pink-200 text-gray-600",
+                {
+                  hidden: isCollapsed,
+                  "items-center": !isCollapsed,
+                }
             )}
           >
             <div
-              className={cn("flex gap-3", {
-                hidden: isCollapsed,
-                "items-center": !isCollapsed,
-              })}
+              className={cn("flex gap-3", )}
             >
               {/* Support info and contact */}
               <div className="flex flex-col items-center">
