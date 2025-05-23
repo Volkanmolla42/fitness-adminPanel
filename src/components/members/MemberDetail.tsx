@@ -310,7 +310,7 @@ export const MemberDetail = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Package2 className="w-4 h-4 text-primary" />
-              <h3 className="font-medium">Satın Alınan Paketler</h3>
+              <h3 className="font-medium">Eklenen Paketler</h3>
             </div>
             <div className="text-sm">
               <span className="text-muted-foreground">Toplam: </span>

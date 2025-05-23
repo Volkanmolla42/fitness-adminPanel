@@ -366,13 +366,6 @@ export function MemberInfoStep({
                   }`}
                 >
                   <span>{service.name}</span>
-                  <span
-                    className={`text-sm ${
-                      isDark ? "text-gray-400" : "text-muted-foreground"
-                    }`}
-                  >
-                    {service.price?.toLocaleString("tr-TR")} ₺
-                  </span>
                   <button
                     type="button"
                     className="ml-1 text-destructive hover:text-destructive/80 transition-colors"
