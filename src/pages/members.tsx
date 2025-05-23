@@ -450,7 +450,7 @@ const MembersPage = () => {
 
   const handleCreate = async (data: MemberFormData) => {
     try {
-      // Yeni üyeler her zaman aktif olarak eklenir
+    
       const memberData = {
         ...data,
         active: true, // Varsayılan olarak aktif
@@ -479,10 +479,11 @@ const MembersPage = () => {
     if (!editingMember?.id) return;
 
     try {
-      // Mevcut aktif durumunu koru
+      // Mevcut aktif durumunu koru ve postponement_count değerini 2 olarak ayarla
       const memberData = {
         ...data,
         active: editingMember.active, // Mevcut aktif durumunu koru
+        postponement_count: 2, // Her zaman 2 olarak ayarla
       };
       const updatedMember = await updateMember(editingMember.id, memberData);
       setEditingMember(null);
