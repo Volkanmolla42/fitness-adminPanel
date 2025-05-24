@@ -25,6 +25,7 @@ import { MemberDetail } from "@/components/members/MemberDetail";
 import { LoadingSpinner } from "@/App";
 import { useTheme } from "@/contexts/theme-context";
 import { useAppointments } from "@/hooks/useAppointments";
+import { TrainerStats } from "@/components/members/TrainerStats";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
@@ -74,6 +75,9 @@ const MembersPage = () => {
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(
     null
   );
+
+  // Antrenör nesnesini dizi haline getiren yardımcı fonksiyon
+  const getTrainersArray = () => Object.values(trainers);
 
   useEffect(() => {
     fetchMembers();
@@ -565,6 +569,16 @@ const MembersPage = () => {
         }}
       />
 
+      {/* Antrenör İstatistikleri */}
+      <TrainerStats
+        trainers={trainers}
+        members={members}
+        appointments={appointments}
+        services={services}
+        selectedTrainerId={selectedTrainerId}
+        onTrainerSelect={setSelectedTrainerId}
+      />
+
       <Dialog
         open={!!selectedMember}
         onOpenChange={(open) => !open && setSelectedMember(null)}
@@ -572,7 +586,7 @@ const MembersPage = () => {
         <MemberList
           members={members}
           services={services}
-          trainers={Object.values(trainers)}
+          trainers={getTrainersArray()}
           appointments={appointments}
           searchTerm={searchTerm}
           membershipFilter={membershipFilter}

@@ -187,6 +187,45 @@ export const checkPackageStatus = {
       appointments
     );
   },
+
+  // Bir üyenin hangi antrenörler tarafından ilgilenildiğini belirleyen fonksiyon
+  getMemberHandlingTrainers: (
+    member: Member,
+    appointments: Appointment[],
+    trainers: { [key: string]: Trainer } | Trainer[]
+  ): Trainer[] => {
+    // Üye aktif değilse, hiçbir antrenör ilgilenmiyor demektir
+    if (!member.active) return [];
+    
+    // Üyenin tamamlanmış ve planlanmış randevuları
+    const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
+    const completedAppointments = memberAppointments.filter(apt => apt.status === "completed");
+    const scheduledAppointments = memberAppointments.filter(apt => apt.status === "scheduled");
+    
+    // Randevulardaki benzersiz antrenör ID'lerini al
+    const trainerIds = new Set<string>();
+    [...completedAppointments, ...scheduledAppointments].forEach(apt => {
+      if (apt.trainer_id) trainerIds.add(apt.trainer_id);
+    });
+    
+    // Antrenörleri bul
+    const handlingTrainers: Trainer[] = [];
+    
+    // trainers bir dizi mi yoksa nesne mi kontrol et
+    if (Array.isArray(trainers)) {
+      trainerIds.forEach(id => {
+        const trainer = trainers.find(t => t.id === id);
+        if (trainer) handlingTrainers.push(trainer);
+      });
+    } else {
+      // trainers bir nesneyse (key-value object)
+      trainerIds.forEach(id => {
+        if (trainers[id]) handlingTrainers.push(trainers[id]);
+      });
+    }
+    
+    return handlingTrainers;
+  }
 };
 
 interface MemberListProps {
@@ -257,13 +296,34 @@ export const MemberList = ({
           (activeFilter === "active" && member.active) ||
           (activeFilter === "inactive" && !member.active);
 
+        // Antrenör filtresini kontrol et (güncellenmiş "şu anda ilgileniyor" mantığı)
         const matchesTrainer =
           selectedTrainerId === "all" ||
-          appointments.some(
-            (appointment) =>
-              appointment.member_id === member.id &&
-              appointment.trainer_id === selectedTrainerId
-          );
+          (() => {
+            // Eğer antrenör filtrelemesi yapılmıyorsa tüm üyeleri göster
+            if (selectedTrainerId === "all") return true;
+            
+            // Üye aktif değilse, antrenörle ilgilenme durumu yoktur
+            if (!member.active) return false;
+            
+            // Üyenin tamamlanan randevuları
+            const completedAppointments = appointments.filter(
+              apt => apt.member_id === member.id && 
+                     apt.status === "completed" && 
+                     apt.trainer_id === selectedTrainerId
+            );
+            
+            // Üyenin planlanan randevuları
+            const scheduledAppointments = appointments.filter(
+              apt => apt.member_id === member.id && 
+                     apt.status === "scheduled" && 
+                     apt.trainer_id === selectedTrainerId
+            );
+            
+            // Eğer üyenin seçilen antrenörle tamamlanan randevuları varsa 
+            // VEYA planlanan randevuları varsa, antrenör bu üyeyle ilgileniyor demektir
+            return completedAppointments.length > 0 || scheduledAppointments.length > 0;
+          })();
 
         // Paket filtresini kontrol et
         const matchesPackageFilter =
@@ -355,22 +415,24 @@ export const MemberList = ({
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search
-          className={`absolute left-2 top-2.5 h-4 w-4 ${
-            isDark ? "text-gray-400" : "text-muted-foreground"
-          }`}
-        />
-        <Input
-          placeholder="Ad Soyad veya telefon ile ara..."
-          value={searchTerm}
-          onChange={(e) => onSearch(e.target.value)}
-          className="pl-8"
-        />
-      </div>
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Arama kutusu */}
+        <div className="relative flex-1">
+          <Search
+            className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 ${
+              isDark ? "text-gray-400" : "text-muted-foreground"
+            }`}
+          />
+          <Input
+            placeholder="Ad Soyad veya telefon ile ara..."
+            value={searchTerm}
+            onChange={(e) => onSearch(e.target.value)}
+            className="pl-10 h-10"
+          />
+        </div>
 
-      <div className="flex flex-col md:flex-row gap-2 md:items-center md:space-x-2">
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:space-x-2 w-full">
+        {/* Paket filtresi */}
+        <div className="md:w-[240px]">
           <Select
             value={packageFilter}
             onValueChange={(value: "all" | "completed" | "almostCompleted") =>
@@ -378,7 +440,7 @@ export const MemberList = ({
             }
           >
             <SelectTrigger
-              className={`w-full md:w-[220px] ${
+              className={`w-full h-10 ${
                 isDark ? "bg-gray-800 text-gray-200 border-gray-700" : ""
               }`}
             >
@@ -411,25 +473,12 @@ export const MemberList = ({
               </SelectItem>
             </SelectContent>
           </Select>
-          <select
-            value={selectedTrainerId}
-            onChange={(e) => onTrainerFilterChange(e.target.value)}
-            className={`w-full p-2 border rounded-md ${
-              isDark
-                ? "bg-gray-800 text-gray-200 border-gray-700"
-                : "bg-white text-gray-900 border-gray-300"
-            }`}
-          >
-            <option value="all">Tüm Antrenörler</option>
-            {trainers.map((trainer) => (
-              <option key={trainer.id} value={trainer.id}>
-                {trainer.first_name} {trainer.last_name}
-              </option>
-            ))}
-          </select>
         </div>
+      </div>
+
+      <div className="flex justify-end">
         <p
-          className={`text-sm whitespace-nowrap ${
+          className={`text-sm ${
             isDark ? "text-gray-400" : "text-muted-foreground"
           }`}
         >
@@ -534,6 +583,10 @@ export const MemberList = ({
                           services={services}
                           appointments={appointments}
                           onClick={onMemberClick}
+                          trainers={trainers.reduce((acc, trainer) => {
+                            acc[trainer.id] = trainer;
+                            return acc;
+                          }, {} as { [key: string]: Trainer })}
                         />
                       </div>
                     ))
@@ -628,6 +681,10 @@ export const MemberList = ({
                           services={services}
                           appointments={appointments}
                           onClick={onMemberClick}
+                          trainers={trainers.reduce((acc, trainer) => {
+                            acc[trainer.id] = trainer;
+                            return acc;
+                          }, {} as { [key: string]: Trainer })}
                         />
                       </div>
                     ))

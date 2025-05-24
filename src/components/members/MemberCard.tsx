@@ -9,6 +9,7 @@ import {
   Calendar,
   MessageCircle,
   UserX,
+  Users,
 } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import React, { useMemo, useState } from "react";
@@ -23,12 +24,14 @@ import { tr } from "date-fns/locale";
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
+type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
 interface MemberCardProps {
   member: Member;
   services: { [key: string]: Service };
   onClick: (member: Member) => void;
   appointments: Appointment[];
+  trainers?: { [key: string]: Trainer };
 }
 
 export const MemberCard = ({
@@ -36,9 +39,11 @@ export const MemberCard = ({
   services,
   onClick,
   appointments,
+  trainers,
 }: MemberCardProps) => {
   const { theme } = useTheme();
   const [showPackages, setShowPackages] = useState(false);
+  const [showTrainers, setShowTrainers] = useState(false);
 
   // Hesaplamaları useMemo ile optimize et
   const memberServices = useMemo(() => {
@@ -229,6 +234,40 @@ export const MemberCard = ({
     window.open(whatsappUrl, "_blank");
   };
 
+  // Üye ile ilgilenen antrenörleri bul
+  const handlingTrainers = useMemo(() => {
+    // trainers tanımlanmamışsa boş dizi döndür
+    if (!trainers) return [];
+    
+    // Üye aktif değilse boş dizi döndür
+    if (!member.active) return [];
+    
+    // Üyenin tamamlanmış ve planlanan randevularını al
+    const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
+    const completedAppointments = memberAppointments.filter(apt => apt.status === "completed");
+    const scheduledAppointments = memberAppointments.filter(apt => apt.status === "scheduled");
+    
+    // Randevulardaki benzersiz antrenör ID'lerini al
+    const trainerIds = new Set<string>();
+    [...completedAppointments, ...scheduledAppointments].forEach(apt => {
+      if (apt.trainer_id) trainerIds.add(apt.trainer_id);
+    });
+    
+    // Antrenörleri bul
+    const handlingTrainersList: Trainer[] = [];
+    trainerIds.forEach(id => {
+      if (trainers[id]) handlingTrainersList.push(trainers[id]);
+    });
+    
+    return handlingTrainersList;
+  }, [member, appointments, trainers]);
+  
+  // Antrenör butonuna tıklandığında event'in yayılmasını engelle
+  const handleTrainersToggle = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Üye kartına tıklama olayının tetiklenmesini engelle
+    setShowTrainers(!showTrainers);
+  };
+
   return (
     <div
       className={`rounded-xl p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer relative group ${getPackageStatusClasses.cardBorderClass}`}
@@ -391,6 +430,68 @@ export const MemberCard = ({
               )}
             </div>
           </div>
+          
+          {/* Antrenör butonu - sadece üye aktivse ve ilgilenen antrenörler varsa göster */}
+          {member.active && handlingTrainers.length > 0 && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                className={`w-full flex items-center justify-between mt-2 py-3 px-1 ${
+                  theme === "dark"
+                    ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-100"
+                    : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+                }`}
+                onClick={handleTrainersToggle}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Users
+                    className={`h-3.5 w-3.5 ${
+                      theme === "dark" ? "text-blue-400" : "text-blue-600"
+                    }`}
+                  />
+                  <span className="text-xs font-medium">
+                    İlgilenen Antrenörler ({handlingTrainers.length})
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-300 ${
+                    showTrainers ? "rotate-180" : ""
+                  } ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}
+                />
+              </Button>
+
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showTrainers ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="flex flex-col gap-2 w-full pt-2 pb-2">
+                  {handlingTrainers.map((trainer) => (
+                    <div 
+                      key={trainer.id} 
+                      className={`flex items-center gap-2 p-2 rounded-md ${
+                        theme === "dark" 
+                          ? "bg-gray-700/50" 
+                          : "bg-gray-100"
+                      }`}
+                    >
+                      <Avatar className="h-6 w-6">
+                        
+                        <AvatarFallback className="text-xs bg-blue-500/20 text-blue-700">
+                          {trainer.first_name[0]}
+                          {trainer.last_name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs">
+                        {trainer.first_name} {trainer.last_name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

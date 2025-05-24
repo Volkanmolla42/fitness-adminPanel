@@ -2,6 +2,9 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/types/supabase";
 import { useTheme } from "@/contexts/theme-context";
+import { Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 
 type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
@@ -56,6 +59,31 @@ export const ServiceProgress = ({
     // Bu paketteki boş randevu sayısı
     const packageEmptySlots = sessionsPerPackage - packageTotalAppointments;
 
+    // Paket için başlangıç ve bitiş tarihlerini hesapla
+    let startDate = null;
+    let endDate = null;
+
+    if (packageAppointments.length > 0) {
+      // Başlangıç tarihi: İlk randevunun tarihi
+      startDate = new Date(`${packageAppointments[0].date}T${packageAppointments[0].time}`);
+      
+      // Bitiş tarihi: Son planlanan randevunun tarihi
+      // Önce tamamlanmamış ve iptal edilmemiş randevuları filtrele
+      const activeAppointments = packageAppointments.filter(
+        apt => apt.status === "scheduled" || apt.status === "in-progress"
+      );
+      
+      if (activeAppointments.length > 0) {
+        // Aktif randevular varsa, son aktif randevunun tarihini al
+        const lastActiveAppointment = activeAppointments[activeAppointments.length - 1];
+        endDate = new Date(`${lastActiveAppointment.date}T${lastActiveAppointment.time}`);
+      } else if (packageCompletedAppointments.length > 0) {
+        // Aktif randevu yoksa ve tamamlanan randevular varsa, son tamamlanan randevunun tarihini al
+        const lastCompletedAppointment = packageCompletedAppointments[packageCompletedAppointments.length - 1];
+        endDate = new Date(`${lastCompletedAppointment.date}T${lastCompletedAppointment.time}`);
+      }
+    }
+
     packages.push({
       completed: packageCompletedAppointments.length,
       planned: packagePlannedAppointments.length,
@@ -65,8 +93,29 @@ export const ServiceProgress = ({
       isComplete:
         packageTotalAppointments === sessionsPerPackage &&
         packageEmptySlots === 0,
+      startDate,
+      endDate,
+      appointments: packageAppointments,
+      isActive: packagePlannedAppointments.length > 0,
     });
   }
+
+  // Aktif paketi bul (planlanan randevusu olan ilk paket)
+  const activePackage = packages.find(pkg => pkg.isActive);
+
+  // Aktif paket yoksa, tamamlanmamış son paketi al
+  const incompletePackage = !activePackage 
+    ? packages.find(pkg => pkg.completed + pkg.planned + pkg.cancelled < pkg.total)
+    : null;
+    
+  // Gösterilecek paket (aktif veya tamamlanmamış)
+  const displayPackage = activePackage || incompletePackage || packages[packages.length - 1];
+
+  // Tarih formatını düzenleyen yardımcı fonksiyon
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Belirsiz";
+    return format(date, "d MMM yyyy", { locale: tr });
+  };
 
   return (
     <div
@@ -100,6 +149,16 @@ export const ServiceProgress = ({
         </Badge>
       </div>
 
+      {/* Aktif veya tamamlanmamış paket için tarih aralığı gösterimi */}
+      {displayPackage && (displayPackage.startDate || displayPackage.endDate) && (
+        <div className="flex items-center gap-1 mb-2 px-1">
+          <Calendar className={`h-3.5 w-3.5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
+          <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            {formatDate(displayPackage.startDate)} - {formatDate(displayPackage.endDate)}
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         {packages.map((pkg, index) => (
           <div key={index} className="flex flex-col gap-1">
@@ -107,9 +166,9 @@ export const ServiceProgress = ({
               <span
                 className={`text-xs font-medium ${
                   isDark ? "text-gray-300" : ""
-                }`}
+                } ${pkg.isActive ? "text-blue-500" : ""}`}
               >
-                {index + 1}. Paket
+                {index + 1}. Paket {pkg.isActive && "(Aktif)"}
               </span>
               <span
                 className={`text-xs font-medium ${
