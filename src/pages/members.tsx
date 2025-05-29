@@ -4,8 +4,6 @@ import { Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
@@ -353,7 +351,6 @@ const MembersPage = () => {
             )
           );
 
-          // Not: Randevu tamamlandığında üye durumu kontrolü artık memberStatusService tarafından yapılıyor
           // Ancak seçili üyeyi güncellemek için burada da kontrol ediyoruz
           const updatedAppointment =
             payload.new as Database["public"]["Tables"]["appointments"]["Row"];
@@ -623,7 +620,6 @@ const MembersPage = () => {
                 try {
                   await updateMember(updatedMember.id, updatedMember);
                   setSelectedMember(updatedMember);
-                  // Not: Paket tamamlandığında üye durumu kontrolü artık memberStatusService tarafından yapılıyor
                   // Ancak UI'da güncel durumu göstermek için veritabanından güncel üye bilgisini alalım
                   setTimeout(async () => {
                     // Veritabanından güncel üye bilgisini al
@@ -636,7 +632,7 @@ const MembersPage = () => {
                     if (refreshedMember) {
                       setSelectedMember(refreshedMember);
                     }
-                  }, 500); // memberStatusService'in üyeyi güncellemesi için kısa bir süre bekle
+                  }, 500); 
                 } catch (error) {
                   console.error("Paket tamamlanırken hata:", error);
                   toast.error("Paket tamamlanırken bir hata oluştu.");

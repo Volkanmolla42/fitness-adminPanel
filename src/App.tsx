@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense} from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import Dashboard from "@/pages/dashboard";
@@ -19,9 +19,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { ThemeProvider } from "@/contexts/theme-context";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { memberStatusService } from "@/services/memberStatusService";
-import { supabase } from "@/lib/supabase";
-
 export function LoadingSpinner({ text }: { text: string }) {
   return (
     <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
