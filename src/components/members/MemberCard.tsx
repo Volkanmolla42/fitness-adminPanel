@@ -14,7 +14,6 @@ import {
 import type { Database } from "@/types/supabase";
 import React, { useMemo, useState } from "react";
 import cn from "classnames";
-import { ServiceProgress } from "./ServiceProgress";
 import { useTheme } from "@/contexts/theme-context";
 import { Button } from "@/components/ui/button";
 import { checkPackageStatus, PackageStatus } from "./MemberList";
@@ -42,40 +41,8 @@ export const MemberCard = ({
   trainers,
 }: MemberCardProps) => {
   const { theme } = useTheme();
-  const [showPackages, setShowPackages] = useState(false);
   const [showTrainers, setShowTrainers] = useState(false);
 
-  // Hesaplamaları useMemo ile optimize et
-  const memberServices = useMemo(() => {
-    // Üyenin aldığı paketleri ve sayılarını hesapla
-    const serviceCount = member.subscribed_services.reduce((acc, serviceId) => {
-      acc[serviceId] = (acc[serviceId] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number });
-
-    // Her bir servis için ilgili randevuları bul
-    return Object.entries(serviceCount).map(([serviceId, count]) => {
-      const service = services[serviceId];
-
-      // Bu üyenin bu servise ait tüm randevuları
-      const serviceAppointments = appointments.filter(
-        (apt) => apt.service_id === serviceId && apt.member_id === member.id
-      );
-
-      return {
-        serviceId,
-        service,
-        appointments: serviceAppointments,
-        totalPackages: count,
-      };
-    });
-  }, [member, services, appointments]);
-
-  // Paket butonuna tıklandığında event'in yayılmasını engelle
-  const handlePackageToggle = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Üye kartına tıklama olayının tetiklenmesini engelle
-    setShowPackages(!showPackages);
-  };
 
   // Üyenin paket durumunu kontrol et
   const packageStatus = useMemo((): PackageStatus => {
@@ -238,35 +205,304 @@ export const MemberCard = ({
   const handlingTrainers = useMemo(() => {
     // trainers tanımlanmamışsa boş dizi döndür
     if (!trainers) return [];
-    
-    // Üye aktif değilse boş dizi döndür
-    if (!member.active) return [];
-    
-    // Üyenin tamamlanmış ve planlanan randevularını al
-    const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
-    const completedAppointments = memberAppointments.filter(apt => apt.status === "completed");
-    const scheduledAppointments = memberAppointments.filter(apt => apt.status === "scheduled");
-    
-    // Randevulardaki benzersiz antrenör ID'lerini al
-    const trainerIds = new Set<string>();
-    [...completedAppointments, ...scheduledAppointments].forEach(apt => {
-      if (apt.trainer_id) trainerIds.add(apt.trainer_id);
-    });
-    
-    // Antrenörleri bul
-    const handlingTrainersList: Trainer[] = [];
-    trainerIds.forEach(id => {
-      if (trainers[id]) handlingTrainersList.push(trainers[id]);
-    });
-    
-    return handlingTrainersList;
-  }, [member, appointments, trainers]);
-  
+
+    // checkPackageStatus.getMemberHandlingTrainers fonksiyonunu kullan
+    return checkPackageStatus.getMemberHandlingTrainers(
+      member,
+      appointments,
+      trainers,
+      services
+    );
+  }, [member, appointments, trainers, services]);
+
   // Antrenör butonuna tıklandığında event'in yayılmasını engelle
   const handleTrainersToggle = (e: React.MouseEvent) => {
     e.stopPropagation(); // Üye kartına tıklama olayının tetiklenmesini engelle
     setShowTrainers(!showTrainers);
   };
+
+  // Paketleri MemberDetail'daki gibi grupla
+  const groupAppointmentsIntoPackages = React.useCallback(
+    (
+      appointments: Appointment[],
+      services: { [key: string]: Service },
+      member: Member
+    ) => {
+      const packages: any[] = [];
+      const appointmentsByService: Record<string, Appointment[]> = {};
+      appointments.forEach((appointment) => {
+        const serviceId = appointment.service_id;
+        if (!appointmentsByService[serviceId]) {
+          appointmentsByService[serviceId] = [];
+        }
+        appointmentsByService[serviceId].push(appointment);
+      });
+      Object.entries(appointmentsByService).forEach(
+        ([serviceId, serviceAppointments]) => {
+          const service = services[serviceId];
+          if (!service) return;
+          const sessionsPerPackage = service.session_count || 0;
+          if (sessionsPerPackage === 0) return;
+          const serviceCount = member.subscribed_services.filter(
+            (id) => id === serviceId
+          ).length;
+          if (serviceCount === 0) return;
+          const sortedAppointments = [...serviceAppointments].sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateA.getTime() - dateB.getTime();
+          });
+          let remainingAppointments = [...sortedAppointments];
+          for (let i = 0; i < serviceCount; i++) {
+            const packageId = `${serviceId}-package-${i + 1}`;
+            const packageAppointments = remainingAppointments.splice(
+              0,
+              sessionsPerPackage
+            );
+            if (packageAppointments.length === 0) {
+              continue;
+            }
+            const completedSessions = packageAppointments.filter(
+              (apt) => apt.status === "completed"
+            ).length;
+            const scheduledSessions = packageAppointments.filter(
+              (apt) => apt.status === "scheduled"
+            ).length;
+            const cancelledSessions = packageAppointments.filter(
+              (apt) => apt.status === "cancelled"
+            ).length;
+            const totalSessions = sessionsPerPackage;
+            const remainingSessions =
+              totalSessions -
+              completedSessions -
+              scheduledSessions -
+              cancelledSessions;
+            const isActive =
+              completedSessions + cancelledSessions < totalSessions;
+            let startDate = null;
+            let endDate = null;
+            if (packageAppointments.length > 0) {
+              startDate = new Date(
+                `${packageAppointments[0].date}T${packageAppointments[0].time}`
+              );
+              const lastAppointment =
+                packageAppointments[packageAppointments.length - 1];
+              endDate = new Date(
+                `${lastAppointment.date}T${lastAppointment.time}`
+              );
+            }
+            const progressPercentage =
+              ((completedSessions + scheduledSessions) / totalSessions) * 100;
+            packages.push({
+              id: packageId,
+              serviceId,
+              serviceName: service.name,
+              appointments: packageAppointments,
+              totalSessions,
+              completedSessions,
+              scheduledSessions,
+              cancelledSessions,
+              remainingSessions,
+              startDate,
+              endDate,
+              isActive,
+              packageNumber: i + 1,
+              progressPercentage,
+            });
+          }
+        }
+      );
+      return packages;
+    },
+    []
+  );
+
+  // Üyenin tüm randevularını al
+  const memberAppointments = React.useMemo(
+    () => appointments.filter((apt) => apt.member_id === member.id),
+    [appointments, member.id]
+  );
+
+  // Paketleri grupla ve sırala
+  const memberPackages = React.useMemo(() => {
+    const allPackages = groupAppointmentsIntoPackages(
+      memberAppointments,
+      services,
+      member
+    );
+    return allPackages.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      const dateA = a.startDate ? a.startDate.getTime() : 0;
+      const dateB = b.startDate ? b.startDate.getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [memberAppointments, services, member, groupAppointmentsIntoPackages]);
+
+  // Aktif ve tamamlanmış paketleri ayır
+  const { activePackages, completedPackages } = React.useMemo(() => {
+    const active = memberPackages.filter((pkg) => pkg.isActive);
+    const completed = memberPackages.filter((pkg) => !pkg.isActive);
+    return { activePackages: active, completedPackages: completed };
+  }, [memberPackages]);
+
+  // Paket kartı (MemberDetail'daki gibi)
+  const PackageCard = React.useMemo(() =>
+    ({ packageData, defaultOpen = false }: { packageData: any; defaultOpen?: boolean }) => {
+      const [isOpen, setIsOpen] = React.useState(defaultOpen);
+      const totalSessions = packageData.totalSessions;
+      const completedPercentage = totalSessions > 0 ? (packageData.completedSessions / totalSessions) * 100 : 0;
+      const scheduledPercentage = totalSessions > 0 ? (packageData.scheduledSessions / totalSessions) * 100 : 0;
+      const cancelledPercentage = totalSessions > 0 ? (packageData.cancelledSessions / totalSessions) * 100 : 0;
+      const isDark = theme === "dark";
+      const packageStyle = React.useMemo(() => {
+        if (packageData.isActive) {
+          return isDark
+            ? "border-l-4 border-blue-500 pl-2 bg-primary/5"
+            : "border-l-4 border-blue-500 pl-2 bg-primary/5";
+        }
+        const completionRate = packageData.progressPercentage;
+        if (completionRate >= 90) {
+          return isDark
+            ? "border-l-4 border-green-600 pl-2 bg-green-900/5"
+            : "border-l-4 border-green-600 pl-2 bg-green-50/50";
+        }
+        return isDark
+          ? "border-l-4 border-gray-700 pl-2"
+          : "border-l-4 border-gray-200 pl-2";
+      }, [packageData.isActive, packageData.progressPercentage, isDark]);
+      const getProgressColor = () => {
+        const completionRate =
+          ((packageData.completedSessions +
+            packageData.scheduledSessions +
+            packageData.cancelledSessions) /
+            packageData.totalSessions) *
+          100;
+        if (packageData.isActive) {
+          return isDark ? "bg-primary/20" : "bg-primary/20";
+        }
+        if (completionRate >= 90) {
+          return isDark ? "bg-green-900/20" : "bg-green-100";
+        }
+        if (completionRate >= 50) {
+          return isDark ? "bg-amber-900/20" : "bg-amber-100";
+        }
+        return isDark ? "bg-gray-800/50" : "bg-gray-100";
+      };
+      const formatDateShort = (date: Date | null) => {
+        if (!date) return "Belirsiz";
+        return format(date, "d MMM yyyy", { locale: tr });
+      };
+      return (
+        <div className="mb-2 pt-2">
+          <div
+            className={cn(
+              `flex items-center gap-3 p-4 rounded-lg transition-all duration-200 border hover:shadow-md relative ${
+                isDark ? "hover:bg-gray-800/70" : "hover:bg-accent/70"
+              }`,
+              packageStyle
+            )}
+          >
+            {packageData.isActive && (
+              <Badge className="bg-gradient-to-r absolute -top-3 left-2 from-blue-500 to-blue-600 text-white text-xs px-2 py-0.5 shrink-0">
+                Aktif
+              </Badge>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h3 className={`text-base font-semibold truncate ${isDark ? "text-gray-200" : "text-gray-900"}`}>
+                    {packageData.serviceName}
+                  </h3>
+                </div>
+                <div
+                  className={`text-sm font-medium px-2 py-1 rounded-md shrink-0 ${
+                    packageData.isActive
+                      ? isDark
+                        ? "bg-primary/10 text-primary"
+                        : "bg-primary/10 text-primary"
+                      : isDark
+                      ? "bg-gray-800 text-gray-300"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {packageData.completedSessions + packageData.scheduledSessions + packageData.cancelledSessions}
+                  /{packageData.totalSessions}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mb-3 text-xs">
+                <Calendar className={`h-3 w-3 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
+                <span className={isDark ? "text-gray-500" : "text-gray-400"}>
+                  {formatDateShort(packageData.startDate)} - {formatDateShort(packageData.endDate)}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <div className={`relative h-2 w-full flex overflow-hidden rounded-full ${getProgressColor()}`}>
+                  {completedPercentage > 0 && (
+                    <div
+                      className="h-full bg-green-500 transition-all duration-300"
+                      style={{ width: `${completedPercentage}%` }}
+                      title={`Tamamlandı: ${packageData.completedSessions}`}
+                    />
+                  )}
+                  {scheduledPercentage > 0 && (
+                    <div
+                      className="h-full bg-blue-500 transition-all duration-300"
+                      style={{ width: `${scheduledPercentage}%` }}
+                      title={`Planlanmış: ${packageData.scheduledSessions}`}
+                    />
+                  )}
+                  {cancelledPercentage > 0 && (
+                    <div
+                      className="h-full bg-red-500 transition-all duration-300"
+                      style={{ width: `${cancelledPercentage}%` }}
+                      title={`İptal Edildi: ${packageData.cancelledSessions}`}
+                    />
+                  )}
+                  {packageData.remainingSessions > 0 && (
+                    <div
+                      className={`h-full ${isDark ? "bg-gray-600" : "bg-gray-300"} transition-all duration-300`}
+                      style={{
+                        width: `${(packageData.remainingSessions / packageData.totalSessions) * 100}%`,
+                      }}
+                      title={`Kalan: ${packageData.remainingSessions}`}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium flex flex-wrap gap-2">
+                    {packageData.completedSessions > 0 && (
+                      <span className="text-green-600 dark:text-green-400">
+                        {packageData.completedSessions} tamamlanan
+                      </span>
+                    )}
+                    {packageData.scheduledSessions > 0 && (
+                      <span className="text-blue-600 dark:text-blue-400">
+                        {packageData.scheduledSessions} planlanan
+                      </span>
+                    )}
+                    {packageData.cancelledSessions > 0 && (
+                      <span className="text-red-600 dark:text-red-400">
+                        {packageData.cancelledSessions} iptal
+                      </span>
+                    )}
+                    {packageData.remainingSessions > 0 && (
+                      <span className="text-gray-500 dark:text-gray-300">
+                        {packageData.remainingSessions} kalan
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-medium">
+                    %{Math.round(packageData.progressPercentage)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    },
+  [theme]);
 
   return (
     <div
@@ -391,46 +627,22 @@ export const MemberCard = ({
         </div>
 
         <div className={`w-full mt-3`}>
-          <Button
-            variant="secondary"
-            size="sm"
-            className={`w-full flex items-center justify-between mb-2 py-3 px-1 ${getPackageStatusClasses.packageButtonClass}`}
-            onClick={handlePackageToggle}
-          >
-            <div className="flex items-center gap-1.5">
-              <Package
-                className={`h-3.5 w-3.5 ${getPackageStatusClasses.packageIconClass}`}
-              />
-              <span className="text-xs font-medium">
-                Aldığı Paketler ({member.subscribed_services.length})
-              </span>
-            </div>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-300 ${
-                showPackages ? "rotate-180" : ""
-              } ${getPackageStatusClasses.chevronIconClass}`}
-            />
-          </Button>
-
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              showPackages ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-            }`}
-          >
-            <div className="flex flex-col gap-2.5 w-full pt-1 pb-2">
-              {memberServices.map(
-                ({ serviceId, service, appointments, totalPackages }) => (
-                  <ServiceProgress
-                    key={serviceId}
-                    service={service}
-                    appointments={appointments}
-                    totalPackages={totalPackages}
-                  />
-                )
-              )}
-            </div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Package className={`h-3.5 w-3.5 ${getPackageStatusClasses.packageIconClass}`} />
+            <span className="text-xs font-medium">
+              Aktif Paketler ({activePackages.length})
+            </span>
           </div>
-          
+          <div className="flex flex-col gap-2.5 w-full pt-1 pb-2">
+            {/* Sadece aktif paketler */}
+            {activePackages.length === 0 && (
+              <div className="text-center text-xs text-muted-foreground py-2">Aktif paket bulunmamaktadır</div>
+            )}
+            {activePackages.map((packageData) => (
+              <PackageCard key={packageData.id} packageData={packageData} defaultOpen={true} />
+            ))}
+          </div>
+
           {/* Antrenör butonu - sadece üye aktivse ve ilgilenen antrenörler varsa göster */}
           {member.active && handlingTrainers.length > 0 && (
             <>
@@ -468,16 +680,16 @@ export const MemberCard = ({
               >
                 <div className="flex flex-col gap-2 w-full pt-2 pb-2">
                   {handlingTrainers.map((trainer) => (
-                    <div 
-                      key={trainer.id} 
+                    <div
+                      key={trainer.id}
                       className={`flex items-center gap-2 p-2 rounded-md ${
-                        theme === "dark" 
-                          ? "bg-gray-700/50" 
+                        theme === "dark"
+                          ? "bg-gray-700/50"
                           : "bg-gray-100"
                       }`}
                     >
                       <Avatar className="h-6 w-6">
-                        
+
                         <AvatarFallback className="text-xs bg-blue-500/20 text-blue-700">
                           {trainer.first_name[0]}
                           {trainer.last_name[0]}
@@ -494,6 +706,29 @@ export const MemberCard = ({
           )}
         </div>
       </div>
+
+      {/* Pasife Al butonu - sadece paketi biten ve üye aktifse göster */}
+      {packageStatus === "completed" && member.active && (
+        <Button
+          variant="destructive"
+          size="sm"
+          className="flex items-center gap-1 px-2 py-1 ml-2 text-xs"
+          onClick={async (e) => {
+            e.stopPropagation();
+            const { setMemberPassive } = await import("@/services/setMemberPassive");
+            const res = await setMemberPassive(member.id);
+            if (res.success) {
+              window.location.reload(); // veya bir state güncellemesi yapılabilir
+            } else {
+              alert("Üye pasife alınamadı: " + (res.error || "Bilinmeyen hata"));
+            }
+          }}
+          title="Üyeyi pasife al"
+        >
+          <UserX className="h-3.5 w-3.5" />
+          <span>Pasife Al</span>
+        </Button>
+      )}
     </div>
   );
 };

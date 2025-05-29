@@ -192,25 +192,71 @@ export const checkPackageStatus = {
   getMemberHandlingTrainers: (
     member: Member,
     appointments: Appointment[],
-    trainers: { [key: string]: Trainer } | Trainer[]
+    trainers: { [key: string]: Trainer } | Trainer[],
+    services: { [key: string]: Service }
   ): Trainer[] => {
     // Üye aktif değilse, hiçbir antrenör ilgilenmiyor demektir
     if (!member.active) return [];
-    
-    // Üyenin tamamlanmış ve planlanmış randevuları
-    const memberAppointments = appointments.filter(apt => apt.member_id === member.id);
-    const completedAppointments = memberAppointments.filter(apt => apt.status === "completed");
-    const scheduledAppointments = memberAppointments.filter(apt => apt.status === "scheduled");
-    
-    // Randevulardaki benzersiz antrenör ID'lerini al
+
+    // Üyenin aktif paketlerini kontrol et
+    const memberPackageStatus = checkPackageStatus.getMemberPackageStatus(
+      member,
+      services,
+      appointments
+    );
+
+    // Eğer üyenin tüm paketleri bitmişse, hiçbir antrenör ilgilenmiyor demektir
+    if (memberPackageStatus === "completed") return [];
+
+    // Paket bazlı antrenör bulma (sadece aktif paketlerdeki antrenörler)
     const trainerIds = new Set<string>();
-    [...completedAppointments, ...scheduledAppointments].forEach(apt => {
-      if (apt.trainer_id) trainerIds.add(apt.trainer_id);
+
+    // Üyenin aldığı paketleri say
+    const serviceCount = member.subscribed_services.reduce((acc, serviceId) => {
+      acc[serviceId] = (acc[serviceId] || 0) + 1;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    // Her servis için paket bazlı kontrol yap
+    Object.entries(serviceCount).forEach(([serviceId, totalPackages]) => {
+      const service = services[serviceId];
+      if (!service) return;
+
+      const sessionsPerPackage = service.session_count || 0;
+      if (sessionsPerPackage === 0) return;
+
+      // Bu servise ait tüm randevuları tarihe göre sırala
+      const serviceAppointments = appointments
+        .filter(apt => apt.service_id === serviceId && apt.member_id === member.id)
+        .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+
+      // Paketleri oluştur
+      const remainingAppointments = [...serviceAppointments];
+      for (let i = 0; i < totalPackages; i++) {
+        const packageAppointments = remainingAppointments.splice(0, sessionsPerPackage);
+
+        const completedSessions = packageAppointments.filter(apt => apt.status === "completed").length;
+        const cancelledSessions = packageAppointments.filter(apt => apt.status === "cancelled").length;
+        const usedSessions = completedSessions + cancelledSessions;
+
+        // Eğer bu paket tamamlanmışsa (kullanılan seans sayısı toplam seans sayısına eşit veya fazlaysa)
+        // bu paketteki antrenörleri sayma
+        if (usedSessions >= sessionsPerPackage) {
+          continue; // Bu paket tamamlanmış, geç
+        }
+
+        // Bu paket aktif, bu paketteki tüm antrenörleri say (tamamlanan + planlanan)
+        packageAppointments.forEach(apt => {
+          if (apt.trainer_id && (apt.status === "completed" || apt.status === "scheduled")) {
+            trainerIds.add(apt.trainer_id);
+          }
+        });
+      }
     });
-    
+
     // Antrenörleri bul
     const handlingTrainers: Trainer[] = [];
-    
+
     // trainers bir dizi mi yoksa nesne mi kontrol et
     if (Array.isArray(trainers)) {
       trainerIds.forEach(id => {
@@ -223,7 +269,7 @@ export const checkPackageStatus = {
         if (trainers[id]) handlingTrainers.push(trainers[id]);
       });
     }
-    
+
     return handlingTrainers;
   }
 };
@@ -263,7 +309,6 @@ export const MemberList = ({
   selectedTrainerId,
   onSearch,
   onMemberClick,
-  onTrainerFilterChange,
   highlightedMemberId,
   appointmentsLoading = false,
   onStatsChange,
@@ -302,27 +347,20 @@ export const MemberList = ({
           (() => {
             // Eğer antrenör filtrelemesi yapılmıyorsa tüm üyeleri göster
             if (selectedTrainerId === "all") return true;
-            
+
             // Üye aktif değilse, antrenörle ilgilenme durumu yoktur
             if (!member.active) return false;
-            
-            // Üyenin tamamlanan randevuları
-            const completedAppointments = appointments.filter(
-              apt => apt.member_id === member.id && 
-                     apt.status === "completed" && 
-                     apt.trainer_id === selectedTrainerId
+
+            // Üyenin ilgilendiği antrenörleri bul
+            const handlingTrainers = checkPackageStatus.getMemberHandlingTrainers(
+              member,
+              appointments,
+              trainers,
+              services
             );
-            
-            // Üyenin planlanan randevuları
-            const scheduledAppointments = appointments.filter(
-              apt => apt.member_id === member.id && 
-                     apt.status === "scheduled" && 
-                     apt.trainer_id === selectedTrainerId
-            );
-            
-            // Eğer üyenin seçilen antrenörle tamamlanan randevuları varsa 
-            // VEYA planlanan randevuları varsa, antrenör bu üyeyle ilgileniyor demektir
-            return completedAppointments.length > 0 || scheduledAppointments.length > 0;
+
+            // Seçilen antrenör bu üyeyle ilgileniyor mu?
+            return handlingTrainers.some(trainer => trainer.id === selectedTrainerId);
           })();
 
         // Paket filtresini kontrol et

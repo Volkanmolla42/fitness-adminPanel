@@ -3,13 +3,14 @@ import { Users, HelpCircle } from "lucide-react";
 import React, { useMemo } from "react";
 import { useTheme } from "@/contexts/theme-context";
 import type { Database } from "@/types/supabase";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback} from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { checkPackageStatus } from "./MemberList";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
@@ -29,6 +30,7 @@ export const TrainerStats = ({
   trainers,
   members,
   appointments,
+  services, // <-- eksikti, eklendi
   selectedTrainerId,
   onTrainerSelect,
 }: TrainerStatsProps) => {
@@ -45,35 +47,51 @@ export const TrainerStats = ({
   const trainerStats = useMemo(() => {
     // Sadece aktif üyeleri filtrele
     const activeMembers = members.filter(member => member.active);
-    
-    return trainersArray.map(trainer => {
-      // Bu antrenörle ilgilenen üyeleri bul
-      const handledMembers = activeMembers.filter(member => {
-        // Üyenin tamamlanan randevuları
-        const completedAppointments = appointments.filter(
-          apt => apt.member_id === member.id && 
-                apt.status === "completed" && 
-                apt.trainer_id === trainer.id
-        );
-        
-        // Üyenin planlanan randevuları
-        const scheduledAppointments = appointments.filter(
-          apt => apt.member_id === member.id && 
-                apt.status === "scheduled" && 
-                apt.trainer_id === trainer.id
-        );
-        
-        // Eğer üyenin bu antrenörle tamamlanan veya planlanan randevusu varsa
-        return completedAppointments.length > 0 || scheduledAppointments.length > 0;
+
+    // Her antrenör için ilgilendiği üye ID'lerini tutan bir map
+    const trainerToMemberSet: Record<string, Set<string>> = {};
+    trainersArray.forEach(trainer => {
+      trainerToMemberSet[trainer.id] = new Set();
+    });
+
+    // Her aktif üye için ilgilenen antrenörleri bul (MemberList.tsx ile aynı mantık)
+    activeMembers.forEach(member => {
+      // Üyenin ilgilendiği antrenörleri bul
+      const handlingTrainers = checkPackageStatus.getMemberHandlingTrainers(
+        member,
+        appointments,
+        trainersArray,
+        services
+      );
+
+      // Bu antrenörleri üyeyle eşleştir
+      handlingTrainers.forEach(trainer => {
+        if (trainerToMemberSet[trainer.id]) {
+          trainerToMemberSet[trainer.id].add(member.id);
+        }
       });
-      
+    });
+
+    // Sonuçları oluştur
+    const trainerStatsResult = trainersArray.map(trainer => {
+      // Bu antrenörün ilgilendiği üyelerin id'leri
+      const memberIds = Array.from(trainerToMemberSet[trainer.id] || []);
+      // Üye adlarını bul ve logla
+      const memberNames = memberIds.map(id => {
+        const member = members.find(m => m.id === id);
+        return member ? `${member.first_name} ${member.last_name}` : id;
+      });
+      if (memberNames.length > 0) {
+        console.log(`Antrenör: ${trainer.first_name} ${trainer.last_name} -> Üyeler:`, memberNames);
+      }
       return {
         trainer,
-        handledMemberCount: handledMembers.length,
+        handledMemberCount: memberIds.length,
         isSelected: trainer.id === selectedTrainerId
       };
-    }).sort((a, b) => b.handledMemberCount - a.handledMemberCount); // Üye sayısına göre azalan sırada sırala
-  }, [trainersArray, members, appointments, selectedTrainerId]);
+    });
+    return trainerStatsResult.sort((a, b) => b.handledMemberCount - a.handledMemberCount);
+  }, [trainersArray, members, appointments, selectedTrainerId, services]);
 
   return (
     <div className="mb-8">
@@ -92,26 +110,26 @@ export const TrainerStats = ({
                   <br />
                   1. Üyenin durumu &quot;aktif&quot; olmalıdır.
                   <br />
-                  2. Üyenin bu antrenörle tamamlanmış randevusu olmalı VEYA
+                  2. Üyenin aktif paketleri olmalıdır.
                   <br />
-                  3. Üyenin bu antrenörle planlanan randevusu olmalıdır.
+                  3. Bu antrenörle tamamlanan veya planlanan randevusu olmalıdır.
                 </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </h2>
       </div>
-      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <Card
           onClick={() => onTrainerSelect("all")}
           className={`transition-all cursor-pointer hover:shadow-md ${
-            selectedTrainerId === "all" 
-              ? isDark 
-                ? "bg-gradient-to-r from-blue-900/40 to-gray-800 border-2 border-blue-700 shadow-lg" 
+            selectedTrainerId === "all"
+              ? isDark
+                ? "bg-gradient-to-r from-blue-900/40 to-gray-800 border-2 border-blue-700 shadow-lg"
                 : "bg-gradient-to-r from-blue-100 to-white border-2 border-blue-300 shadow-lg"
-              : isDark 
-                ? "bg-gray-800/60 hover:bg-blue-950/20 border border-gray-700" 
+              : isDark
+                ? "bg-gray-800/60 hover:bg-blue-950/20 border border-gray-700"
                 : "bg-white hover:bg-blue-50 border border-gray-200"
           }`}
         >
@@ -133,18 +151,18 @@ export const TrainerStats = ({
             </div>
           </div>
         </Card>
-        
+
         {trainerStats.map(({ trainer, handledMemberCount, isSelected }) => (
           <Card
             key={trainer.id}
             onClick={() => onTrainerSelect(trainer.id)}
             className={`transition-all cursor-pointer hover:shadow-md ${
-              isSelected 
-                ? isDark 
-                  ? "bg-gradient-to-r from-blue-900/40 to-gray-800 border-2 border-blue-700 shadow-lg" 
+              isSelected
+                ? isDark
+                  ? "bg-gradient-to-r from-blue-900/40 to-gray-800 border-2 border-blue-700 shadow-lg"
                   : "bg-gradient-to-r from-blue-100 to-white border-2 border-blue-300 shadow-lg"
-                : isDark 
-                  ? "bg-gray-800/60 hover:bg-blue-950/20 border border-gray-700" 
+                : isDark
+                  ? "bg-gray-800/60 hover:bg-blue-950/20 border border-gray-700"
                   : "bg-white hover:bg-blue-50 border border-gray-200"
             }`}
           >
@@ -168,10 +186,6 @@ export const TrainerStats = ({
           </Card>
         ))}
       </div>
-      
-      <div className={`text-xs italic mt-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-        * Bir üyenin bir antrenör tarafından ilgilenilmesi için, o antrenörle tamamlanmış veya planlanan randevusu olmalıdır.
-      </div>
     </div>
   );
-}; 
+};

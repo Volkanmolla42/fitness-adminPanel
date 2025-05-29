@@ -489,25 +489,7 @@ const PackageCard = React.memo(
                         }`}
                       >
                         {packageData.serviceName}
-                        {packageData.packageNumber > 1 && (
-                          <Badge
-                            variant="outline"
-                            className={`${
-                              isDark
-                                ? "bg-gray-800 border-gray-700"
-                                : "bg-gray-100"
-                            }`}
-                          >
-                            Paket #{packageData.packageNumber}
-                          </Badge>
-                        )}
-                        {packageData.isActive && (
-                          <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-2 shadow-sm">
-                            Aktif
-                          </Badge>
-                        )}
                       </h3>
-
                       {/* Date range */}
                       <div className="flex items-center gap-1 mt-1 text-xs">
                         <Calendar
@@ -536,7 +518,8 @@ const PackageCard = React.memo(
                       }`}
                     >
                       {packageData.completedSessions +
-                        packageData.scheduledSessions}
+                        packageData.scheduledSessions +
+                        packageData.cancelledSessions}
                       /{packageData.totalSessions} seans
                     </span>
                   </div>
@@ -548,22 +531,14 @@ const PackageCard = React.memo(
                         className={isDark ? "text-gray-400" : "text-gray-600"}
                       >
                         {packageData.completedSessions > 0 && (
-                          <span
-                            className={`${
-                              isDark ? "text-green-400" : "text-green-600"
-                            } font-medium`}
-                          >
+                          <span className={`${isDark ? "text-green-400" : "text-green-600"} font-medium`}>
                             {packageData.completedSessions} tamamlanan
                           </span>
                         )}
                         {packageData.scheduledSessions > 0 && (
                           <span>
                             {packageData.completedSessions > 0 && ", "}
-                            <span
-                              className={`${
-                                isDark ? "text-blue-400" : "text-blue-600"
-                              } font-medium`}
-                            >
+                            <span className={`${isDark ? "text-blue-400" : "text-blue-600"} font-medium`}>
                               {packageData.scheduledSessions} planlanmış
                             </span>
                           </span>
@@ -571,14 +546,17 @@ const PackageCard = React.memo(
                         {packageData.cancelledSessions > 0 && (
                           <span>
                             {(packageData.completedSessions > 0 ||
-                              packageData.scheduledSessions > 0) &&
-                              ", "}
-                            <span
-                              className={`${
-                                isDark ? "text-red-400" : "text-red-600"
-                              } font-medium`}
-                            >
+                              packageData.scheduledSessions > 0) && ", "}
+                            <span className={`${isDark ? "text-red-400" : "text-red-600"} font-medium`}>
                               {packageData.cancelledSessions} iptal
+                            </span>
+                          </span>
+                        )}
+                        {packageData.remainingSessions > 0 && (
+                          <span>
+                            {(packageData.completedSessions > 0 || packageData.scheduledSessions > 0 || packageData.cancelledSessions > 0) && ", "}
+                            <span className={`${isDark ? "text-gray-400" : "text-gray-500"} font-medium`}>
+                              {packageData.remainingSessions} kalan
                             </span>
                           </span>
                         )}
