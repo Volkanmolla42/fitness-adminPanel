@@ -22,7 +22,6 @@ import {
   isYesterday,
   parseISO,
   isFuture,
-
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import {
@@ -335,7 +334,6 @@ AppointmentCard.displayName = "AppointmentCard";
 interface PackageCardProps {
   packageData: Package;
   trainers: { [key: string]: Trainer };
-  service?: Service;
   onDelete?: (appointmentId: string) => void;
   defaultOpen?: boolean;
 }
@@ -344,7 +342,6 @@ const PackageCard = React.memo(
   ({
     packageData,
     trainers,
-    service,
     onDelete,
     defaultOpen = false,
   }: PackageCardProps) => {
@@ -436,24 +433,7 @@ const PackageCard = React.memo(
       );
     };
 
-    // Get progress bar color based on completion
-    const getProgressColor = () => {
-      const completionRate = packageData.progressPercentage;
 
-      if (packageData.isActive) {
-        return isDark ? "bg-primary" : "bg-primary";
-      }
-
-      if (completionRate >= 90) {
-        return isDark ? "bg-green-600" : "bg-green-600";
-      }
-
-      if (completionRate >= 50) {
-        return isDark ? "bg-amber-600" : "bg-amber-500";
-      }
-
-      return isDark ? "bg-gray-600" : "bg-gray-500";
-    };
 
     return (
       <Collapsible
@@ -693,6 +673,14 @@ export const AppointmentHistory = ({
         appointmentsByService[serviceId].push(appointment);
       });
 
+      // Also include services that member has subscribed to but has no appointments yet
+      const allSubscribedServices = [...new Set(member.subscribed_services)];
+      allSubscribedServices.forEach(serviceId => {
+        if (!appointmentsByService[serviceId]) {
+          appointmentsByService[serviceId] = [];
+        }
+      });
+
       // For each service, create packages
       Object.entries(appointmentsByService).forEach(
         ([serviceId, serviceAppointments]) => {
@@ -712,7 +700,7 @@ export const AppointmentHistory = ({
           const sortedAppointments = sortAppointments(serviceAppointments);
 
           // Split appointments into packages
-          let remainingAppointments = [...sortedAppointments];
+          const remainingAppointments = [...sortedAppointments];
 
           for (let i = 0; i < serviceCount; i++) {
             const packageId = `${serviceId}-package-${i + 1}`;
@@ -721,12 +709,7 @@ export const AppointmentHistory = ({
               sessionsPerPackage
             );
 
-            if (packageAppointments.length === 0) {
-              // No appointments for this package instance
-              continue;
-            }
-
-            // Calculate package stats
+            // Calculate package stats (even if no appointments yet)
             const completedSessions = packageAppointments.filter(
               (apt) => apt.status === "completed"
             ).length;
@@ -742,24 +725,30 @@ export const AppointmentHistory = ({
               completedSessions -
               scheduledSessions -
               cancelledSessions;
-            const isActive = scheduledSessions > 0;
+            // A package is active if it's not fully completed (has remaining sessions or scheduled sessions)
+            const isActive = completedSessions + cancelledSessions < totalSessions;
 
             // Calculate start and end dates
             let startDate = null;
             let endDate = null;
 
             if (packageAppointments.length > 0) {
+              const firstAppointment = packageAppointments[0];
+              const lastAppointment = packageAppointments[packageAppointments.length - 1];
+
               // Start date is the first appointment
-              startDate = new Date(
-                `${packageAppointments[0].date}T${packageAppointments[0].time}`
-              );
+              if (firstAppointment?.date && firstAppointment?.time) {
+                startDate = new Date(
+                  `${firstAppointment.date}T${firstAppointment.time}`
+                );
+              }
 
               // End date is the last appointment
-              const lastAppointment =
-                packageAppointments[packageAppointments.length - 1];
-              endDate = new Date(
-                `${lastAppointment.date}T${lastAppointment.time}`
-              );
+              if (lastAppointment?.date && lastAppointment?.time) {
+                endDate = new Date(
+                  `${lastAppointment.date}T${lastAppointment.time}`
+                );
+              }
             }
 
             // Calculate progress percentage
@@ -968,7 +957,6 @@ export const AppointmentHistory = ({
                         <PackageCard
                           packageData={packageData}
                           trainers={trainers}
-                          service={services[packageData.serviceId]}
                           onDelete={handleDeleteAppointment}
                           defaultOpen={true}
                         />
@@ -1014,7 +1002,6 @@ export const AppointmentHistory = ({
                         <PackageCard
                           packageData={packageData}
                           trainers={trainers}
-                          service={services[packageData.serviceId]}
                           onDelete={handleDeleteAppointment}
                           defaultOpen={false}
                         />

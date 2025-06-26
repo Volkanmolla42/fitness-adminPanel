@@ -103,10 +103,8 @@ const useReportData = () => {
 const logDataAnalysis = (members: Member[], services: Service[], memberPayments: MemberPayment[]) => {
   // Compare data sources for consistency
   const compareDataSources = () => {
-    console.log('=== Veri Tutarsızlık Analizi ===');
     
     const paymentPackages = memberPayments.length;
-    console.log(`Member Payments Tablosundaki Toplam Paket Sayısı: ${paymentPackages}`);
     
     let memberServiceCount = 0;
     const memberServiceMap = new Map();
@@ -203,7 +201,7 @@ const logDataAnalysis = (members: Member[], services: Service[], memberPayments:
       }
     });
 
-    let problematicMembers = [];
+    const problematicMembers = [];
 
     members.forEach(member => {
       const memberName = `${member.first_name} ${member.last_name}`;
@@ -234,99 +232,11 @@ const logDataAnalysis = (members: Member[], services: Service[], memberPayments:
     console.log('-------------------');
   };
 
-  // Log package distribution
-  const logPackageDistribution = () => {
-    const packageCounts = {
-      one: 0,
-      two: 0,
-      three: 0,
-      four: 0,
-      moreThanFour: 0
-    };
-
-    let totalPackages = 0;
-    const problemUsers = [];
-
-    members.forEach(member => {
-      const packageCount = member.subscribed_services?.length || 0;
-      totalPackages += packageCount;
-
-      if (packageCount === 1) packageCounts.one++;
-      else if (packageCount === 2) packageCounts.two++;
-      else if (packageCount === 3) packageCounts.three++;
-      else if (packageCount === 4) packageCounts.four++;
-      else if (packageCount > 4) {
-        packageCounts.moreThanFour++;
-        problemUsers.push({
-          name: `${member.first_name} ${member.last_name}`,
-          packageCount
-        });
-      }
-
-      console.log(`${member.first_name} ${member.last_name}: ${packageCount} paket`);
-    });
-
-    console.log('Detaylı Paket Analizi:');
-    console.log('1 paketi olan üye sayısı:', packageCounts.one);
-    console.log('2 paketi olan üye sayısı:', packageCounts.two);
-    console.log('3 paketi olan üye sayısı:', packageCounts.three);
-    console.log('4 paketi olan üye sayısı:', packageCounts.four);
-    console.log('4\'ten fazla paketi olan üye sayısı:', packageCounts.moreThanFour);
-    console.log('Toplam paket sayısı:', totalPackages);
-    console.log('Toplam üye sayısı:', members.length);
-
-    if (problemUsers.length > 0) {
-      console.log('4\'ten fazla paketi olan üyeler:', problemUsers);
-    }
-
-    const calculatedTotal =
-      (packageCounts.one * 1) +
-      (packageCounts.two * 2) +
-      (packageCounts.three * 3) +
-      (packageCounts.four * 4);
-
-    console.log('Manuel hesaplanan toplam:', calculatedTotal);
-  };
 
   // Run all data analysis functions
   compareDataSources();
   logProblematicMembers();
   //logPackageDistribution();
-};
-
-/**
- * Custom hook to process member packages for display
- */
-const useMemberPackages = (members: Member[], services: Service[]) => {
-  return useMemo(() => {
-    // Flatten the array of member packages
-    const memberPackages = members.reduce((acc: any[], member) => {
-      const memberName = `${member.first_name} ${member.last_name}`;
-      
-      if (!member.subscribed_services || !Array.isArray(member.subscribed_services) || member.subscribed_services.length === 0) {
-        return acc;
-      }
-      
-      // Find matching service names for each service ID
-      const memberPackagesData = member.subscribed_services.map((serviceId: string) => {
-        const service = services.find(s => s.id === serviceId);
-        return {
-          member_id: member.id,
-          member_name: memberName,
-          service_id: serviceId,
-          service_name: service ? service.name : 'Bilinmeyen Hizmet',
-          created_at: member.created_at
-        };
-      });
-      
-      return [...acc, ...memberPackagesData];
-    }, []);
-    
-    // Sort by most recent first
-    return memberPackages.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [members, services]);
 };
 
 /**
@@ -496,8 +406,6 @@ const ReportsPage: React.FC = () => {
     refreshData 
   } = useReportData();
 
-  // Process member packages
-  const memberPackages = useMemberPackages(members, services);
 
   // Process chart data
   const { serviceUsageData, revenueChartData } = useChartData(

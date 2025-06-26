@@ -15,7 +15,6 @@ import {
   CalendarPlus,
   Save,
   CalendarRange,
-  CalendarClock,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -158,6 +157,14 @@ export const MemberDetail = ({
         appointmentsByService[serviceId].push(appointment);
       });
 
+      // Also include services that member has subscribed to but has no appointments yet
+      const allSubscribedServices = [...new Set(member.subscribed_services)];
+      allSubscribedServices.forEach(serviceId => {
+        if (!appointmentsByService[serviceId]) {
+          appointmentsByService[serviceId] = [];
+        }
+      });
+
       // For each service, create packages
       Object.entries(appointmentsByService).forEach(
         ([serviceId, serviceAppointments]) => {
@@ -177,7 +184,7 @@ export const MemberDetail = ({
           const sortedAppointments = sortAppointments(serviceAppointments);
 
           // Split appointments into packages
-          let remainingAppointments = [...sortedAppointments];
+          const remainingAppointments = [...sortedAppointments];
 
           for (let i = 0; i < serviceCount; i++) {
             const packageId = `${serviceId}-package-${i + 1}`;
@@ -186,12 +193,7 @@ export const MemberDetail = ({
               sessionsPerPackage
             );
 
-            if (packageAppointments.length === 0) {
-              // No appointments for this package instance
-              continue;
-            }
-
-            // Calculate package stats
+            // Calculate package stats (even if no appointments yet)
             const completedSessions = packageAppointments.filter(
               (apt) => apt.status === "completed"
             ).length;

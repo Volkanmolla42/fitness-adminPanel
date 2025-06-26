@@ -77,13 +77,6 @@ export const TrainerStats = ({
       // Bu antrenörün ilgilendiği üyelerin id'leri
       const memberIds = Array.from(trainerToMemberSet[trainer.id] || []);
       // Üye adlarını bul ve logla
-      const memberNames = memberIds.map(id => {
-        const member = members.find(m => m.id === id);
-        return member ? `${member.first_name} ${member.last_name}` : id;
-      });
-      if (memberNames.length > 0) {
-        console.log(`Antrenör: ${trainer.first_name} ${trainer.last_name} -> Üyeler:`, memberNames);
-      }
       return {
         trainer,
         handledMemberCount: memberIds.length,

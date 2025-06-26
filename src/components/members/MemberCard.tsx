@@ -25,6 +25,23 @@ type Service = Database["public"]["Tables"]["services"]["Row"];
 type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
 
+interface Package {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  appointments: Appointment[];
+  totalSessions: number;
+  completedSessions: number;
+  scheduledSessions: number;
+  cancelledSessions: number;
+  remainingSessions: number;
+  startDate: Date | null;
+  endDate: Date | null;
+  isActive: boolean;
+  packageNumber: number;
+  progressPercentage: number;
+}
+
 interface MemberCardProps {
   member: Member;
   services: { [key: string]: Service };
@@ -228,7 +245,7 @@ export const MemberCard = ({
       services: { [key: string]: Service },
       member: Member
     ) => {
-      const packages: any[] = [];
+      const packages: Package[] = [];
       const appointmentsByService: Record<string, Appointment[]> = {};
       appointments.forEach((appointment) => {
         const serviceId = appointment.service_id;
@@ -237,12 +254,24 @@ export const MemberCard = ({
         }
         appointmentsByService[serviceId].push(appointment);
       });
+      // Also check for services that member has subscribed to but has no appointments yet
+      const allSubscribedServices = [...new Set(member.subscribed_services)];
+      allSubscribedServices.forEach(serviceId => {
+        if (!appointmentsByService[serviceId]) {
+          appointmentsByService[serviceId] = [];
+        }
+      });
+
       Object.entries(appointmentsByService).forEach(
         ([serviceId, serviceAppointments]) => {
           const service = services[serviceId];
-          if (!service) return;
+          if (!service) {
+            return;
+          }
           const sessionsPerPackage = service.session_count || 0;
-          if (sessionsPerPackage === 0) return;
+          if (sessionsPerPackage === 0) {
+            return;
+          }
           const serviceCount = member.subscribed_services.filter(
             (id) => id === serviceId
           ).length;
@@ -252,16 +281,14 @@ export const MemberCard = ({
             const dateB = new Date(`${b.date} ${b.time}`);
             return dateA.getTime() - dateB.getTime();
           });
-          let remainingAppointments = [...sortedAppointments];
+          const remainingAppointments = [...sortedAppointments];
           for (let i = 0; i < serviceCount; i++) {
             const packageId = `${serviceId}-package-${i + 1}`;
             const packageAppointments = remainingAppointments.splice(
               0,
               sessionsPerPackage
             );
-            if (packageAppointments.length === 0) {
-              continue;
-            }
+            // Calculate package stats (even if no appointments yet)
             const completedSessions = packageAppointments.filter(
               (apt) => apt.status === "completed"
             ).length;
@@ -282,18 +309,27 @@ export const MemberCard = ({
             let startDate = null;
             let endDate = null;
             if (packageAppointments.length > 0) {
-              startDate = new Date(
-                `${packageAppointments[0].date}T${packageAppointments[0].time}`
-              );
-              const lastAppointment =
-                packageAppointments[packageAppointments.length - 1];
-              endDate = new Date(
-                `${lastAppointment.date}T${lastAppointment.time}`
-              );
+              const firstAppointment = packageAppointments[0];
+              const lastAppointment = packageAppointments[packageAppointments.length - 1];
+
+              // Start date is the first appointment
+              if (firstAppointment?.date && firstAppointment?.time) {
+                startDate = new Date(
+                  `${firstAppointment.date}T${firstAppointment.time}`
+                );
+              }
+
+              // End date is the last appointment
+              if (lastAppointment?.date && lastAppointment?.time) {
+                endDate = new Date(
+                  `${lastAppointment.date}T${lastAppointment.time}`
+                );
+              }
             }
             const progressPercentage =
               ((completedSessions + scheduledSessions) / totalSessions) * 100;
-            packages.push({
+
+            const packageData = {
               id: packageId,
               serviceId,
               serviceName: service.name,
@@ -308,13 +344,15 @@ export const MemberCard = ({
               isActive,
               packageNumber: i + 1,
               progressPercentage,
-            });
+            };
+
+            packages.push(packageData);
           }
         }
       );
       return packages;
     },
-    []
+    [services]
   );
 
   // Üyenin tüm randevularını al
@@ -339,17 +377,14 @@ export const MemberCard = ({
     });
   }, [memberAppointments, services, member, groupAppointmentsIntoPackages]);
 
-  // Aktif ve tamamlanmış paketleri ayır
-  const { activePackages, completedPackages } = React.useMemo(() => {
-    const active = memberPackages.filter((pkg) => pkg.isActive);
-    const completed = memberPackages.filter((pkg) => !pkg.isActive);
-    return { activePackages: active, completedPackages: completed };
+  // Aktif paketleri ayır
+  const activePackages = React.useMemo(() => {
+    return memberPackages.filter((pkg) => pkg.isActive);
   }, [memberPackages]);
 
   // Paket kartı (MemberDetail'daki gibi)
   const PackageCard = React.useMemo(() =>
-    ({ packageData, defaultOpen = false }: { packageData: any; defaultOpen?: boolean }) => {
-      const [isOpen, setIsOpen] = React.useState(defaultOpen);
+    ({ packageData }: { packageData: Package }) => {
       const totalSessions = packageData.totalSessions;
       const completedPercentage = totalSessions > 0 ? (packageData.completedSessions / totalSessions) * 100 : 0;
       const scheduledPercentage = totalSessions > 0 ? (packageData.scheduledSessions / totalSessions) * 100 : 0;
@@ -573,8 +608,8 @@ export const MemberCard = ({
               className="object-cover"
             />
             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {member.first_name[0]}
-              {member.last_name[0]}
+              {member.first_name?.[0] || '?'}
+              {member.last_name?.[0] || '?'}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -639,7 +674,7 @@ export const MemberCard = ({
               <div className="text-center text-xs text-muted-foreground py-2">Aktif paket bulunmamaktadır</div>
             )}
             {activePackages.map((packageData) => (
-              <PackageCard key={packageData.id} packageData={packageData} defaultOpen={true} />
+              <PackageCard key={packageData.id} packageData={packageData} />
             ))}
           </div>
 
@@ -691,8 +726,8 @@ export const MemberCard = ({
                       <Avatar className="h-6 w-6">
 
                         <AvatarFallback className="text-xs bg-blue-500/20 text-blue-700">
-                          {trainer.first_name[0]}
-                          {trainer.last_name[0]}
+                          {trainer.first_name?.[0] || '?'}
+                          {trainer.last_name?.[0] || '?'}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-xs">
