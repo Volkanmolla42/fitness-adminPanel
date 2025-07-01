@@ -92,7 +92,7 @@ export const MemberStats = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
       <StatsCard
-        title="Toplam Üye"
+        title="Tüm Üyeler"
         value={stats.total}
         icon={Users}
         isActive={activeFilter === "all"}
@@ -115,7 +115,7 @@ export const MemberStats = ({
         onClick={() => onFilterChange("vip")}
       />
       <StatsCard
-        title="Aktif Üyeler"
+        title="Tüm Aktif Üyeler"
         value={stats.active}
         icon={UserCheck}
         iconColor="text-green-500"
@@ -123,7 +123,7 @@ export const MemberStats = ({
         onClick={() => onFilterChange("active")}
       />
       <StatsCard
-        title="Pasif Üyeler"
+        title="Tüm Pasif Üyeler"
         value={stats.inactive}
         icon={UserX}
         iconColor="text-red-500"

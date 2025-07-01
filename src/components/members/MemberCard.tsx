@@ -7,13 +7,15 @@ import {
   AlertCircle,
   AlertTriangle,
   Calendar,
-  MessageCircle,
   UserX,
   Users,
+  Phone,
+  Activity,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import type { Database } from "@/types/supabase";
 import React, { useMemo, useState } from "react";
-import cn from "classnames";
+import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/theme-context";
 import { Button } from "@/components/ui/button";
 import { checkPackageStatus, PackageStatus } from "./MemberList";
@@ -382,388 +384,349 @@ export const MemberCard = ({
     return memberPackages.filter((pkg) => pkg.isActive);
   }, [memberPackages]);
 
-  // Paket kartı (MemberDetail'daki gibi)
-  const PackageCard = React.useMemo(() =>
-    ({ packageData }: { packageData: Package }) => {
-      const totalSessions = packageData.totalSessions;
-      const completedPercentage = totalSessions > 0 ? (packageData.completedSessions / totalSessions) * 100 : 0;
-      const scheduledPercentage = totalSessions > 0 ? (packageData.scheduledSessions / totalSessions) * 100 : 0;
-      const cancelledPercentage = totalSessions > 0 ? (packageData.cancelledSessions / totalSessions) * 100 : 0;
-      const isDark = theme === "dark";
-      const packageStyle = React.useMemo(() => {
-        if (packageData.isActive) {
-          return isDark
-            ? "border-l-4 border-blue-500 pl-2 bg-primary/5"
-            : "border-l-4 border-blue-500 pl-2 bg-primary/5";
-        }
-        const completionRate = packageData.progressPercentage;
-        if (completionRate >= 90) {
-          return isDark
-            ? "border-l-4 border-green-600 pl-2 bg-green-900/5"
-            : "border-l-4 border-green-600 pl-2 bg-green-50/50";
-        }
-        return isDark
-          ? "border-l-4 border-gray-700 pl-2"
-          : "border-l-4 border-gray-200 pl-2";
-      }, [packageData.isActive, packageData.progressPercentage, isDark]);
-      const getProgressColor = () => {
-        const completionRate =
-          ((packageData.completedSessions +
-            packageData.scheduledSessions +
-            packageData.cancelledSessions) /
-            packageData.totalSessions) *
-          100;
-        if (packageData.isActive) {
-          return isDark ? "bg-primary/20" : "bg-primary/20";
-        }
-        if (completionRate >= 90) {
-          return isDark ? "bg-green-900/20" : "bg-green-100";
-        }
-        if (completionRate >= 50) {
-          return isDark ? "bg-amber-900/20" : "bg-amber-100";
-        }
-        return isDark ? "bg-gray-800/50" : "bg-gray-100";
-      };
-      const formatDateShort = (date: Date | null) => {
-        if (!date) return "Belirsiz";
-        return format(date, "d MMM yyyy", { locale: tr });
-      };
-      return (
-        <div className="mb-2 pt-2">
-          <div
-            className={cn(
-              `flex items-center gap-3 p-4 rounded-lg transition-all duration-200 border hover:shadow-md relative ${
-                isDark ? "hover:bg-gray-800/70" : "hover:bg-accent/70"
-              }`,
-              packageStyle
-            )}
-          >
-            {packageData.isActive && (
-              <Badge className="bg-gradient-to-r absolute -top-3 left-2 from-blue-500 to-blue-600 text-white text-xs px-2 py-0.5 shrink-0">
-                Aktif
-              </Badge>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <h3 className={`text-base font-semibold truncate ${isDark ? "text-gray-200" : "text-gray-900"}`}>
-                    {packageData.serviceName}
-                  </h3>
-                </div>
-                <div
-                  className={`text-sm font-medium px-2 py-1 rounded-md shrink-0 ${
-                    packageData.isActive
-                      ? isDark
-                        ? "bg-primary/10 text-primary"
-                        : "bg-primary/10 text-primary"
-                      : isDark
-                      ? "bg-gray-800 text-gray-300"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {packageData.completedSessions + packageData.scheduledSessions + packageData.cancelledSessions}
-                  /{packageData.totalSessions}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 mb-3 text-xs">
-                <Calendar className={`h-3 w-3 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
-                <span className={isDark ? "text-gray-500" : "text-gray-400"}>
-                  {formatDateShort(packageData.startDate)} - {formatDateShort(packageData.endDate)}
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className={`relative h-2 w-full flex overflow-hidden rounded-full ${getProgressColor()}`}>
-                  {completedPercentage > 0 && (
-                    <div
-                      className="h-full bg-green-500 transition-all duration-300"
-                      style={{ width: `${completedPercentage}%` }}
-                      title={`Tamamlandı: ${packageData.completedSessions}`}
-                    />
-                  )}
-                  {scheduledPercentage > 0 && (
-                    <div
-                      className="h-full bg-blue-500 transition-all duration-300"
-                      style={{ width: `${scheduledPercentage}%` }}
-                      title={`Planlanmış: ${packageData.scheduledSessions}`}
-                    />
-                  )}
-                  {cancelledPercentage > 0 && (
-                    <div
-                      className="h-full bg-red-500 transition-all duration-300"
-                      style={{ width: `${cancelledPercentage}%` }}
-                      title={`İptal Edildi: ${packageData.cancelledSessions}`}
-                    />
-                  )}
-                  {packageData.remainingSessions > 0 && (
-                    <div
-                      className={`h-full ${isDark ? "bg-gray-600" : "bg-gray-300"} transition-all duration-300`}
-                      style={{
-                        width: `${(packageData.remainingSessions / packageData.totalSessions) * 100}%`,
-                      }}
-                      title={`Kalan: ${packageData.remainingSessions}`}
-                    />
-                  )}
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium flex flex-wrap gap-2">
-                    {packageData.completedSessions > 0 && (
-                      <span className="text-green-600 dark:text-green-400">
-                        {packageData.completedSessions} tamamlanan
-                      </span>
-                    )}
-                    {packageData.scheduledSessions > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400">
-                        {packageData.scheduledSessions} planlanan
-                      </span>
-                    )}
-                    {packageData.cancelledSessions > 0 && (
-                      <span className="text-red-600 dark:text-red-400">
-                        {packageData.cancelledSessions} iptal
-                      </span>
-                    )}
-                    {packageData.remainingSessions > 0 && (
-                      <span className="text-gray-500 dark:text-gray-300">
-                        {packageData.remainingSessions} kalan
-                      </span>
-                    )}
-                  </span>
-                  <span className="font-medium">
-                    %{Math.round(packageData.progressPercentage)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    },
-  [theme]);
+
 
   return (
     <div
-      className={`rounded-xl p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer relative group ${getPackageStatusClasses.cardBorderClass}`}
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 cursor-pointer",
+        getPackageStatusClasses.cardBorderClass
+      )}
       onClick={() => onClick(member)}
+      role="button"
+      tabIndex={0}
+      aria-label={`View details for ${member.first_name} ${member.last_name}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(member);
+        }
+      }}
     >
-      <div className="absolute top-3 left-3 flex w-full z-10 tracking-wide ">
-        {packageStatus === "completed" && (
+      {/* Status Indicator Bar */}
+      <div className={cn(
+        "h-1 w-full",
+        packageStatus === "completed" ? "bg-destructive" :
+        packageStatus === "almostCompleted" ? "bg-amber-500" :
+        "bg-primary/20"
+      )} />
+
+      {/* Header Section with Badges */}
+      <div className="relative p-4 pb-2">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          {/* Status Badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {packageStatus === "completed" && (
+              <Badge variant="destructive" className="text-xs font-medium">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Paket Bitti
+              </Badge>
+            )}
+            {packageStatus === "almostCompleted" && (
+              <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Bitiyor
+              </Badge>
+            )}
+            {!member.active && (
+              <Badge variant="destructive" className="text-xs font-medium">
+                <UserX className="h-3 w-3 mr-1" />
+                Pasif
+              </Badge>
+            )}
+          </div>
+
+          {/* Membership Type Badge */}
           <Badge
-            variant="destructive"
-            className="flex items-center gap-1.5 px-2.5 py-1  shadow-sm bg-red-500/90 hover:bg-red-500 text-white"
-          >
-            <AlertCircle className="h-3.5 w-3.5" />
-            <span className="text-xs">Paket Bitti</span>
-          </Badge>
-        )}
-        {packageStatus === "almostCompleted" && (
-          <Badge
-            variant="outline"
-            className="flex items-center gap-1.5 px-2.5 py-1 font-medium shadow-sm bg-amber-600/90 hover:bg-amber-500 text-white"
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span className="text-xs">Bitiyor</span>
-          </Badge>
-        )}
-        {/* Sadece pasif üyelerde badge göster */}
-        {!member.active && (
-          <Badge
-            variant="destructive"
+            variant={member.membership_type === "vip" ? "default" : "secondary"}
             className={cn(
-              "flex absolute top-8 right-6 items-center gap-1.5 px-2.5 py-1 font-medium shadow-sm",
-              "bg-red-500/90 hover:bg-red-500 text-white"
+              "text-xs font-medium shrink-0",
+              member.membership_type === "vip" && "bg-gradient-to-r from-purple-600 to-purple-600 text-white border-0"
             )}
           >
-            <UserX className="h-3.5 w-3.5" />
-            <span className="text-xs">Pasif</span>
+            {member.membership_type === "vip" ? (
+              <>
+                <Crown className="h-3 w-3 mr-1" />
+                VIP
+              </>
+            ) : (
+              "Standart"
+            )}
           </Badge>
-        )}
-        <Badge
-          variant={member.membership_type === "vip" ? "default" : "outline"}
-          className={cn(
-            "flex absolute top-0 right-6 items-center gap-1.5 px-2.5 py-1 font-medium shadow-sm",
-            member.membership_type === "vip"
-              ? "bg-amber-500/90 hover:bg-amber-500 border-amber-500"
-              : theme === "dark"
-              ? "bg-gray-700 text-gray-200"
-              : ""
-          )}
-        >
-          {member.membership_type === "vip" ? (
-            <>
-              <Crown className="h-3.5 w-3.5 text-white" />
-            </>
-          ) : (
-            "Standart"
-          )}
-        </Badge>
-      </div>
-
-      <div className="flex flex-col items-center text-center">
-        <div className="relative">
-          <Avatar
-            className={`size-20 ring-2 ring-offset-2 transition-all ${getPackageStatusClasses.avatarRingClass}`}
-          >
-            <AvatarImage
-              src={member.avatar_url || ""}
-              alt={`${member.first_name} ${member.last_name}`}
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {member.first_name?.[0] || '?'}
-              {member.last_name?.[0] || '?'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-        <div className="mt-4 sm:mt-5">
-          <h3
-            className={`font-semibold text-sm sm:text-base tracking-tight ${
-              theme === "dark" ? "text-gray-100" : ""
-            }`}
-          >
-            {member.first_name} {member.last_name}
-          </h3>
-
-          {/* Son randevu tarihi */}
-          {lastAppointmentDate &&
-            (packageStatus === "completed" ||
-              packageStatus === "almostCompleted") && (
-              <div className="flex flex-col items-center gap-1 mt-1">
-                <div
-                  className={`flex items-center justify-center gap-1 ${
-                    packageStatus === "completed"
-                      ? "text-red-500"
-                      : "text-amber-500"
-                  }`}
-                >
-                  <Calendar className="h-3 w-3" />
-                  <span className="text-xs font-medium">
-                    {packageStatus === "completed"
-                      ? "Bitiş Tarihi: "
-                      : "Son Randevu: "}
-                    {formatDate(lastAppointmentDate.date)}
-                  </span>
-                </div>
-
-                {/* WhatsApp Mesaj Butonu */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`mt-1 h-7 px-2 py-0 flex items-center gap-1 text-xs ${
-                    packageStatus === "completed"
-                      ? "text-red-600 hover:text-red-700 hover:bg-red-100"
-                      : "text-amber-600 hover:text-amber-700 hover:bg-amber-100"
-                  }`}
-                  onClick={sendWhatsAppMessage}
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  <span>WhatsApp Mesaj Gönder</span>
-                </Button>
-              </div>
-            )}
         </div>
 
-        <div className={`w-full mt-3`}>
-          <div className="flex items-center gap-1.5 mb-2">
-            <Package className={`h-3.5 w-3.5 ${getPackageStatusClasses.packageIconClass}`} />
-            <span className="text-xs font-medium">
-              Aktif Paketler ({activePackages.length})
-            </span>
-          </div>
-          <div className="flex flex-col gap-2.5 w-full pt-1 pb-2">
-            {/* Sadece aktif paketler */}
-            {activePackages.length === 0 && (
-              <div className="text-center text-xs text-muted-foreground py-2">Aktif paket bulunmamaktadır</div>
-            )}
-            {activePackages.map((packageData) => (
-              <PackageCard key={packageData.id} packageData={packageData} />
-            ))}
+        {/* Main Content Area */}
+        <div className="flex items-start gap-4">
+          {/* Avatar Section */}
+          <div className="relative shrink-0">
+            <Avatar
+              className={cn(
+                "h-16 w-16 ring-2 ring-offset-2 transition-all duration-300",
+                getPackageStatusClasses.avatarRingClass
+              )}
+            >
+              <AvatarImage
+                src={member.avatar_url || ""}
+                alt={`${member.first_name} ${member.last_name}`}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+                {member.first_name?.[0] || '?'}
+                {member.last_name?.[0] || '?'}
+              </AvatarFallback>
+            </Avatar>
+
+            {/* Activity Indicator */}
+            <div className={cn(
+              "absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-background flex items-center justify-center",
+              member.active ? "bg-green-500" : "bg-gray-400"
+            )}>
+              <Activity className="h-2.5 w-2.5 text-white" />
+            </div>
           </div>
 
-          {/* Antrenör butonu - sadece üye aktivse ve ilgilenen antrenörler varsa göster */}
-          {member.active && handlingTrainers.length > 0 && (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                className={`w-full flex items-center justify-between mt-2 py-3 px-1 ${
-                  theme === "dark"
-                    ? "bg-blue-500/20 hover:bg-blue-500/30 text-blue-100"
-                    : "bg-blue-100 hover:bg-blue-200 text-blue-700"
-                }`}
-                onClick={handleTrainersToggle}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Users
-                    className={`h-3.5 w-3.5 ${
-                      theme === "dark" ? "text-blue-400" : "text-blue-600"
-                    }`}
-                  />
-                  <span className="text-xs font-medium">
-                    İlgilenen Antrenörler ({handlingTrainers.length})
-                  </span>
+          {/* Member Info Section */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1 flex-1 min-w-0">
+                <h3 className="font-semibold text-lg leading-tight text-foreground truncate">
+                  {member.first_name} {member.last_name}
+                </h3>
+
+                {/* Contact Info */}
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Phone className="h-3.5 w-3.5" />
+                    <span className="truncate">{member.phone}</span>
+                  </div>
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform duration-300 ${
-                    showTrainers ? "rotate-180" : ""
-                  } ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}
-                />
-              </Button>
 
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  showTrainers ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="flex flex-col gap-2 w-full pt-2 pb-2">
-                  {handlingTrainers.map((trainer) => (
-                    <div
-                      key={trainer.id}
-                      className={`flex items-center gap-2 p-2 rounded-md ${
-                        theme === "dark"
-                          ? "bg-gray-700/50"
-                          : "bg-gray-100"
-                      }`}
-                    >
-                      <Avatar className="h-6 w-6">
-
-                        <AvatarFallback className="text-xs bg-blue-500/20 text-blue-700">
-                          {trainer.first_name?.[0] || '?'}
-                          {trainer.last_name?.[0] || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs">
-                        {trainer.first_name} {trainer.last_name}
+                {/* Last Appointment Info */}
+                {lastAppointmentDate &&
+                  (packageStatus === "completed" || packageStatus === "almostCompleted") && (
+                    <div className={cn(
+                      "flex items-center gap-1.5 text-xs font-medium mt-1",
+                      packageStatus === "completed" ? "text-destructive" : "text-amber-600"
+                    )}>
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>
+                        {packageStatus === "completed" ? "Bitiş: " : "Son Randevu: "}
+                        {formatDate(lastAppointmentDate.date)}
                       </span>
                     </div>
-                  ))}
-                </div>
+                  )}
               </div>
-            </>
-          )}
+
+              {/* WhatsApp Message Button - Moved to top right */}
+              {lastAppointmentDate &&
+                (packageStatus === "completed" || packageStatus === "almostCompleted") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "shrink-0 h-8 px-3 text-xs",
+                      packageStatus === "completed"
+                        ? "border-destructive/50 text-destructive hover:bg-destructive/10"
+                        : "bg-primary/10"
+                    )}
+                    onClick={sendWhatsAppMessage}
+                  >
+                    <WhatsAppIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Haber ver
+                  </Button>
+                )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Pasife Al butonu - sadece paketi biten ve üye aktifse göster */}
-      {packageStatus === "completed" && member.active && (
-        <Button
-          variant="destructive"
-          size="sm"
-          className="flex items-center gap-1 px-2 py-1 ml-2 text-xs"
-          onClick={async (e) => {
-            e.stopPropagation();
-            const { setMemberPassive } = await import("@/services/setMemberPassive");
-            const res = await setMemberPassive(member.id);
-            if (res.success) {
-              window.location.reload(); // veya bir state güncellemesi yapılabilir
-            } else {
-              alert("Üye pasife alınamadı: " + (res.error || "Bilinmeyen hata"));
-            }
-          }}
-          title="Üyeyi pasife al"
-        >
-          <UserX className="h-3.5 w-3.5" />
-          <span>Pasife Al</span>
-        </Button>
-      )}
+      {/* Package Information Section */}
+      <div className="px-4 pb-4">
+        <div className="space-y-3">
+          {/* Package Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className={cn(
+                "h-4 w-4",
+                getPackageStatusClasses.packageIconClass
+              )} />
+              <span className="text-sm font-medium text-foreground">
+                Aktif Paketler
+              </span>
+              <Badge variant="secondary" className="text-xs">
+                {activePackages.length}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Package List */}
+          <div className="space-y-2">
+            {activePackages.length === 0 ? (
+              <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-lg">
+                Aktif paket bulunmamaktadır
+              </div>
+            ) : (
+              activePackages.map((packageData) => (
+                <div
+                  key={packageData.id}
+                  className={cn(
+                    "p-3 rounded-lg border bg-background/50 transition-colors hover:bg-accent/50",
+                    packageData.isActive && "border-primary/20 bg-primary/5"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm text-foreground truncate">
+                      {packageData.serviceName}
+                    </h4>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="text-xs">
+                        {packageData.completedSessions + packageData.scheduledSessions + packageData.cancelledSessions}
+                        /{packageData.totalSessions}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Package Date Range */}
+                  {(packageData.startDate || packageData.endDate) && (
+                    <div className="flex items-center gap-1 mb-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        {packageData.startDate && formatDate(packageData.startDate.toISOString().split('T')[0])}
+                        {packageData.startDate && packageData.endDate && " - "}
+                        {packageData.endDate && formatDate(packageData.endDate.toISOString().split('T')[0])}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+                      {packageData.completedSessions > 0 && (
+                        <div
+                          className="bg-green-500 transition-all duration-300"
+                          style={{ width: `${(packageData.completedSessions / packageData.totalSessions) * 100}%` }}
+                        />
+                      )}
+                      {packageData.scheduledSessions > 0 && (
+                        <div
+                          className="bg-blue-500 transition-all duration-300"
+                          style={{ width: `${(packageData.scheduledSessions / packageData.totalSessions) * 100}%` }}
+                        />
+                      )}
+                      {packageData.cancelledSessions > 0 && (
+                        <div
+                          className="bg-destructive transition-all duration-300"
+                          style={{ width: `${(packageData.cancelledSessions / packageData.totalSessions) * 100}%` }}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        {packageData.completedSessions > 0 && (
+                          <span className="text-green-600">
+                            {packageData.completedSessions} tamamlanan
+                          </span>
+                        )}
+                        {packageData.scheduledSessions > 0 && (
+                          <span className="text-blue-600">
+                            {packageData.scheduledSessions} planlanan
+                          </span>
+                        )}
+                        {packageData.remainingSessions > 0 && (
+                          <span>
+                            {packageData.remainingSessions} kalan
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-medium">
+                        %{Math.round(packageData.progressPercentage)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Section */}
+      <div className="px-4 pb-4 space-y-3">
+        {/* Trainers Section */}
+        {member.active && handlingTrainers.length > 0 && (
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full flex items-center justify-between p-2 h-auto"
+              onClick={handleTrainersToggle}
+            >
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">
+                  İlgilenen Antrenörler ({handlingTrainers.length})
+                </span>
+              </div>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  showTrainers && "rotate-180"
+                )}
+              />
+            </Button>
+
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-200 ease-in-out",
+                showTrainers ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
+              )}
+            >
+              <div className="space-y-1 pt-1">
+                {handlingTrainers.map((trainer) => (
+                  <div
+                    key={trainer.id}
+                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                        {trainer.first_name?.[0] || '?'}
+                        {trainer.last_name?.[0] || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">
+                      {trainer.first_name} {trainer.last_name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Deactivate Member Button */}
+        {packageStatus === "completed" && member.active && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full flex items-center justify-center gap-2"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const { setMemberPassive } = await import("@/services/setMemberPassive");
+              const res = await setMemberPassive(member.id);
+              if (res.success) {
+                window.location.reload();
+              } else {
+                alert("Üye pasife alınamadı: " + (res.error || "Bilinmeyen hata"));
+              }
+            }}
+          >
+            <UserX className="h-4 w-4" />
+            Pasife Al
+          </Button>
+        )}
+      </div>
+
     </div>
   );
 };

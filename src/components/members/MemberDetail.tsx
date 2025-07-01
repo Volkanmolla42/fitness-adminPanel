@@ -5,7 +5,6 @@ import {
   Pencil,
   Phone,
   History,
-  Trash2,
   Package2,
   Calendar,
   UserX,
@@ -78,7 +77,6 @@ interface MemberDetailProps {
   trainers: { [key: string]: Trainer };
   appointments: Appointment[];
   onEdit: (member: Member) => void;
-  onDelete: (id: string) => Promise<void>;
   onUpdate?: (member: Member) => Promise<void>;
   onAppointmentDeleted?: (appointmentId: string) => void;
   onToggleActive?: (member: Member) => Promise<void>;
@@ -90,7 +88,6 @@ export const MemberDetail = ({
   trainers,
   appointments,
   onEdit,
-  onDelete,
   onAppointmentDeleted,
   onUpdate,
 }: MemberDetailProps) => {
@@ -98,7 +95,6 @@ export const MemberDetail = ({
   const isDark = theme === "dark";
   const { createAppointment } = useAppointments();
   const [showAppointments, setShowAppointments] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [showAddAppointmentDialog, setShowAddAppointmentDialog] =
@@ -542,12 +538,6 @@ export const MemberDetail = ({
 
   PackageCard.displayName = "PackageCard";
 
-  const handleDelete = async () => {
-    if (member.id) {
-      await onDelete(member.id);
-      setShowDeleteDialog(false);
-    }
-  };
 
   const handleSavePostponement = async () => {
     if (onUpdate) {
@@ -601,13 +591,7 @@ export const MemberDetail = ({
               {member.active ? "Pasife Al" : "Aktife Al"}
             </DropdownMenuItem>
 
-            <DropdownMenuItem
-              onClick={() => setShowDeleteDialog(true)}
-              className="text-red-600 cursor-pointer"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Sil
-            </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -833,29 +817,6 @@ export const MemberDetail = ({
         </Button>
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Üye Silme Onayı</DialogTitle>
-            <DialogDescription>
-              {member.first_name} {member.last_name} isimli üyeyi silmek
-              istediğinize emin misiniz? Bu işlem geri alınamaz.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              İptal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Sil
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Aktif/Pasif Durumu Değiştirme Onay Dialogu */}
       {(showDeactivateDialog || showActivateDialog) && (
