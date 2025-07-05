@@ -1,27 +1,22 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Crown,
   Pencil,
   Phone,
   History,
+  Trash2,
   Package2,
   Calendar,
   UserX,
   UserCheck,
-  Settings,
   Mail,
   CalendarPlus,
   Save,
   CalendarRange,
   ChevronDown,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Collapsible,
@@ -77,6 +72,7 @@ interface MemberDetailProps {
   trainers: { [key: string]: Trainer };
   appointments: Appointment[];
   onEdit: (member: Member) => void;
+  onDelete: (id: string) => Promise<void>;
   onUpdate?: (member: Member) => Promise<void>;
   onAppointmentDeleted?: (appointmentId: string) => void;
   onToggleActive?: (member: Member) => Promise<void>;
@@ -88,6 +84,7 @@ export const MemberDetail = ({
   trainers,
   appointments,
   onEdit,
+  onDelete,
   onAppointmentDeleted,
   onUpdate,
 }: MemberDetailProps) => {
@@ -95,8 +92,11 @@ export const MemberDetail = ({
   const isDark = theme === "dark";
   const { createAppointment } = useAppointments();
   const [showAppointments, setShowAppointments] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleteConfirmed, setIsDeleteConfirmed] = useState(false);
   const [showAddAppointmentDialog, setShowAddAppointmentDialog] =
     useState(false);
   const [editingPostponement, setEditingPostponement] = useState(false);
@@ -538,6 +538,27 @@ export const MemberDetail = ({
 
   PackageCard.displayName = "PackageCard";
 
+  const handleDelete = async () => {
+    if (member.id && isDeleteConfirmed) {
+      await onDelete(member.id);
+      setShowDeleteDialog(false);
+      setDeleteConfirmText("");
+      setIsDeleteConfirmed(false);
+    }
+  };
+
+  const handleDeleteDialogClose = () => {
+    setShowDeleteDialog(false);
+    setDeleteConfirmText("");
+    setIsDeleteConfirmed(false);
+  };
+
+  // Silme onayı için üye adını kontrol et
+  const checkDeleteConfirmation = (text: string) => {
+    setDeleteConfirmText(text);
+    const expectedText = `${member.first_name} ${member.last_name}`;
+    setIsDeleteConfirmed(text.trim().toLowerCase() === expectedText.toLowerCase());
+  };
 
   const handleSavePostponement = async () => {
     if (onUpdate) {
@@ -552,48 +573,40 @@ export const MemberDetail = ({
 
   return (
     <div className="p-4 relative overflow-y-auto max-h-[calc(100vh-3rem)]">
-      {/* Ayarlar Dropdown Menüsü - Sağ Üst Köşe */}
-      <div className="absolute top-6 right-6 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 dark:hover:bg-zinc-700 hover:bg-gray-100"
-            >
-              <Settings className="h-5 w-5 text-gray-500" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={() => onEdit(member)}
-              className="cursor-pointer"
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Düzenle
-            </DropdownMenuItem>
+      {/* Düzenle ve Pasife Al Butonları - Sağ Üst Köşe */}
+      <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
+        
 
-            <DropdownMenuItem
-              onClick={() =>
-                member.active
-                  ? setShowDeactivateDialog(true)
-                  : setShowActivateDialog(true)
-              }
-              className={`cursor-pointer ${
-                member.active ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              {member.active ? (
-                <UserX className="mr-2 h-4 w-4" />
-              ) : (
-                <UserCheck className="mr-2 h-4 w-4" />
-              )}
-              {member.active ? "Pasife Al" : "Aktife Al"}
-            </DropdownMenuItem>
-
-
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            member.active
+              ? setShowDeactivateDialog(true)
+              : setShowActivateDialog(true)
+          }
+          className={`h-8 px-3 transition-all duration-200 ${
+            member.active
+              ? "text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/20"
+              : "text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950/20"
+          }`}
+        >
+          {member.active ? (
+            <UserX className="h-4 w-4 mr-1" />
+          ) : (
+            <UserCheck className="h-4 w-4 mr-1" />
+          )}
+          {member.active ? "Pasife Al" : "Aktife Al"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(member)}
+          className="h-8 px-3 dark:hover:bg-zinc-700 hover:bg-gray-100 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+        >
+          <Pencil className="h-4 w-4 mr-1" />
+          Düzenle
+        </Button>
       </div>
 
       {/* Üst Bilgi Kartı */}
@@ -794,8 +807,8 @@ export const MemberDetail = ({
         )}
       </div>
 
-      {/* Butonlar */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Ana İşlem Butonları */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {/* Randevu Ekle Butonu */}
         <Button
           variant="default"
@@ -817,6 +830,86 @@ export const MemberDetail = ({
         </Button>
       </div>
 
+      {/* Sil Butonu - En Alt */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+            className="text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20 transition-all duration-200 px-4 py-2"
+          >
+            <Trash2 className="h-3 w-3 mr-2" />
+            Üyeyi Kalıcı Olarak Sil
+          </Button>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={handleDeleteDialogClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Üye Silme Onayı
+            </DialogTitle>
+            <DialogDescription className="space-y-3">
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-lg p-3">
+                <p className="text-red-800 dark:text-red-400 font-medium text-sm">
+                  ⚠️ Bu işlem geri alınamaz!
+                </p>
+                <p className="text-red-700 dark:text-red-300 text-sm mt-1">
+                  <strong>{member.first_name} {member.last_name}</strong> isimli üye ve tüm randevu geçmişi kalıcı olarak silinecektir.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  Devam etmek için üyenin tam adını yazın:
+                </p>
+                <p className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border">
+                  {member.first_name} {member.last_name}
+                </p>
+                <Input
+                  placeholder="Üyenin tam adını buraya yazın..."
+                  value={deleteConfirmText}
+                  onChange={(e) => checkDeleteConfirmation(e.target.value)}
+                  className={`${
+                    deleteConfirmText && !isDeleteConfirmed
+                      ? "border-red-300 focus:border-red-500"
+                      : isDeleteConfirmed
+                      ? "border-green-300 focus:border-green-500"
+                      : ""
+                  }`}
+                />
+                {deleteConfirmText && !isDeleteConfirmed && (
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    Girilen ad eşleşmiyor. Lütfen tam olarak &quot;{member.first_name} {member.last_name}&quot; yazın.
+                  </p>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={handleDeleteDialogClose}
+              className="flex-1"
+            >
+              İptal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={!isDeleteConfirmed}
+              className="flex-1"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Kalıcı Olarak Sil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Aktif/Pasif Durumu Değiştirme Onay Dialogu */}
       {(showDeactivateDialog || showActivateDialog) && (
@@ -829,35 +922,69 @@ export const MemberDetail = ({
             }
           }}
         >
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className={`flex items-center gap-2 ${
+                showDeactivateDialog ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"
+              }`}>
+                {showDeactivateDialog ? (
+                  <UserX className="h-5 w-5" />
+                ) : (
+                  <UserCheck className="h-5 w-5" />
+                )}
                 Üye {showDeactivateDialog ? "Pasife" : "Aktife"} Alma Onayı
               </DialogTitle>
-              <DialogDescription>
-                {member.first_name} {member.last_name} isimli üyeyi{" "}
-                {showDeactivateDialog ? "pasife" : "aktife"} almak istediğinize
-                emin misiniz?{" "}
-                {showDeactivateDialog
-                  ? 'Pasif üyeler listelerde görünmeye devam edecek ancak "Pasif" olarak işaretlenecektir.'
-                  : 'Aktif üyeler normal olarak listelerde görünecek ve "Pasif" işareti kaldırılacaktır.'}
+              <DialogDescription className="space-y-3">
+                <div className={`border rounded-lg p-3 ${
+                  showDeactivateDialog
+                    ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/30"
+                    : "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30"
+                }`}>
+                  <p className={`font-medium text-sm ${
+                    showDeactivateDialog
+                      ? "text-orange-800 dark:text-orange-400"
+                      : "text-green-800 dark:text-green-400"
+                  }`}>
+                    <strong>{member.first_name} {member.last_name}</strong> isimli üyeyi{" "}
+                    {showDeactivateDialog ? "pasife" : "aktife"} almak istediğinize emin misiniz?
+                  </p>
+                </div>
+
+                <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                  {showDeactivateDialog ? (
+                    <div className="space-y-1">
+                      <p>• Pasif üyeler listelerde görünmeye devam edecek</p>
+                      <p>• &quot;Pasif&quot; etiketi ile işaretlenecek</p>
+                      <p>• Yeni randevu oluşturulamayacak</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p>• Üye aktif duruma geçecek</p>
+                      <p>• &quot;Pasif&quot; etiketi kaldırılacak</p>
+                      <p>• Yeni randevu oluşturulabilecek</p>
+                    </div>
+                  )}
+                </div>
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="flex gap-2">
+            <DialogFooter className="flex gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowDeactivateDialog(false);
                   setShowActivateDialog(false);
                 }}
+                className="flex-1"
               >
                 İptal
               </Button>
               <Button
-                variant={showDeactivateDialog ? "destructive" : "default"}
-                className={
-                  showActivateDialog ? "bg-green-600 hover:bg-green-700" : ""
-                }
+                variant={showDeactivateDialog ? "outline" : "default"}
+                className={`flex-1 ${
+                  showDeactivateDialog
+                    ? "border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/20"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
                 onClick={() => {
                   if (onUpdate) {
                     onUpdate({
@@ -869,7 +996,17 @@ export const MemberDetail = ({
                   }
                 }}
               >
-                {showDeactivateDialog ? "Pasife Al" : "Aktife Al"}
+                {showDeactivateDialog ? (
+                  <>
+                    <UserX className="h-4 w-4 mr-2" />
+                    Pasife Al
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Aktife Al
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

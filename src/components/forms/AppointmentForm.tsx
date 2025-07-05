@@ -133,11 +133,21 @@ export function AppointmentForm({
       return;
     }
 
+    // Yeni randevu oluşturulurken
     if (!appointment) {
       setSessions([
         {
           date: defaultDate || "",
           time: defaultTime || "",
+          hasConflict: false,
+        },
+      ]);
+    } else {
+      // Randevu düzenlenirken - mevcut randevu bilgilerini kullan
+      setSessions([
+        {
+          date: appointment.date,
+          time: appointment.time,
           hasConflict: false,
         },
       ]);

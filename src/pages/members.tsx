@@ -11,6 +11,7 @@ import {
   getMembers,
   createMember,
   updateMember,
+  deleteMember,
   getServices,
 } from "@/lib/queries";
 import type { Database } from "@/types/supabase";
@@ -500,6 +501,17 @@ const MembersPage = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMember(id);
+      setSelectedMember(null);
+      toast.success("Üye başarıyla silindi.");
+    } catch (error) {
+      console.error("Üye silinirken hata:", error);
+      toast.error("Üye silinirken bir hata oluştu.");
+    }
+  };
+
   if (isLoading) {
     return <LoadingSpinner text="Üyeler yükleniyor..." />;
   }
@@ -596,6 +608,7 @@ const MembersPage = () => {
               trainers={trainers}
               appointments={appointments}
               onEdit={setEditingMember}
+              onDelete={handleDelete}
               onAppointmentDeleted={(appointmentId) => {
                 // Randevu silindiğinde appointments state'ini güncelle
                 setAppointments((currentAppointments) =>
