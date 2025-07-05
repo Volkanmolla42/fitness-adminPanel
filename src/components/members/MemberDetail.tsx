@@ -557,7 +557,15 @@ export const MemberDetail = ({
   const checkDeleteConfirmation = (text: string) => {
     setDeleteConfirmText(text);
     const expectedText = `${member.first_name} ${member.last_name}`;
-    setIsDeleteConfirmed(text.trim().toLowerCase() === expectedText.toLowerCase());
+
+    // Tüm boşlukları normalize et ve karşılaştır (case-insensitive)
+    const normalizeText = (str: string) =>
+      str.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const inputNormalized = normalizeText(text);
+    const expectedNormalized = normalizeText(expectedText);
+
+    setIsDeleteConfirmed(inputNormalized === expectedNormalized);
   };
 
   const handleSavePostponement = async () => {
@@ -871,7 +879,7 @@ export const MemberDetail = ({
                   {member.first_name} {member.last_name}
                 </p>
                 <Input
-                  placeholder="Üyenin tam adını buraya yazın..."
+                  placeholder="Üyenin adını yazın (büyük/küçük harf fark etmez)..."
                   value={deleteConfirmText}
                   onChange={(e) => checkDeleteConfirmation(e.target.value)}
                   className={`${
@@ -884,7 +892,7 @@ export const MemberDetail = ({
                 />
                 {deleteConfirmText && !isDeleteConfirmed && (
                   <p className="text-xs text-red-600 dark:text-red-400">
-                    Girilen ad eşleşmiyor. Lütfen tam olarak &quot;{member.first_name} {member.last_name}&quot; yazın.
+                    Girilen ad eşleşmiyor. Lütfen üyenin tam adını yazın: &quot;{member.first_name} {member.last_name}&quot; (büyük/küçük harf fark etmez)
                   </p>
                 )}
               </div>
