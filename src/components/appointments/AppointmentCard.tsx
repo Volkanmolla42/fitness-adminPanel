@@ -42,16 +42,14 @@ interface AppointmentCardProps {
     time: string;
     status: string;
     notes?: string;
+    updated_at?: string | null;
   };
   member: {
     id: string;
     firstName: string;
     lastName: string;
     avatar?: string;
-    membership_type?: string;
     phone_number?: string;
-    email?: string;
-    postponement_count?: number;
   };
   trainer: {
     firstName: string;
@@ -188,11 +186,6 @@ const AppointmentCard = ({
         ref={cardRef}
         onClick={() => setIsMemberModalOpen(true)}
       >
-        {member.postponement_count === 0 && (
-          <span className="text-xs absolute text-white bottom-2 bg-red-500 right-14 dark:bg-red-500/40 rounded-full px-2 py-1">
-            {member.postponement_count} Erteleme Hakkı
-          </span>
-        )}
         <button
           className={`z-50 absolute bottom-2 right-2 cursor-pointer flex items-center rounded-md p-2 ${
             isDark
@@ -454,6 +447,34 @@ const AppointmentCard = ({
                 {appointment.notes}
               </div>
             )}
+
+            {/* Son güncelleme */}
+            <div
+              className={`text-[11px] sm:text-xs ${
+                isDark ? "text-gray-400" : "text-gray-500"
+              } flex items-center gap-1`}
+            >
+              <Clock className="w-3 h-3 opacity-70" />
+              <span>
+                Son güncelleme:{" "}
+                {(() => {
+                  const iso = (appointment as { updated_at?: string | null }).updated_at;
+                  if (!iso) return "—";
+                  try {
+                    const d = new Date(iso);
+                    return new Intl.DateTimeFormat("tr-TR", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(d);
+                  } catch {
+                    return iso;
+                  }
+                })()}
+              </span>
+            </div>
           </div>
         </div>
       </Card>

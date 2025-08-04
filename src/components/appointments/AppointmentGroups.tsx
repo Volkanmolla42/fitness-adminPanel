@@ -84,10 +84,7 @@ const AppointmentGroups: React.FC<AppointmentGroupsProps> = ({
                     firstName: member?.first_name || "",
                     lastName: member?.last_name || "",
                     avatar: member?.avatar_url || "",
-                    membership_type: member?.membership_type || "",
-                    email: member?.email || "",
                     phone_number: member?.phone || "",
-                    postponement_count: member?.postponement_count || 0,
                   }}
                   trainer={{
                     firstName: trainers.find((t) => t.id === appointment.trainer_id)?.first_name || "",

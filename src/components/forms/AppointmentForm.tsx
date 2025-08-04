@@ -297,9 +297,54 @@ export function AppointmentForm({
   const selectedMember = members.find(
     (member) => member.id === form.watch("member_id")
   );
-  const availableServices = services.filter((service) =>
-    selectedMember?.subscribed_services?.includes(service.id)
-  );
+
+  // Üyenin tüm paketleri listelensin; kalan hakkı olmayanlar yanına uyarı etiketi ile gösterilsin
+  // Çoklu satın alma desteği: aynı paketten birden fazla alındıysa toplam hak = session_count * satın_alım_adedi
+  // Not: Şu anda satın alma adedini belirleyen doğrudan bir alan/ilişki yok. Geçici çözüm:
+  // - subscribed_services içinde aynı service.id birden çok kez bulunuyorsa bu adet olarak kabul edilir.
+  // - Eğer subscribed_services tekrarsız ise (muhtemel), o zaman 1 kabul edilir.
+  // Kalan hesap: remaining = totalQuota - (completed + planned[schedule + in-progress])
+  const serviceUsages = new Map<string, { remaining: number; completed: number; planned: number; totalQuota: number }>();
+
+  // Üyenin paket ID'lerine göre adet haritası (çoklu satın alımı tespit için)
+  const subscribedCounts = (() => {
+    const map = new Map<string, number>();
+    const list = selectedMember?.subscribed_services || [];
+    for (const id of list) {
+      map.set(id, (map.get(id) || 0) + 1);
+    }
+    return map;
+  })();
+
+  const availableServices = services
+    .filter((service) => selectedMember?.subscribed_services?.includes(service.id))
+    .map((service) => {
+      // Çoklu satın alma: eğer aynı service.id birden fazla varsa bu kadar adet alınmış varsay
+      const purchaseCount = subscribedCounts.get(service.id) || 1;
+      const totalQuota = (service.session_count || 0) * purchaseCount;
+
+      if (!selectedMember) {
+        serviceUsages.set(service.id, { remaining: totalQuota, completed: 0, planned: 0, totalQuota });
+        return service;
+      }
+
+      const memberServiceAppointments = appointments.filter(
+        (apt) => apt.member_id === selectedMember.id && apt.service_id === service.id
+      );
+
+      const completedCount = memberServiceAppointments.filter(
+        (apt) => apt.status === "completed"
+      ).length;
+
+      const plannedCount = memberServiceAppointments.filter(
+        (apt) => apt.status === "scheduled" || apt.status === "in-progress"
+      ).length;
+
+      const remaining = totalQuota - (completedCount + plannedCount);
+
+      serviceUsages.set(service.id, { remaining, completed: completedCount, planned: plannedCount, totalQuota });
+      return service;
+    });
 
   const handleSubmit = async (data: AppointmentInput) => {
     setIsSubmitting(true);
@@ -559,11 +604,32 @@ export function AppointmentForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {availableServices.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          <span className="truncate">{service.name}</span>
-                        </SelectItem>
-                      ))}
+                      {availableServices.map((service) => {
+                        const usage = serviceUsages.get(service.id);
+                        const noRemaining = usage ? usage.remaining <= 0 : false;
+                        const multiText =
+                          usage && usage.totalQuota > (service.session_count || 0)
+                            ? `(x${Math.max(1, Math.round(usage.totalQuota / (service.session_count || 1)))})`
+                            : null;
+
+                        return (
+                          <SelectItem key={service.id} value={service.id}>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate">{service.name}</span>
+                                {multiText && (
+                                  <span className="text-xs text-muted-foreground">{multiText}</span>
+                                )}
+                              </div>
+                              {noRemaining && (
+                                <span className="text-xs text-muted-foreground mt-0.5">
+                                  tüm seanslar tamamlandı/planlandı
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
