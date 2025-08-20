@@ -94,6 +94,21 @@ export const updateTrainer = async (
   return data;
 };
 
+export const updateTrainerStatus = async (
+  id: string,
+  status: "active" | "passive"
+) => {
+  const { data, error } = await supabase
+    .from("trainers")
+    .update({ status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
 export const deleteTrainer = async (id: string) => {
   const { error } = await supabase.from("trainers").delete().eq("id", id);
 
@@ -232,7 +247,7 @@ export const updateAppointment = async (
       .select("postponement_count")
       .eq("id", appointment.member_id)
       .single();
-  
+
     if (memberError) throw memberError;
 
     // Sonra postponement_count değerini 1 azalt
@@ -242,10 +257,10 @@ export const updateAppointment = async (
       .from("members")
       .update({ postponement_count: newCount })
       .eq("id", appointment.member_id);
-  
+
     if (updateError) throw updateError;
   }
-  
+
   return data;
 };
 

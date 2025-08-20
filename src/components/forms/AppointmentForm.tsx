@@ -87,7 +87,10 @@ export function AppointmentForm({
   // Randevu tarih veya saatinin değişip değişmediğini kontrol eden fonksiyon
   const hasDateTimeChanged = () => {
     if (!appointment || !sessions[0]?.date || !sessions[0]?.time) return false;
-    return appointment.date !== sessions[0].date || appointment.time !== sessions[0].time;
+    return (
+      appointment.date !== sessions[0].date ||
+      appointment.time !== sessions[0].time
+    );
   };
 
   useEffect(() => {
@@ -244,7 +247,6 @@ export function AppointmentForm({
       );
     }
   }, [appointment, services]);
-  
 
   // Varsayılan servis ID'sini saklamak için bir state
   const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
@@ -304,7 +306,15 @@ export function AppointmentForm({
   // - subscribed_services içinde aynı service.id birden çok kez bulunuyorsa bu adet olarak kabul edilir.
   // - Eğer subscribed_services tekrarsız ise (muhtemel), o zaman 1 kabul edilir.
   // Kalan hesap: remaining = totalQuota - (completed + planned[schedule + in-progress])
-  const serviceUsages = new Map<string, { remaining: number; completed: number; planned: number; totalQuota: number }>();
+  const serviceUsages = new Map<
+    string,
+    {
+      remaining: number;
+      completed: number;
+      planned: number;
+      totalQuota: number;
+    }
+  >();
 
   // Üyenin paket ID'lerine göre adet haritası (çoklu satın alımı tespit için)
   const subscribedCounts = (() => {
@@ -317,19 +327,27 @@ export function AppointmentForm({
   })();
 
   const availableServices = services
-    .filter((service) => selectedMember?.subscribed_services?.includes(service.id))
+    .filter((service) =>
+      selectedMember?.subscribed_services?.includes(service.id)
+    )
     .map((service) => {
       // Çoklu satın alma: eğer aynı service.id birden fazla varsa bu kadar adet alınmış varsay
       const purchaseCount = subscribedCounts.get(service.id) || 1;
       const totalQuota = (service.session_count || 0) * purchaseCount;
 
       if (!selectedMember) {
-        serviceUsages.set(service.id, { remaining: totalQuota, completed: 0, planned: 0, totalQuota });
+        serviceUsages.set(service.id, {
+          remaining: totalQuota,
+          completed: 0,
+          planned: 0,
+          totalQuota,
+        });
         return service;
       }
 
       const memberServiceAppointments = appointments.filter(
-        (apt) => apt.member_id === selectedMember.id && apt.service_id === service.id
+        (apt) =>
+          apt.member_id === selectedMember.id && apt.service_id === service.id
       );
 
       const completedCount = memberServiceAppointments.filter(
@@ -342,7 +360,12 @@ export function AppointmentForm({
 
       const remaining = totalQuota - (completedCount + plannedCount);
 
-      serviceUsages.set(service.id, { remaining, completed: completedCount, planned: plannedCount, totalQuota });
+      serviceUsages.set(service.id, {
+        remaining,
+        completed: completedCount,
+        planned: plannedCount,
+        totalQuota,
+      });
       return service;
     });
 
@@ -351,7 +374,10 @@ export function AppointmentForm({
     try {
       if (sessions.length > 1) {
         for (const session of sessions) {
-          await onSubmit({ ...data, date: session.date, time: session.time }, isPostpone);
+          await onSubmit(
+            { ...data, date: session.date, time: session.time },
+            isPostpone
+          );
         }
       } else {
         await onSubmit(data, isPostpone);
@@ -514,7 +540,7 @@ export function AppointmentForm({
                                   ? "cursor-pointer hover:bg-accent hover:text-accent-foreground"
                                   : "cursor-not-allowed opacity-60",
                                 member.id === field.value &&
-                                "bg-accent text-accent-foreground"
+                                  "bg-accent text-accent-foreground"
                               )}
                             >
                               <div className="flex items-center justify-between w-full">
@@ -596,7 +622,7 @@ export function AppointmentForm({
                         <SelectValue
                           placeholder={
                             !form.watch("member_id") ||
-                              !form.watch("trainer_id")
+                            !form.watch("trainer_id")
                               ? "Önce üye ve antrenör seçin"
                               : "Paket seçin"
                           }
@@ -606,19 +632,39 @@ export function AppointmentForm({
                     <SelectContent>
                       {availableServices.map((service) => {
                         const usage = serviceUsages.get(service.id);
-                        const noRemaining = usage ? usage.remaining <= 0 : false;
+                        const noRemaining = usage
+                          ? usage.remaining <= 0
+                          : false;
                         const multiText =
-                          usage && usage.totalQuota > (service.session_count || 0)
-                            ? `(x${Math.max(1, Math.round(usage.totalQuota / (service.session_count || 1)))})`
+                          usage &&
+                          usage.totalQuota > (service.session_count || 0)
+                            ? `(x${Math.max(
+                                1,
+                                Math.round(
+                                  usage.totalQuota /
+                                    (service.session_count || 1)
+                                )
+                              )})`
                             : null;
 
                         return (
-                          <SelectItem key={service.id} value={service.id}>
+                          <SelectItem
+                            key={service.id}
+                            value={service.id}
+                            disabled={noRemaining}
+                            className={cn(
+                              "cursor-pointer hover:bg-accent hover:text-accent-foreground border-green-500 border",
+                              noRemaining &&
+                                "cursor-not-allowed opacity-60 border-red-500 border"
+                            )}
+                          >
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
                                 <span className="truncate">{service.name}</span>
                                 {multiText && (
-                                  <span className="text-xs text-muted-foreground">{multiText}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {multiText}
+                                  </span>
                                 )}
                               </div>
                               {noRemaining && (
@@ -710,21 +756,39 @@ export function AppointmentForm({
           )}
         />
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6">
-        <TooltipProvider>
+          <TooltipProvider>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button
                   type="submit"
                   onClick={() => setIsPostpone(false)}
-                  disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time}
+                  disabled={
+                    isSubmitting || !sessions[0]?.date || !sessions[0]?.time
+                  }
                   className="w-full sm:w-auto"
                   variant="outline"
                 >
-                  {isSubmitting ? "İşleniyor..." : appointment ? "Güncelle" : "Ekle"}
+                  {isSubmitting
+                    ? "İşleniyor..."
+                    : appointment
+                    ? "Güncelle"
+                    : "Ekle"}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{appointment ? <p>Erteleme hakkı <span className="font-bold text-red-500 ">kullanılmaz</span> ve randevu bilgileri günceller</p> : "Yeni randevu ekle"}</p>
+                <p>
+                  {appointment ? (
+                    <p>
+                      Erteleme hakkı{" "}
+                      <span className="font-bold text-red-500 ">
+                        kullanılmaz
+                      </span>{" "}
+                      ve randevu bilgileri günceller
+                    </p>
+                  ) : (
+                    "Yeni randevu ekle"
+                  )}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -733,41 +797,51 @@ export function AppointmentForm({
               {showPostponementWarning && (
                 <Alert className="bg-amber-50  text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-900/30">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>
-                    Üyenin erteleme hakkı kalmamıştır
-                  </AlertTitle>
+                  <AlertTitle>Üyenin erteleme hakkı kalmamıştır</AlertTitle>
                   <AlertDescription className="text-xs">
-                    Yanlışlık olduğunu düşünüyorsanız üyeler sayfasından düzenleyebilirsiniz.
+                    Yanlışlık olduğunu düşünüyorsanız üyeler sayfasından
+                    düzenleyebilirsiniz.
                   </AlertDescription>
                 </Alert>
               )}
-              {selectedMember?.postponement_count > 0 && hasDateTimeChanged() && (
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setIsPostpone(true);
-                          form.handleSubmit(handleSubmit)(e);
-                        }}
-                        variant="default"
-                        disabled={isSubmitting || !sessions[0]?.date || !sessions[0]?.time || (selectedMember?.postponement_count === 0)}
-                        className="w-full hover:bg-gray-500 sm:w-auto"
-                      >
-                        {isSubmitting ? "İşleniyor..." : "Ertele"}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Erteleme hakkı <span className="font-bold text-green-500 ">kullanılır</span> ve randevu bilgileri günceller</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
+              {selectedMember?.postponement_count > 0 &&
+                hasDateTimeChanged() && (
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="submit"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setIsPostpone(true);
+                            form.handleSubmit(handleSubmit)(e);
+                          }}
+                          variant="default"
+                          disabled={
+                            isSubmitting ||
+                            !sessions[0]?.date ||
+                            !sessions[0]?.time ||
+                            selectedMember?.postponement_count === 0
+                          }
+                          className="w-full hover:bg-gray-500 sm:w-auto"
+                        >
+                          {isSubmitting ? "İşleniyor..." : "Ertele"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Erteleme hakkı{" "}
+                          <span className="font-bold text-green-500 ">
+                            kullanılır
+                          </span>{" "}
+                          ve randevu bilgileri günceller
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </>
           )}
-         
         </DialogFooter>
       </form>
 

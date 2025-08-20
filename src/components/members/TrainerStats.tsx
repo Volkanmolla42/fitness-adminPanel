@@ -107,7 +107,7 @@ export const TrainerStats = ({
     <div className="space-y-6">
       {/* Trainer Selection Cards */}
       <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
           {/* All Trainers Card */}
           <Card
             onClick={() => onTrainerSelect("all")}

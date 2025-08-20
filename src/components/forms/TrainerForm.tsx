@@ -21,7 +21,7 @@ import { Loader2 } from "lucide-react";
 import { useAvailableTimeSlots } from "@/constants/timeSlots";
 
 type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
-type TrainerInput = Omit<Trainer, "id" | "created_at">;
+type TrainerInput = Database["public"]["Tables"]["trainers"]["Insert"];
 export const categories = [
   "Fitness",
   "Yoga",
@@ -33,7 +33,7 @@ export const categories = [
   "Beslenme Danışmanlığı",
 ];
 interface TrainerFormProps {
-  trainer?: Trainer;
+  trainer?: Partial<Trainer>;
   onSubmit: (data: TrainerInput) => void;
   onCancel: () => void;
 }

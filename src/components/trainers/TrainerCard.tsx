@@ -49,13 +49,18 @@ export const TrainerCard = ({
   onClick,
   getRemainingMinutes,
 }: TrainerCardProps) => {
+  const isPassive = trainer.status === "passive";
   return (
     <Card
       className={cn(
         "relative  min-w-[500px] cursor-pointer overflow-hidden border-zinc-300 bg-gradient-to-br from-white to-gray-50 p-6 transition-all",
-        "hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/20",
-        "dark:from-gray-900 dark:to-gray-800 dark:hover:shadow-gray-950",
-        isBusy && "border-l-4 border-yellow-400"
+        isPassive
+          ? "opacity-60 hover:opacity-70 hover:shadow-none hover:translate-y-0"
+          : "hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/20",
+        isPassive ? "dark:opacity-70" : "dark:hover:shadow-gray-950",
+        "dark:from-gray-900 dark:to-gray-800",
+        isBusy && "border-l-4 border-yellow-400",
+        isPassive && "border-l-4 border-gray-300"
       )}
       onClick={onClick}
     >
@@ -73,7 +78,7 @@ export const TrainerCard = ({
             className={cn(
               "h-16 w-16 rounded-2xl border-4 border-white bg-gradient-to-tr",
               "from-primary/20 to-primary/40 p-2 shadow-lg dark:border-gray-800",
-              isBusy ? "grayscale-[40%]" : "grayscale-0"
+              isBusy || isPassive ? "grayscale-[40%]" : "grayscale-0"
             )}
           >
             {trainer.first_name && trainer.last_name ? (

@@ -243,6 +243,7 @@ export type Database = {
           last_name: string;
           name: string;
           phone: string;
+          status: string;
           start_date: string;
           working_hours: {
             start: string;
@@ -259,6 +260,7 @@ export type Database = {
           last_name: string;
           name: string;
           phone: string;
+          status?: string;
           start_date: string;
           working_hours?: {
             start: string;
@@ -275,6 +277,7 @@ export type Database = {
           last_name?: string;
           name?: string;
           phone?: string;
+          status?: string;
           start_date?: string;
           working_hours?: {
             start: string;

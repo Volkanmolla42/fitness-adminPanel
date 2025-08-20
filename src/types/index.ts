@@ -15,6 +15,7 @@ export interface Trainer {
   };
   categories: string[];
   created_at: string;
+  status?: "active" | "passive";
   hasOngoingAppointment?: boolean;
 }
 

@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trainer } from "@/types";
-import React,{ useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Trainer, Appointment } from "@/types";
+import React, { useState, useEffect } from "react";
 import { DeleteTrainerDialog } from "./DeleteTrainerDialog";
 import { TrainerAppointmentHistoryDialog } from "./TrainerAppointmentHistoryDialog";
 
@@ -28,7 +29,11 @@ interface TrainerDialogProps {
   onClose: () => void;
   onEdit: (trainer: Trainer) => void;
   onDelete: (id: string) => void;
-  getTrainerAppointments: (trainerId: string) => any[];
+  getTrainerAppointments: (trainerId: string) => Appointment[];
+  onToggleStatus: (
+    id: string,
+    nextStatus: "active" | "passive"
+  ) => void | Promise<void>;
 }
 
 export const TrainerDialog = ({
@@ -37,9 +42,19 @@ export const TrainerDialog = ({
   onEdit,
   onDelete,
   getTrainerAppointments,
+  onToggleStatus,
 }: TrainerDialogProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [localStatus, setLocalStatus] = useState<"active" | "passive">(
+    trainer?.status === "passive" ? "passive" : "active"
+  );
+
+  // Sync localStatus when trainer.status changes externally (DB update, parent state change)
+  useEffect(() => {
+    if (!trainer) return;
+    setLocalStatus(trainer.status === "passive" ? "passive" : "active");
+  }, [trainer?.status]);
 
   if (!trainer) return null;
 
@@ -131,6 +146,35 @@ export const TrainerDialog = ({
                   <p className="text-xs leading-relaxed">{trainer.bio}</p>
                 </div>
               )}
+
+              {/* Durum (Aktif/passive) */}
+              <div className="col-span-2 flex justify-between items-center bg-muted/20 p-2 rounded-lg">
+                <div className="space-y-0.5">
+                  <h4 className="font-medium text-xs uppercase tracking-wider text-muted-foreground/70">
+                    Durum
+                  </h4>
+                  <Badge
+                    variant={localStatus === "active" ? "default" : "outline"}
+                    className="text-xs px-1.5 py-0"
+                  >
+                    {localStatus === "active" ? "Aktif" : "Pasif"}
+                  </Badge>
+                </div>
+                <Switch
+                  checked={localStatus === "active"}
+                  onCheckedChange={async (checked) => {
+                    const next = checked ? "active" : "passive";
+                    setLocalStatus(next);
+                    try {
+                      await onToggleStatus(trainer.id, next);
+                    } catch {
+                      // revert on error
+                      setLocalStatus(checked ? "passive" : "active");
+                    }
+                  }}
+                  aria-label="Antrenör durumunu değiştir"
+                />
+              </div>
 
               <div className="col-span-2 flex justify-between items-center bg-accent/20 p-2 rounded-lg">
                 <div className="space-y-1">

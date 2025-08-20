@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import {
   getMembers,
@@ -174,6 +170,7 @@ const MembersPage = () => {
       const { data: trainersData } = await supabase
         .from("trainers")
         .select("*")
+        .eq("status", "active")
         .order("first_name", { ascending: true });
 
       if (trainersData) {
@@ -451,7 +448,6 @@ const MembersPage = () => {
 
   const handleCreate = async (data: MemberFormData) => {
     try {
-    
       const memberData = {
         ...data,
         active: true, // Varsayılan olarak aktif
@@ -632,7 +628,7 @@ const MembersPage = () => {
                     if (refreshedMember) {
                       setSelectedMember(refreshedMember);
                     }
-                  }, 500); 
+                  }, 500);
                 } catch (error) {
                   console.error("Paket tamamlanırken hata:", error);
                   toast.error("Paket tamamlanırken bir hata oluştu.");

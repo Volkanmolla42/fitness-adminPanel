@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getTrainers,
   getAppointments,
@@ -17,6 +18,7 @@ import {
   createTrainer,
   updateTrainer,
   deleteTrainer,
+  updateTrainerStatus,
 } from "@/lib/queries";
 import { toast } from "sonner";
 import { Trainer, Appointment, TrainerInput } from "@/types";
@@ -37,19 +39,32 @@ const TrainersPage = () => {
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
   const [editingTrainer, setEditingTrainer] = useState<Trainer | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const appointmentsChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     fetchData();
     setupRealtimeSubscription();
     return () => {
-      supabase.channel("trainers").unsubscribe();
-      supabase.channel("appointments").unsubscribe();
+      try {
+        appointmentsChannelRef.current?.unsubscribe();
+      } catch (e) {
+        console.debug("Appointments channel unsubscribe error:", e);
+      }
     };
   }, []);
 
-  const fetchData = async () => {
+  // Keep selectedTrainer in sync with the latest trainers list (e.g., after a fetch)
+  useEffect(() => {
+    if (!selectedTrainer) return;
+    const updated = trainers.find((t) => t.id === selectedTrainer.id);
+    if (updated && updated.status !== selectedTrainer.status) {
+      setSelectedTrainer(updated);
+    }
+  }, [trainers, selectedTrainer?.id]);
+
+  const fetchData = async (silent: boolean = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const [trainersData, appointmentsData, servicesData] = await Promise.all([
         getTrainers(),
         getAppointments(),
@@ -57,7 +72,16 @@ const TrainersPage = () => {
       ]);
 
       if (trainersData) {
-        setTrainers(trainersData);
+        const normalizedTrainers: Trainer[] = trainersData.map((t) => {
+          const normalizedStatus =
+            t.status === "active"
+              ? "active"
+              : t.status === "passive" || t.status === "pasif" || t.status === "inactive"
+              ? "passive"
+              : "active";
+          return { ...t, status: normalizedStatus } as Trainer;
+        });
+        setTrainers(normalizedTrainers);
       }
       if (appointmentsData) {
         const validAppointments = appointmentsData.map((appointment) => {
@@ -84,28 +108,21 @@ const TrainersPage = () => {
       console.error("Error fetching data:", error);
       toast.error("Failed to fetch data. Please try again.");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   const setupRealtimeSubscription = () => {
-    supabase
-      .channel("trainers")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "trainers" },
-        fetchData
-      )
-      .subscribe();
-
-    supabase
+    // Sadece appointments channel: sessiz yenileme ile flicker olmadan veri tazeleyin
+    const appointmentsChannel = supabase
       .channel("appointments")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "appointments" },
-        fetchData
+        () => fetchData(true)
       )
       .subscribe();
+    appointmentsChannelRef.current = appointmentsChannel;
   };
 
   const handleCreate = async (data: TrainerInput) => {
@@ -147,6 +164,38 @@ const TrainersPage = () => {
     return appointments.filter(
       (appointment) => appointment.trainer_id === trainerId
     );
+  };
+
+  const handleToggleStatus = async (
+    id: string,
+    nextStatus: "active" | "passive"
+  ) => {
+    const prevTrainers = trainers;
+    const tForName = prevTrainers.find((t) => t.id === id);
+    const fullName = tForName
+      ? `${tForName.first_name ?? ""} ${tForName.last_name ?? ""}`.trim()
+      : "Antrenör";
+    const prevSelected = selectedTrainer;
+    setTrainers((list) =>
+      list.map((t) => (t.id === id ? { ...t, status: nextStatus } : t))
+    );
+    // keep dialog in sync immediately
+    setSelectedTrainer((curr) =>
+      curr && curr.id === id ? ({ ...curr, status: nextStatus } as Trainer) : curr
+    );
+    try {
+      await updateTrainerStatus(id, nextStatus);
+      toast.success(
+        nextStatus === "active"
+          ? `${fullName} aktifleştirildi.`
+          : `${fullName} pasif yapıldı.`
+      );
+    } catch (error) {
+      console.error("Durum güncellenirken hata:", error);
+      setTrainers(prevTrainers);
+      setSelectedTrainer(prevSelected);
+      toast.error("Durum güncellenirken bir hata oluştu.");
+    }
   };
   const getRemainingMinutes = (
     startTime: string,
@@ -285,6 +334,7 @@ const TrainersPage = () => {
         }}
         onDelete={handleDelete}
         getTrainerAppointments={getTrainerAppointments}
+        onToggleStatus={handleToggleStatus}
       />
 
       {editingTrainer && (
